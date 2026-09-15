@@ -1,0 +1,46 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{% block title %}MVet 1.0{% endblock %} · Mercadovet</title>
+  <link rel="stylesheet" href="{% static 'mvet.css' %}">
+  <script src="{% static 'mvet.js' %}" defer></script>
+</head>
+<body>
+<a class="skip" href="#content">Pular para o conteúdo</a>
+{% if user.is_authenticated %}
+<aside class="sidebar">
+  <a class="brand" href="{% url 'home' %}"><span class="brand-mark">M</span><span>Mercadovet<small>MVet 1.0</small></span></a>
+  <nav aria-label="Navegação principal">
+    <a href="{% url 'home' %}">Início</a>
+    {% if perms.core.view_dashboard %}<a href="{% url 'dashboard' %}">Indicadores</a>{% endif %}
+    {% if perms.core.view_dre %}<a href="{% url 'dre' %}">DRE gerencial</a>{% endif %}
+    {% if perms.core.view_finance %}<a href="{% url 'finance' %}">Financeiro</a>{% endif %}
+    {% if perms.core.manage_configuration %}<a href="{% url 'configuration' %}">Configurações</a>{% endif %}
+    {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administração</a>{% endif %}
+  </nav>
+  <div class="sidebar-foot">Gestão interna<br>Mercadovet Produtos Agroveterinários</div>
+</aside>
+{% endif %}
+<div class="shell {% if not user.is_authenticated %}anonymous{% endif %}">
+  <header class="topbar">
+    <span>{% if user.is_authenticated %}Área de trabalho{% else %}Mercadovet · Gestão interna{% endif %}</span>
+    <div class="actions">
+      <button type="button" class="quiet" id="theme-toggle" aria-label="Alternar modo claro e escuro">Tema</button>
+      {% if user.is_authenticated %}
+      <span class="username">{{ user.get_full_name|default:user.username }}</span>
+      <a href="{% url 'password_change' %}">Senha</a>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="quiet">Sair</button></form>
+      {% endif %}
+    </div>
+  </header>
+  <main id="content">
+    {% for message in messages %}<div class="notice" role="status">{{ message }}</div>{% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+</body>
+</html>

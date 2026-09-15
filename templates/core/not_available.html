@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<section class="card"><h2>Em implantação</h2><p>{{ description }}</p><a href="{% url 'home' %}">Voltar ao início</a></section>
+{% endblock %}

@@ -1,0 +1,18 @@
+from django.contrib import admin
+from django.contrib.auth import views as auth_views
+from django.urls import path
+from apps.core import views
+from apps.accounts.views import AuditedPasswordChangeView
+
+urlpatterns = [
+    path("entrar/", auth_views.LoginView.as_view(template_name="registration/login.html"), name="login"),
+    path("sair/", auth_views.LogoutView.as_view(), name="logout"),
+    path("senha/", AuditedPasswordChangeView.as_view(), name="password_change"),
+    path("", views.home, name="home"),
+    path("configuracoes/", views.configuration, name="configuration"),
+    path("indicadores/", views.dashboard, name="dashboard"),
+    path("dre/", views.dre, name="dre"),
+    path("financeiro/", views.finance, name="finance"),
+    path("api/v1/indicadores/", views.dashboard_api, name="dashboard_api"),
+    path("admin/", admin.site.urls),
+]
