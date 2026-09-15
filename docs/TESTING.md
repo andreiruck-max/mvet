@@ -21,3 +21,12 @@ Vendas: snapshot histórico, múltiplos itens, margem/impostos e cancelamento.
 Financeiro: idempotência, saldos retroativos/futuros, transferência, abertura e competência.
 Importação: duplicidade/preview/rollback quando implementada.
 UI: testar desktop/móvel, contraste claro/escuro, foco por teclado, mensagens e submissão. Não confundir renderização de template em teste HTTP com revisão visual humana.
+
+## Execução verificada
+Em 15/09/2026, [execução PostgreSQL 35010742097](https://github.com/andreiruck-max/mvet/actions/runs/35010742097) concluiu com sucesso para o código do commit c588366faa913f97bf6491ed5311b8b01145eb09:
+- 20 testes aprovados.
+- System check sem erros.
+- Nenhuma migration pendente de geração.
+- Migrations, setup e collectstatic executados com sucesso.
+
+Limites: não houve revisão visual interativa, build do Dockerfile nem teste de backup/restauração na máquina destino. A suite valida templates por HTTP, não substitui essas verificações.

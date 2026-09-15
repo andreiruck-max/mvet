@@ -4,7 +4,7 @@ Atualização: 15/09/2026. A entrada inicial será manual por decisão do usuár
 | Fase | Entrega / aceite | Estado |
 |---|---|---|
 | 0 | Diagnóstico, arquitetura, ERD, ADRs e regras de corte | Documentado |
-| 1 | Django/PostgreSQL/Docker, login, permissões, layout, auditoria, configuração, testes | Em desenvolvimento |
+| 1 | Django/PostgreSQL/Docker, login, permissões, layout, auditoria, configuração, testes | Implementado no PR #2; CI PostgreSQL aprovado; revisão visual e instalação destino pendentes |
 | 2 | Produtos, locais, abertura manual, entradas/saídas, média, fracionamento e kits | Planejado |
 | 3 | Venda manual com múltiplos itens, SKU/nome, snapshots, confirmação, cancelamento, filtros | Planejado |
 | 4 | Fornecedores, compra manual, recebimento, rateio e parcelas | Planejado |
@@ -21,3 +21,16 @@ Importação integral da planilha foi retirada do caminho crítico.
 ## Evolução
 Recorrência, conciliação, devoluções parciais, reservas, kits físicos, custos de embalagem/mão de obra, integrações de canais/bancos e automação de backup externo.
 Milestones nativos e proteção de branch ainda não configurados: as ferramentas atuais não expõem esses ajustes.
+
+## Issues
+- [Fase 1](https://github.com/andreiruck-max/mvet/issues/1)
+- [Fase 2 — estoque](https://github.com/andreiruck-max/mvet/issues/3)
+- [Fase 3 — vendas](https://github.com/andreiruck-max/mvet/issues/4)
+- [Fase 4 — compras](https://github.com/andreiruck-max/mvet/issues/5)
+- [Fase 5 — financeiro](https://github.com/andreiruck-max/mvet/issues/6)
+- [Fase 6 — despesas](https://github.com/andreiruck-max/mvet/issues/7)
+- [Fase 7 — indicadores e DRE](https://github.com/andreiruck-max/mvet/issues/8)
+- [Fase 8 — notificações](https://github.com/andreiruck-max/mvet/issues/9)
+- [Fase 9 — integrações opcionais](https://github.com/andreiruck-max/mvet/issues/10)
+
+A fundação foi publicada por plugin após indisponibilidade do ambiente local. O código de módulos transacionais iniciado localmente não foi incorporado, pois não foi validado. A branch remota é a fonte de verdade.

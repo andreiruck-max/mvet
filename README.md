@@ -2,7 +2,7 @@
 ERP gerencial interno da Mercadovet Produtos Agroveterinários.
 
 ## Estado atual
-**Fundação implementada:** autenticação, papéis/permissões, configuração da empresa, auditoria, layout claro/escuro, Docker e testes PostgreSQL. O CI valida cada alteração. Os módulos de produtos, estoque, vendas, compras e financeiro ainda estão planejados. Esta entrega não é um ERP pronto para operar.
+**Fundação implementada:** autenticação, papéis/permissões, configuração da empresa, auditoria, layout claro/escuro, Docker e testes PostgreSQL. [20 testes passaram no CI PostgreSQL](https://github.com/andreiruck-max/mvet/actions/runs/35010742097). Os módulos de produtos, estoque, vendas, compras e financeiro ainda estão planejados. Esta entrega não é um ERP pronto para operar.
 
 **Entrada manual; corte em 15/09/2026**, America/Sao_Paulo. A planilha é referência funcional, sem migração integral. Aberturas não afetam a DRE. Sem emissão fiscal e sem substituição do Bling.
 
@@ -11,7 +11,8 @@ Python 3.12, Django 5.2.17 LTS, PostgreSQL 16, Django ORM, templates e CSS/JS lo
 
 ## Instalação com Docker
 Requisitos: Git, Docker Engine/Desktop com Compose e terminal na pasta do projeto.
-1. Clone o repositório e entre na pasta.
+1. Clone o repositório e entre na pasta. Enquanto o PR #2 não for incorporado, use a branch `feat/mvet-foundation`:
+   `git clone --branch feat/mvet-foundation https://github.com/andreiruck-max/mvet.git`
 2. Copie `.env.example` para `.env` (PowerShell: `Copy-Item .env.example .env`).
 3. Gere dois valores aleatórios com `python -c "import secrets; print(secrets.token_urlsafe(48))"`. Use um em DJANGO_SECRET_KEY e outro em POSTGRES_PASSWORD. Não mantenha os placeholders.
 4. Execute:
