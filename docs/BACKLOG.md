@@ -34,3 +34,6 @@ Milestones nativos e proteção de branch ainda não configurados: as ferramenta
 - [Fase 9 — integrações opcionais](https://github.com/andreiruck-max/mvet/issues/10)
 
 A fundação foi publicada por plugin após indisponibilidade do ambiente local. O código de módulos transacionais iniciado localmente não foi incorporado, pois não foi validado. A branch remota é a fonte de verdade.
+
+## Atualização autorizada — estoque inicial
+Usar somente o estoque de ERP Mvet(2).xlsx como base atual de desenvolvimento, com abertura em 15/09/2026. A Fase 2 inclui carga validada/idempotente e ajustes positivos, negativos e de custo auditados. Demais operações continuam manuais. Carga e interface ainda não implementadas. Ver docs/INVENTORY.md e ADR 0005.
