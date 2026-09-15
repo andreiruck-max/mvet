@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [{
+    "name": "MVet · Django",
+    "type": "debugpy",
+    "request": "launch",
+    "program": "${workspaceFolder}/manage.py",
+    "args": ["runserver"],
+    "django": true,
+    "envFile": "${workspaceFolder}/.env",
+    "justMyCode": true
+  }]
+}

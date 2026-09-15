@@ -1,0 +1,5 @@
+# Apenas desenvolvimento: banco ligado ao loopback da máquina.
+services:
+  db:
+    ports:
+      - "127.0.0.1:5432:5432"
