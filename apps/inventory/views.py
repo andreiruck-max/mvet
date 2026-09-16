@@ -17,7 +17,7 @@ from .selectors import catalog, kit_summary
 from .services import execute, reverse, domain_lock
 
 def can_read(user):
-    return user.is_active and any(user.has_perm(p) for p in ['core.operate_stock','core.operate_sales','core.view_costs'])
+    return user.is_active and any(user.has_perm(p) for p in ['core.operate_stock','core.operate_sales','core.view_costs','core.operate_purchases','core.view_purchase_reports'])
 
 def check_read(user):
     if not can_read(user):raise PermissionDenied

@@ -165,8 +165,8 @@ def reverse(*,actor,operation_id,key,date,reason):
     previous=_repeat(key,fingerprint)
     if previous:return previous
     original=StockOperation.objects.get(pk=operation_id)
-    if original.kind in {'SALE_OUT','SALE_RETURN'}:
-        raise ValidationError('Operação vinculada a venda. Utilize o cancelamento na tela de vendas.')
+    if original.kind in {'SALE_OUT','SALE_RETURN','PUR_RECEIPT','PUR_RETURN'}:
+        raise ValidationError('Operação vinculada a compra ou venda. Utilize o cancelamento na tela correspondente.')
     if original.kind=='REVERSAL' or StockOperation.objects.filter(reversal_of=original).exists():
         raise ValidationError('Operação já estornada ou é um estorno.')
     moves=list(original.movements.order_by('-pk'))
