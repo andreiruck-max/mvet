@@ -9,7 +9,7 @@ from apps.core.services import require, audit
 from apps.products.models import Product
 from apps.inventory.models import StockLocation, StockOperation
 from apps.inventory.services import domain_lock, number, QTY, _fingerprint, _apply, _value_out, quant, _date
-from .models import Sale, SaleItem, SaleConsumption, SalesChannel, TaxRule
+from .models import Sale, SaleItem, SaleConsumption, SalesChannel, TaxRule, SaleExtraCost
 
 FINANCIAL_FIELDS = ['products_amount','discount','shipping_received','shipping_paid','fees','difal','commission','other_costs']
 EDIT_FIELDS = ['date','invoice_number','invoice_series','channel','location',*FINANCIAL_FIELDS,'tax_rule','tax_override','tax_reason','notes']
@@ -18,6 +18,7 @@ CENT = Decimal('0.01')
 def snapshot(sale):
     result = {field:str(getattr(sale,field)) for field in EDIT_FIELDS}
     result.update(status=sale.status, revision=sale.revision, items=[{'product':i.product_id,'quantity':str(i.quantity)} for i in sale.items.all()])
+    result['extra_costs']=[{'name':e.name,'amount':str(e.amount)} for e in sale.extra_costs.all()]
     return result
 
 def validate(sale):
@@ -39,11 +40,16 @@ def validate(sale):
     return company
 
 @transaction.atomic
-def save_draft(*,actor,key,data,items,sale_id=None,revision=0):
+def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None):
     require(actor,'core.operate_sales')
     domain_lock()
+    extra_costs=extra_costs or []
+    if len(extra_costs)>100:raise ValidationError("Limite de 100 taxas extras por venda.")
+    for name,amount in extra_costs:
+        if not name.strip() or len(name)>120:raise ValidationError("Informe a descrição da taxa extra.")
+        number(amount,CENT,zero=True)
     key=UUID(str(key))
-    fingerprint=_fingerprint([actor.pk,{k:str(v.pk if hasattr(v,'pk') else v) for k,v in data.items()},items])
+    fingerprint=_fingerprint([actor.pk,{k:str(v.pk if hasattr(v,'pk') else v) for k,v in data.items()},items,extra_costs])
     if sale_id is None:
         previous=Sale.objects.filter(key=key).first()
         if previous:
@@ -68,10 +74,13 @@ def save_draft(*,actor,key,data,items,sale_id=None,revision=0):
     for field in ['invoice_number','invoice_series']:
         value=getattr(sale,field)
         if value.isdecimal():setattr(sale,field,str(int(value)))
+    sale.extra_costs_total=sum((amount for _,amount in extra_costs),Decimal("0"))
     validate(sale)
     sale.revision+=1
     sale.full_clean(exclude=['stock_operation','return_operation','confirmed_by','cancelled_by','confirmed_at','cancelled_at','tax_snapshot'])
     sale.save()
+    sale.extra_costs.all().delete()
+    for name,amount in extra_costs:SaleExtraCost.objects.create(sale=sale,name=name.strip(),amount=amount)
     sale.items.all().delete()
     for pid,quantity in items: SaleItem.objects.create(sale=sale,product_id=pid,quantity=quantity)
     audit(actor,sale,'save_sale_draft',before,snapshot(sale))
@@ -112,10 +121,8 @@ def confirm(*,actor,sale_id,revision):
         item.unit_cost=quant(item.cmv/item.quantity)
         item.sku_snapshot=item.product.sku;item.name_snapshot=item.product.name
         item.full_clean();item.save();cmv+=item.cmv
-    rule=TaxRule.objects.get(pk=sale.tax_rule_id) if sale.tax_rule_id else None
-    base=sale.revenue if rule and rule.base=='REVENUE' else sale.products_amount-sale.discount
-    sale.tax_snapshot={'rule_id':rule.pk if rule else None,'name':rule.name if rule else 'Manual','rate':str(rule.rate) if rule else None,'base_type':rule.base if rule else None,'base_amount':str(base),'override':sale.tax_override is not None,'reason':sale.tax_reason}
-    sale.tax_amount=sale.tax_override if sale.tax_override is not None else (base*rule.rate/100).quantize(CENT,rounding=ROUND_HALF_UP)
+    from .taxes import calculate_tax
+    sale.tax_amount,sale.tax_snapshot=calculate_tax(sale)
     sale.cmv=cmv;sale.minimum_margin=company.minimum_margin
     sale.status='CONFIRMED';sale.stock_operation=operation;sale.confirmed_by=actor;sale.confirmed_at=timezone.now();sale.revision+=1
     sale.save()
@@ -147,6 +154,8 @@ def save_configuration(*,actor,model,data,pk=None):
     require(actor,'core.manage_configuration');domain_lock()
     obj=model.objects.select_for_update().get(pk=pk) if pk else model()
     before={k:str(getattr(obj,k)) for k in data}
+    if model is TaxRule and pk and any(k in data and data[k]!=getattr(obj,k) for k in ['rate','base','starts_on']):
+        raise ValidationError('Use Alíquota e vigência para alterar a tributação com histórico.')
     for k,v in data.items():setattr(obj,k,v)
     obj.full_clean();obj.save()
     audit(actor,obj,'sales_configuration',before,{k:str(v) for k,v in data.items()})

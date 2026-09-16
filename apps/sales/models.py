@@ -24,7 +24,7 @@ class TaxRule(models.Model):
     class Meta:
         ordering = ['name', '-starts_on']
         constraints = [models.CheckConstraint(condition=models.Q(rate__gte=0,rate__lte=100),name='sales_tax_rate_range'), models.CheckConstraint(condition=models.Q(ends_on__isnull=True)|models.Q(ends_on__gte=models.F('starts_on')),name='sales_tax_dates')]
-    def __str__(self): return f'{self.name} · {self.rate}%'
+    def __str__(self): return self.name
 
 class Sale(models.Model):
     key = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
@@ -43,6 +43,7 @@ class Sale(models.Model):
     difal = money('DIFAL (R$)')
     commission = money('Comissão (R$)')
     other_costs = money('Outros custos variáveis (R$)')
+    extra_costs_total = money('Total de taxas extras')
     tax_rule = models.ForeignKey(TaxRule, null=True, blank=True, on_delete=models.PROTECT, verbose_name='Regra tributária')
     tax_override = models.DecimalField('Imposto manual (R$)', max_digits=18, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)])
     tax_reason = models.CharField('Motivo do imposto manual', max_length=500, blank=True)
@@ -70,7 +71,7 @@ class Sale(models.Model):
     @property
     def revenue(self): return self.products_amount - self.discount + self.shipping_received
     @property
-    def contribution(self): return self.revenue-self.cmv-self.shipping_paid-self.fees-self.tax_amount-self.difal-self.commission-self.other_costs
+    def contribution(self): return self.revenue-self.cmv-self.shipping_paid-self.fees-self.tax_amount-self.difal-self.commission-self.other_costs-self.extra_costs_total
     @property
     def margin_percent(self): return self.contribution/self.revenue*100 if self.revenue else None
     @property
@@ -94,3 +95,35 @@ class SaleItem(models.Model):
 class SaleConsumption(Immutable):
     item = models.ForeignKey(SaleItem, on_delete=models.PROTECT, related_name='consumptions')
     movement = models.OneToOneField(StockMovement, on_delete=models.PROTECT)
+
+
+class SaleExtraCost(models.Model):
+    sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name='extra_costs')
+    name = models.CharField('Taxa / descrição', max_length=120)
+    amount = money('Valor (R$)')
+    class Meta:
+        ordering = ['pk']
+        constraints = [models.CheckConstraint(condition=models.Q(amount__gte=0), name='sales_extra_nonnegative')]
+
+class TaxRateChange(Immutable):
+    rule = models.ForeignKey(TaxRule, on_delete=models.PROTECT, related_name='changes')
+    effective_from = models.DateField('Usar a partir de')
+    rate = models.DecimalField('Nova alíquota (%)', max_digits=7, decimal_places=4, validators=[MinValueValidator(0), MaxValueValidator(100)])
+    base = models.CharField('Base de cálculo', max_length=20, choices=TaxRule._meta.get_field('base').choices)
+    reason = models.CharField('Motivo', max_length=500)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        ordering = ['-effective_from','-pk']
+        indexes = [models.Index(fields=['rule','effective_from'])]
+        constraints = [models.CheckConstraint(condition=models.Q(rate__gte=0,rate__lte=100),name='sales_changed_tax_rate_range')]
+
+class SaleTaxRevision(Immutable):
+    sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name='tax_revisions')
+    change = models.ForeignKey(TaxRateChange, on_delete=models.PROTECT, related_name='revisions')
+    before_amount = money('Imposto anterior')
+    after_amount = money('Imposto recalculado')
+    before_snapshot = models.JSONField()
+    after_snapshot = models.JSONField()
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['sale','change'],name='sales_unique_tax_revision')]

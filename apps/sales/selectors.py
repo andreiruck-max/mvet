@@ -6,7 +6,7 @@ from .models import Sale
 def sales(data):
     rows=Sale.objects.select_related('channel')
     if data.get('q'):rows=rows.filter(Q(invoice_number__icontains=data['q'])|Q(items__product__sku__icontains=data['q'])|Q(items__product__name__icontains=data['q'])|Q(items__sku_snapshot__icontains=data['q'])|Q(items__name_snapshot__icontains=data['q'])).distinct()
-    for field in ['channel','status']:
+    for field in ['channel','status','location']:
         if data.get(field):rows=rows.filter(**{field:data[field]})
     start,end=data.get('start'),data.get('end')
     today=timezone.localdate();period=data.get('period')

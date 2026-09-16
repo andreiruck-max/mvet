@@ -3,6 +3,7 @@ from decimal import Decimal
 from django import forms
 from django.utils import timezone
 from apps.products.models import Product
+from apps.core.models import Company
 from apps.inventory.models import StockLocation
 from .models import Sale, SalesChannel, TaxRule
 from .services import EDIT_FIELDS, FINANCIAL_FIELDS
@@ -20,8 +21,14 @@ class SaleForm(forms.ModelForm):
         self.fields['channel'].queryset=SalesChannel.objects.filter(active=True)
         self.fields['location'].queryset=StockLocation.objects.filter(active=True)
         self.fields['tax_rule'].queryset=TaxRule.objects.filter(active=True)
-        for name in ['channel','location','tax_rule']:
+        for name in ['channel','tax_rule']:
             if self.fields[name].queryset.count()==1:self.fields[name].initial=self.fields[name].queryset.first()
+        company=Company.objects.select_related('default_stock_location').filter(pk=1).first()
+        if not self.instance.pk and company and company.default_stock_location and company.default_stock_location.active:
+            self.initial['location']=company.default_stock_location_id
+        elif not self.instance.pk and company and not company.default_stock_location_id and self.fields['location'].queryset.count()==1:
+            self.initial['location']=self.fields['location'].queryset.first().pk
+        self.fields['location'].label='Estoque da venda'
         self.basic_fields=[self[name] for name in ['date','invoice_number','invoice_series','channel','location','products_amount','tax_rule']]
         self.optional_fields=[self[name] for name in [*FINANCIAL_FIELDS[1:],'tax_override','tax_reason','notes']]
         for name in FINANCIAL_FIELDS[1:]:self.fields[name].required=False
@@ -55,11 +62,30 @@ class TaxForm(forms.ModelForm):
         fields=['name','rate','starts_on','ends_on','base','active']
         widgets={field:forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d') for field in ['starts_on','ends_on']}
 
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        if self.instance.pk:
+            for field in ['rate','starts_on','base']:self.fields[field].disabled=True
+
+class TaxChangeForm(forms.Form):
+    rate=forms.DecimalField(label='Nova alíquota (%)',max_digits=7,decimal_places=4,min_value=0,max_value=100)
+    effective_from=forms.DateField(label='Usar a partir de',initial=timezone.localdate,widget=forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d'))
+    base=forms.ChoiceField(label='Base de cálculo',choices=TaxRule._meta.get_field('base').choices)
+    reason=forms.CharField(label='Motivo da alteração',max_length=500)
+    revision=forms.IntegerField(widget=forms.HiddenInput,initial=0)
+
+class ExtraCostForm(forms.Form):
+    name=forms.CharField(label='Taxa / descrição',max_length=120)
+    amount=forms.DecimalField(label='Valor (R$)',max_digits=18,decimal_places=2,min_value=0)
+
+ExtraCosts=forms.formset_factory(ExtraCostForm,extra=0,can_delete=True,max_num=100,validate_max=True)
+
 class FilterForm(forms.Form):
     q=forms.CharField(label='NF ou produto',required=False)
     start=forms.DateField(label='De',required=False,widget=forms.DateInput(attrs={'type':'date'}))
     end=forms.DateField(label='Até',required=False,widget=forms.DateInput(attrs={'type':'date'}))
     channel=forms.ModelChoiceField(label='Canal',queryset=SalesChannel.objects.all(),required=False)
+    location=forms.ModelChoiceField(label='Estoque',queryset=StockLocation.objects.all(),required=False)
     status=forms.ChoiceField(label='Status',choices=[('','Todos'),*Sale._meta.get_field('status').choices],required=False)
     period=forms.ChoiceField(label='Período',required=False,choices=[('','Personalizado'),('today','Hoje'),('yesterday','Ontem'),('week','Semana'),('month','Mês'),('previous_month','Mês anterior'),('year','Ano')])
     sort=forms.ChoiceField(label='Ordenação',required=False,choices=[('-date','Mais recentes'),('date','Mais antigas'),('invoice_number','NF')])

@@ -145,6 +145,9 @@ def named(request,kind,pk=None):
                 domain_lock()
                 obj=model.objects.select_for_update().get(pk=pk) if pk else model()
                 before={'name':obj.name,'active':obj.active}
+                from apps.core.models import Company
+                if model is StockLocation and pk and not form.cleaned_data['active'] and Company.objects.filter(default_stock_location_id=pk).exists():
+                    raise ValidationError('Selecione outro estoque padrão nas configurações antes de inativar este estoque.')
                 for k,v in form.cleaned_data.items():setattr(obj,k,v)
                 obj.full_clean();obj.save();audit(request.user,obj,'save_catalog',before,form.cleaned_data)
             return redirect('named',kind=kind)
