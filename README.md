@@ -2,7 +2,7 @@
 ERP gerencial interno da Mercadovet Produtos Agroveterinários.
 
 ## Estado atual
-**Fundação, estoque e vendas manuais implementados:** autenticação, permissões, auditoria, cadastros, custo médio, ajustes, kits, rascunhos de venda, confirmação/cancelamento e margem individual. A Fase 3 está em validação no [PR #12](https://github.com/andreiruck-max/mvet/pull/12). Compras, financeiro e relatórios consolidados continuam nas próximas fases; ainda não é o ERP completo.
+**Fundação, estoque e vendas manuais implementados:** autenticação, permissões, auditoria, cadastros, custo médio, ajustes, kits, rascunhos de venda, confirmação/cancelamento e margem individual. Fase 3 entregue no [PR #12](https://github.com/andreiruck-max/mvet/pull/12), com 85 testes PostgreSQL e 2 testes Chromium aprovados. Compras, financeiro e relatórios consolidados continuam nas próximas fases; ainda não é o ERP completo.
 
 **Entrada manual; corte em 15/09/2026**, America/Sao_Paulo. A planilha é referência funcional, sem migração integral. Aberturas não afetam a DRE. Sem emissão fiscal e sem substituição do Bling.
 

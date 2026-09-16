@@ -53,3 +53,5 @@ Limites mantidos: build Docker e backup/restauração na máquina da empresa ain
 
 ## Fase 3 — vendas
 Testes de rascunho, fórmula de contribuição, impostos/vigência/override, custo histórico, múltiplos itens, kit alterado, insuficiência/rollback, cancelamento após compra, UUID/revisão, NF/série normalizadas, permissões HTML/API e CSRF. PostgreSQL adicional: concorrência pela última unidade, confirmação simultânea da mesma venda, triggers de snapshots. Chromium: nova venda com duas linhas, busca SKU, salvar, confirmar, revisar em desktop/mobile e cancelar, verificando saldo final. Capturas usam dados sintéticos; anexadas ao CI.
+
+Evidência Fase 3: [execução 35083787171](https://github.com/andreiruck-max/mvet/actions/runs/35083787171) no commit 92faa22495c2deac24f425163dcda30de7b1afa3: 87 descobertos, 85 backend aprovados e 2 Chromium executados separadamente. Capturas desktop/mobile revisadas. Ajuste posterior do formulário mantém os mesmos testes obrigatórios antes do merge. A falha inicial de encerramento de conexões do teste foi corrigida com fechamento explícito nas threads.

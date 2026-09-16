@@ -5,7 +5,7 @@ from django.utils import timezone
 from apps.products.models import Product
 from apps.inventory.models import StockLocation
 from .models import Sale, SalesChannel, TaxRule
-from .services import EDIT_FIELDS
+from .services import EDIT_FIELDS, FINANCIAL_FIELDS
 
 class SaleForm(forms.ModelForm):
     key=forms.UUIDField(widget=forms.HiddenInput,initial=uuid.uuid4)
@@ -22,9 +22,18 @@ class SaleForm(forms.ModelForm):
         self.fields['tax_rule'].queryset=TaxRule.objects.filter(active=True)
         for name in ['channel','location','tax_rule']:
             if self.fields[name].queryset.count()==1:self.fields[name].initial=self.fields[name].queryset.first()
+        self.basic_fields=[self[name] for name in ['date','invoice_number','invoice_series','channel','location','products_amount','tax_rule']]
+        self.optional_fields=[self[name] for name in [*FINANCIAL_FIELDS[1:],'tax_override','tax_reason','notes']]
+        for name in FINANCIAL_FIELDS[1:]:self.fields[name].required=False
         if self.instance.pk:
             self.fields['key'].initial=self.instance.key
             self.fields['revision'].initial=self.instance.revision
+
+    def clean(self):
+        data=super().clean()
+        for name in FINANCIAL_FIELDS[1:]:
+            if data.get(name) is None and name not in self.errors:data[name]=Decimal('0')
+        return data
 
 class ItemForm(forms.Form):
     product=forms.ModelChoiceField(label='Produto',queryset=Product.objects.filter(active=True),widget=forms.HiddenInput(attrs={'data-product-lookup':'true'}))

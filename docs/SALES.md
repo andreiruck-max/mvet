@@ -1,5 +1,5 @@
 # Vendas — Fase 3
-Implementação: `apps/sales`. Validação remota da entrega registrada no PR da fase.
+Implementação: `apps/sales`. Validação remota: 85 testes PostgreSQL e 2 Chromium aprovados no [CI](https://github.com/andreiruck-max/mvet/actions/runs/35083787171). Entrega no PR #12.
 
 ## Uso
 1. Em Vendas, administrador cadastra canais e regras tributárias (alíquota, base e vigência). Nenhuma alíquota é presumida.
