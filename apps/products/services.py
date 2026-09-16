@@ -11,7 +11,7 @@ def save_product(*,actor,data,pk=None):
     domain_lock()
     obj=Product.objects.select_for_update().get(pk=pk) if pk else Product()
     before={k:str(getattr(obj,k)) for k in data}
-    if pk and (obj.movements.exists() or obj.used_in.exists()):
+    if pk and (obj.movements.exists() or obj.saleitem_set.exists() or obj.used_in.exists()):
         if data.get('kind',obj.kind)!=obj.kind or data.get('unit',obj.unit)!=obj.unit:
             raise ValidationError('Tipo e unidade não podem mudar após movimentação ou uso em kit.')
     if pk and obj.components.exists() and data.get('kind',obj.kind)!='KIT':
@@ -27,7 +27,7 @@ def save_product(*,actor,data,pk=None):
 def remove_product(*,actor,pk):
     require(actor,'core.operate_stock');domain_lock()
     obj=Product.objects.select_for_update().get(pk=pk)
-    if obj.movements.exists() or obj.used_in.exists() or obj.components.exists() or obj.balances.exists():
+    if obj.movements.exists() or obj.saleitem_set.exists() or obj.used_in.exists() or obj.components.exists() or obj.balances.exists():
         obj.active=False;obj.save(update_fields=['active']);audit(actor,obj,'inactivate_product');return 'Produto inativado; histórico preservado.'
     audit(actor,obj,'delete_product',{'sku':obj.sku,'name':obj.name});obj.delete();return 'Produto excluído.'
 

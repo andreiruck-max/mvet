@@ -6,7 +6,7 @@ Atualização: 15/09/2026. Operação manual, com carga inicial restrita ao esto
 | 0 | Diagnóstico, arquitetura, ERD, ADRs e regras de corte | Documentado |
 | 1 | Django/PostgreSQL/Docker, login, permissões, layout, auditoria, configuração, testes | Implementado no PR #2; CI PostgreSQL aprovado; instalação destino pendente |
 | 2 | Produtos, locais, abertura, entradas/saídas, ajustes, média, fracionamento e kits | Concluído no PR #11; 58 testes PostgreSQL e 1 teste Chromium aprovados |
-| 3 | Venda manual com múltiplos itens, SKU/nome, snapshots, confirmação, cancelamento, filtros | Planejado |
+| 3 | Venda manual com múltiplos itens, SKU/nome, snapshots, confirmação, cancelamento, filtros | Concluído no PR #12; evidências PostgreSQL/Chromium no PR; inclui estoques, vigências e taxas extras |
 | 4 | Fornecedores, compra manual, recebimento, rateio e parcelas | Planejado |
 | 5 | Contas, pagar/receber, liquidações, transferências, saldo diário/projetado | Planejado |
 | 6 | Despesas por competência, plano hierárquico, regras determinísticas | Planejado |

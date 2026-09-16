@@ -17,7 +17,14 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        Company.objects.get_or_create(pk=1)
+        company, _ = Company.objects.get_or_create(pk=1)
+        from apps.inventory.models import StockLocation
+        # Initial editable catalog; existing warehouses/balances are never inferred.
+        if not StockLocation.objects.exists():
+            physical = StockLocation.objects.create(name="Estoque Mercadovet")
+            StockLocation.objects.create(name="Estoque Full")
+            company.default_stock_location = physical
+            company.save(update_fields=["default_stock_location"])
         for name, codenames in ROLE_PERMISSIONS.items():
             group, created = Group.objects.get_or_create(name=name)
             if created:

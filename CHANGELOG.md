@@ -1,3 +1,12 @@
+# 0.3.0 — Vendas manuais
+- Estoque padrão configurável e troca no lançamento; locais adicionais.
+- Edição de alíquota com vigência e recálculo retroativo auditado conforme solicitação do usuário.
+- Taxas extras nome/valor, incluindo MDR, com impacto na margem.
+- Canais e regras tributárias configuráveis, NF/série únicas, rascunhos e múltiplos itens.
+- Confirmação/cancelamento atômicos, snapshots de CMV, composição e imposto; margem individual protegida por permissão.
+- Retorno pelo valor original preservando compras posteriores, proteção PostgreSQL de histórico, testes de concorrência e navegador.
+- Fase 3 com validação PostgreSQL/Chromium registrada no PR #12; compras/financeiro permanecem futuros.
+
 # Changelog
 ## 0.1.0 — Fundação (15/09/2026)
 - Arquitetura, modelo alvo em Mermaid, ADRs e contratos por domínio.

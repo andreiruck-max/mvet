@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Editar alíquota{% endblock %}
+{% block content %}
+<h1>Editar alíquota · {{ rule.name }}</h1><p><a href="{% url 'sales_configuration' 'impostos' %}">Regras tributárias</a></p>
+<p class="notice">Data anterior a hoje: recalcula as vendas confirmadas desta regra desde a data escolhida, até a próxima vigência já cadastrada. Data de hoje ou futura: não altera vendas já confirmadas. Impostos manuais e vendas canceladas são preservados. CMV e estoque não mudam.</p>
+<p>Alíquota vigente hoje: <strong>{{ rate }}%</strong>. A alteração e cada recálculo terão histórico.</p>
+<form method="post" class="panel">{% csrf_token %}{{ form.as_p }}<button>Aplicar alíquota e vigência</button></form>
+<div class="panel table-wrap"><table><thead><tr><th>Início</th><th>Alíquota</th><th>Base</th><th>Motivo / usuário</th></tr></thead><tbody><tr><td>{{ rule.starts_on|date:'d/m/Y' }}</td><td>{{ rule.rate }}%</td><td>{{ rule.get_base_display }}</td><td>Configuração inicial</td></tr>{% for change in changes %}<tr><td>{{ change.effective_from|date:'d/m/Y' }}</td><td>{{ change.rate }}%</td><td>{{ change.get_base_display }}</td><td>{{ change.reason }} · {{ change.actor }} · {{ change.created_at|date:'d/m/Y H:i' }}</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

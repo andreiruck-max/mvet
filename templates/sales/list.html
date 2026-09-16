@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Vendas{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">OPERAÇÃO</p><h1>Vendas</h1><p class="muted">Rascunhos, confirmações e cancelamentos rastreáveis.</p></div>{% if perms.core.operate_sales %}<a class="button" href="{% url 'sale_new' %}">Nova venda</a>{% endif %}</div>
+{% if perms.core.operate_stock %}<p><a href="{% url 'named' 'locais' %}">Cadastrar ou editar estoques</a></p>{% endif %}
+{% if perms.core.manage_configuration %}<p><a href="{% url 'configuration' %}">Estoque padrão das vendas</a> · <a href="{% url 'sales_configuration' 'canais' %}">Canais de venda</a> · <a href="{% url 'sales_configuration' 'impostos' %}">Regras tributárias</a></p>{% endif %}
+<form method="get" class="panel form-grid">{{ form.as_p }}<div class="actions"><button>Filtrar</button><a href="{% url 'sales' %}">Limpar filtros</a></div></form>
+<div class="panel table-wrap"><table><thead><tr><th>Data</th><th>NF / série</th><th>Canal</th><th>Status</th></tr></thead><tbody>{% for sale in page %}<tr><td>{{ sale.date|date:'d/m/Y' }}</td><td><a href="{% url 'sale_detail' sale.pk %}">{{ sale.invoice_number }}{% if sale.invoice_series %} / {{ sale.invoice_series }}{% endif %}</a></td><td>{{ sale.channel }}</td><td>{{ sale.get_status_display }}</td></tr>{% empty %}<tr><td colspan="4">Nenhuma venda encontrada. Cadastre um canal e uma regra tributária para começar.</td></tr>{% endfor %}</tbody></table></div>
+{% include 'inventory/pagination.html' %}
+{% endblock %}

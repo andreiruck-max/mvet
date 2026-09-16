@@ -2,7 +2,7 @@
 ERP gerencial interno da Mercadovet Produtos Agroveterinários.
 
 ## Estado atual
-**Fundação e Fase 2 implementadas:** autenticação, permissões, auditoria, configuração, produtos, locais e operações de estoque. Inclui abertura, custo médio, ajustes, transferências, fracionamento, kits e estornos. Vendas, compras e financeiro continuam nas próximas fases; ainda não é o ERP completo. [Validação: 58 testes PostgreSQL + 1 teste Chromium](https://github.com/andreiruck-max/mvet/actions/runs/35041612447).
+**Fundação, estoque e vendas manuais implementados:** autenticação, permissões, auditoria, cadastros, custo médio, ajustes, kits, rascunhos de venda, confirmação/cancelamento e margem individual. Fase 3 entregue no [PR #12](https://github.com/andreiruck-max/mvet/pull/12), com evidências de testes PostgreSQL e Chromium no PR. Compras, financeiro e relatórios consolidados continuam nas próximas fases; ainda não é o ERP completo.
 
 **Entrada manual; corte em 15/09/2026**, America/Sao_Paulo. A planilha é referência funcional, sem migração integral. Aberturas não afetam a DRE. Sem emissão fiscal e sem substituição do Bling.
 
@@ -60,3 +60,8 @@ Após aplicar migrations, acesse **Produtos e estoque**. Cadastre locais e produ
 A abertura pode usar somente o estoque da planilha, sem importar vendas, compras ou caixa. Execute primeiro a validação sem `--commit`, conforme [docs/INVENTORY.md](docs/INVENTORY.md). Nunca copie a planilha ou banco para o Git. A carga de desenvolvimento não representa instalação na máquina da empresa.
 
 `python manage.py check_inventory` confere o saldo por produto/local e a valorização contra o livro de movimentos. Cópia de segurança e instalação continuam conforme os guias existentes.
+
+## Vendas manuais
+Fase 3: acesse **Vendas**, cadastre canais/regras tributárias e use **Nova venda**. Salvar gera rascunho; confirmar baixa estoque; cancelar repõe com rastreabilidade. A data física é a confirmação e o custo é snapshot do momento. Consulte [regras e operação](docs/SALES.md). Compras e financeiro continuam no backlog.
+
+Adaptações: Estoque Mercadovet como padrão físico configurável, Full e outros estoques selecionáveis na venda; alíquotas com data de início e recálculo retroativo auditado; taxas extras nome/valor como MDR. Uma instalação vazia recebe os dois estoques iniciais no setup, editáveis. Saldos existentes não são redistribuídos automaticamente.

@@ -5,6 +5,7 @@ Monólito Django 5.2 LTS, PostgreSQL, templates, CSS/JS locais. Código em ingl�
 ## Regras invioláveis
 - Decimal/NUMERIC: quantidade 4 casas, custo e valorização 6 casas, dinheiro 2 casas.
 - CMV histórico é snapshot. Nunca recalcular venda antiga com custo atual.
+- Imposto admite recálculo retroativo autorizado com SaleTaxRevision imutável e auditoria; nunca atualizar imposto histórico diretamente. Ver ADR 0009.
 - Operações críticas são atômicas. Lock de produtos por ID crescente antes dos saldos por local.
 - Livro de movimentos imutável, com estorno vinculado. Cadastros utilizados são inativados.
 - Entrada de estoque não é despesa; transferência não é receita; amortização do principal não é despesa.

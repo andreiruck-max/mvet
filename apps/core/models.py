@@ -9,6 +9,7 @@ class Company(models.Model):
     cutover_date = models.DateField("Data de corte", default=date(2026, 9, 15), editable=False)
     minimum_margin = models.DecimalField("Alerta de margem (%)", max_digits=6, decimal_places=2,
         default=Decimal("10.00"), validators=[MinValueValidator(0), MaxValueValidator(100)])
+    default_stock_location = models.ForeignKey("inventory.StockLocation", verbose_name="Estoque padrão das vendas", null=True, blank=True, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:

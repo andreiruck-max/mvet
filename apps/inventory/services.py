@@ -31,7 +31,7 @@ def number(value, quantum, *, zero=False):
         raise ValidationError('Valor inválido ou com casas decimais excedentes.')
     if value >= Decimal('1000000000000'):
         raise ValidationError('Valor acima do limite permitido.')
-    return value
+    return value.quantize(quantum)
 
 def quant(value): return value.quantize(MONEY, rounding=ROUND_HALF_UP)
 
@@ -165,6 +165,8 @@ def reverse(*,actor,operation_id,key,date,reason):
     previous=_repeat(key,fingerprint)
     if previous:return previous
     original=StockOperation.objects.get(pk=operation_id)
+    if original.kind in {'SALE_OUT','SALE_RETURN'}:
+        raise ValidationError('Operação vinculada a venda. Utilize o cancelamento na tela de vendas.')
     if original.kind=='REVERSAL' or StockOperation.objects.filter(reversal_of=original).exists():
         raise ValidationError('Operação já estornada ou é um estorno.')
     moves=list(original.movements.order_by('-pk'))

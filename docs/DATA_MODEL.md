@@ -72,3 +72,33 @@ erDiagram
     ProductCategory ||--o{ Product : categoria
 ```
 Product mantém quantity/value/average_cost como projeção; StockBalance quantidade por local. StockMovement guarda deltas de quantidade/valor, custo unitário e posição global antes/depois. StockOperation agrupa tipo, data, motivo, autor, chave idempotente, hash do pedido e ligação única de estorno. OpeningImport guarda hash do arquivo e relatório, sem anexar a planilha ao repositório. Brand/ProductCategory/StockLocation têm ativo/inativo.
+
+## Implementação da Fase 3
+As seguintes entidades agora existem em migrations, além do modelo futuro descrito acima.
+
+```mermaid
+erDiagram
+    SalesChannel ||--o{ Sale : canal
+    TaxRule o|--o{ Sale : regra
+    StockLocation ||--o{ Sale : local
+    Sale ||--|{ SaleItem : itens
+    Product ||--o{ SaleItem : produto
+    SaleItem ||--o{ SaleConsumption : consumos
+    StockMovement ||--o| SaleConsumption : snapshot
+    StockOperation o|--o| Sale : confirmacao
+    StockOperation o|--o| Sale : cancelamento
+```
+
+Sale armazena data comercial, NF/série únicas, UUID de criação, revisão, valores, snapshot tributário/margem mínima, estado e atores/horários. SaleItem conserva SKU/nome, quantidade, custo unitário e CMV. SaleConsumption liga cada componente efetivamente baixado ao item; imutável. Operações de estoque usam data física atual. Cancelamento preserva snapshots e vincula retorno ao movimento original.
+
+## Adaptações da Fase 3
+Company.default_stock_location referencia StockLocation (opcional em instalação existente). Sale.extra_costs_total agrega SaleExtraCost; linhas congeladas após confirmação. TaxRateChange registra novas alíquotas/base por data; SaleTaxRevision conserva recálculos individuais imutáveis.
+
+```mermaid
+erDiagram
+    Company }o--o| StockLocation : padrao
+    Sale ||--o{ SaleExtraCost : taxas
+    TaxRule ||--o{ TaxRateChange : vigencias
+    TaxRateChange ||--o{ SaleTaxRevision : recalculos
+    Sale ||--o{ SaleTaxRevision : historico
+```

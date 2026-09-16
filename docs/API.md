@@ -14,3 +14,8 @@ Autorização granular; Decimal serializado como string; datas ISO 8601, timezon
 
 ## Busca de produtos implementada
 GET `/api/v1/produtos/?q=SKU_OU_NOME`, com sessão autenticada. Aceita operate_stock, operate_sales ou view_costs. Retorna até 20 resultados, cada um com id, label, quantity e kind. Campo cost somente com view_costs. Para kit, quantidade é a disponibilidade global dos componentes e custo é soma da composição atual; saída valida o local escolhido. Consulta vazia retorna lista vazia. Sem acesso: 403; anônimo: redirecionamento para login.
+
+## Fase 3
+- `GET /api/v1/vendas/<id>/resultado/`: exige `core.view_costs`; retorna estado, receita, CMV, contribuição e margem percentual individual. Rascunho informa que custo será calculado na confirmação. Sem agregados.
+- `GET /api/v1/produtos/?q=...&location=<id>`: parâmetro opcional local limita quantidade disponível (inclui componentes de kits); custo permanece condicionado à permissão.
+- UI `/vendas/`: listagem/edição; confirmação e cancelamento exclusivamente POST autenticado com CSRF, mesmos serviços de domínio. API pública de escrita futura.
