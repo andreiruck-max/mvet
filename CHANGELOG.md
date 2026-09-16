@@ -1,3 +1,9 @@
+# 0.3.0 — Vendas manuais
+- Canais e regras tributárias configuráveis, NF/série únicas, rascunhos e múltiplos itens.
+- Confirmação/cancelamento atômicos, snapshots de CMV, composição e imposto; margem individual protegida por permissão.
+- Retorno pelo valor original preservando compras posteriores, proteção PostgreSQL de histórico, testes de concorrência e navegador.
+- Fase 3 em validação no PR; compras/financeiro permanecem futuros.
+
 # Changelog
 ## 0.1.0 — Fundação (15/09/2026)
 - Arquitetura, modelo alvo em Mermaid, ADRs e contratos por domínio.

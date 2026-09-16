@@ -24,3 +24,5 @@ Mudanças por shell/SQL não passam pelo fluxo auditado: são procedimentos admi
 - API GET /api/v1/produtos/ retorna cost somente com view_costs. Omissão é aplicada no backend.
 - Remoção de produto sem uso é permitida; com saldo, composição ou histórico, somente inativação.
 - Marcas, categorias e locais são editáveis/inativáveis; não há exclusão destrutiva desses cadastros pela interface.
+
+Fase 3: `operate_sales` permite rascunhos, confirmação e cancelamento integral auditado; não concede `operate_stock` ou `view_costs`. `view_costs` permite leitura de resultado individual em tela/API sem escrita. `manage_configuration` gerencia canais e regras tributárias. Valores lançados são visíveis ao operacional para conferência; custos, CMV, margem e agregados não são exibidos. Listagem de vendas não contém somatórios financeiros.

@@ -56,3 +56,6 @@ python manage.py check_inventory
 Sem --commit, nada é gravado. O usuário deve possuir operate_stock e view_costs. A consolidação de SKU repetido é explícita e só aceita nomes iguais: soma quantidades e pondera os custos pelo valor; quantidade zero não pondera. Custos divergentes com ambas quantidades zeradas são ambíguos e bloqueados. Qualquer erro bloqueia a carga inteira. Repetir o mesmo arquivo não duplica; arquivos diferentes contendo SKUs já cadastrados não sobrescrevem os produtos.
 
 O local padrão é Estoque inicial, pois a planilha não identifica o depósito de cada unidade. Depois, distribua por transferência. Dados reais nunca integram fixtures, commits ou artefatos públicos de CI.
+
+## Integração com vendas (Fase 3)
+SALE_OUT baixa os produtos/componentes na confirmação e SALE_RETURN devolve pelo valor original. O retorno recalcula a média corrente; não reescreve snapshots de vendas. Use cancelar na tela de vendas; estorno genérico rejeita essas operações. Produto referenciado em item, inclusive rascunho, é inativado e não excluído; tipo/unidade ficam preservados. Ver docs/SALES.md e ADR 0008.

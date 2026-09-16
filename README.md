@@ -60,3 +60,6 @@ Após aplicar migrations, acesse **Produtos e estoque**. Cadastre locais e produ
 A abertura pode usar somente o estoque da planilha, sem importar vendas, compras ou caixa. Execute primeiro a validação sem `--commit`, conforme [docs/INVENTORY.md](docs/INVENTORY.md). Nunca copie a planilha ou banco para o Git. A carga de desenvolvimento não representa instalação na máquina da empresa.
 
 `python manage.py check_inventory` confere o saldo por produto/local e a valorização contra o livro de movimentos. Cópia de segurança e instalação continuam conforme os guias existentes.
+
+## Vendas manuais
+Fase 3: acesse **Vendas**, cadastre canais/regras tributárias e use **Nova venda**. Salvar gera rascunho; confirmar baixa estoque; cancelar repõe com rastreabilidade. A data física é a confirmação e o custo é snapshot do momento. Consulte [regras e operação](docs/SALES.md). Compras e financeiro continuam no backlog.

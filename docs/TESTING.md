@@ -50,3 +50,6 @@ A base de desenvolvimento foi carregada separadamente e conferida com check_inve
 [CI 35041612447](https://github.com/andreiruck-max/mvet/actions/runs/35041612447), commit 915227b2f79778da6d4c93fbe0c07200a9f9f30d: 58 testes de backend PostgreSQL e 1 de navegador Chromium aprovados; check, migrations, setup e collectstatic aprovados. Capturas desktop e móvel revisadas. A alteração posterior atualiza a documentação e o texto/atalho da página inicial, sem mudar regras transacionais.
 
 Limites mantidos: build Docker e backup/restauração na máquina da empresa ainda não executados. A carga real foi realizada somente em desenvolvimento, sem publicação de dados comerciais.
+
+## Fase 3 — vendas
+Testes de rascunho, fórmula de contribuição, impostos/vigência/override, custo histórico, múltiplos itens, kit alterado, insuficiência/rollback, cancelamento após compra, UUID/revisão, NF/série normalizadas, permissões HTML/API e CSRF. PostgreSQL adicional: concorrência pela última unidade, confirmação simultânea da mesma venda, triggers de snapshots. Chromium: nova venda com duas linhas, busca SKU, salvar, confirmar, revisar em desktop/mobile e cancelar, verificando saldo final. Capturas usam dados sintéticos; anexadas ao CI.
