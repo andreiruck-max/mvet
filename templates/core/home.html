@@ -4,13 +4,14 @@
 <h1>MVet 1.0</h1>
 <p class="lead">{{ company.name|default:"Mercadovet Produtos Agroveterinários" }}</p>
 <section class="grid">
-  <article class="card"><h2>Início da operação</h2><p class="large">{{ company.cutover_date|date:"d/m/Y"|default:"15/09/2026" }}</p><p class="muted">Cadastros e saldos iniciais serão lançados manualmente.</p></article>
+  <article class="card"><h2>Início da operação</h2><p class="large">{{ company.cutover_date|date:"d/m/Y"|default:"15/09/2026" }}</p><p class="muted">Data de abertura dos saldos iniciais. Novas operações seguem o histórico de movimentações.</p></article>
   <article class="card"><h2>Seu acesso</h2><p>{{ user.get_full_name|default:user.username }}</p><p class="muted">As opções disponíveis seguem as permissões atribuídas ao seu usuário.</p></article>
 </section>
 <section class="card section">
   <h2>Implantação em andamento</h2>
-  <p>Autenticação, permissões e configurações são a base desta versão. Os lançamentos de produtos, estoque, vendas, compras e financeiro serão liberados nas próximas etapas.</p>
-  <p class="muted">Ainda não há módulos transacionais disponíveis para operação da empresa.</p>
+  <p>Produtos e estoque estão disponíveis: cadastros, entradas, saídas, ajustes, transferências, fracionamento e kits.</p>
+  <p class="muted">Vendas, compras e financeiro serão disponibilizados nas próximas etapas.</p>
+  {% if perms.core.operate_stock or perms.core.operate_sales or perms.core.view_costs %}<a class="button primary" href="{% url 'products' %}">Abrir produtos e estoque</a>{% endif %}
   {% if perms.core.manage_configuration %}<a class="button primary" href="{% url 'configuration' %}">Configurar empresa</a>{% endif %}
 </section>
 {% endblock %}

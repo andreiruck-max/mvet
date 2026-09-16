@@ -1,5 +1,5 @@
 # Estoque — contrato para Fase 2
-Estado: implementado na branch feat/inventory-phase2; validação PostgreSQL e visual em andamento.
+Estado: implementado no PR #11, com backend PostgreSQL e fluxo visual aprovados no [CI](https://github.com/andreiruck-max/mvet/actions/runs/35041612447).
 - Cadastro manual de SKU único, produto, marca, categoria, unidade, mínimo e status.
 - Abertura em 15/09/2026 por movimento, quantidade e custo informados; sem lançamento de resultado.
 - Locais de estoque separados; custo médio global por produto.
