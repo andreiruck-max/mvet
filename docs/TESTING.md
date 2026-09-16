@@ -57,3 +57,7 @@ Testes de rascunho, fórmula de contribuição, impostos/vigência/override, cus
 Evidência Fase 3: [execução 35083787171](https://github.com/andreiruck-max/mvet/actions/runs/35083787171) no commit 92faa22495c2deac24f425163dcda30de7b1afa3: 87 descobertos, 85 backend aprovados e 2 Chromium executados separadamente. Capturas desktop/mobile revisadas. Ajuste posterior do formulário mantém os mesmos testes obrigatórios antes do merge. A falha inicial de encerramento de conexões do teste foi corrigida com fechamento explícito nas threads.
 
 Adaptações solicitadas: testes adicionais de estoque padrão e troca para Full, cancelamento no local original, taxa MDR, alíquota retroativa/hoje/futura, vigências sucessivas, preservação de overrides/canceladas, rollback da auditoria e proteção PostgreSQL de revisões/taxas extras. Teste Chromium cobre seleção de outro estoque, taxa extra e alteração de alíquota. Resultado final registrado no PR #12.
+
+## Fase 4
+Testes: separação compromisso/recebimento, rateio com resíduo, média por recebimento, local de estoque, documento duplicado, parcelas sem multiplicar compra, valores inválidos, gratuitos, kits proibidos na aquisição, UUID/revisão, cancelamento seguro, rollback, CMV histórico, fornecedores, permissões HTML/API, CSRF e filtros por mesma parcela.
+PostgreSQL: dois recebimentos concorrentes da mesma compra e proteção dos históricos. Chromium: fornecedor, compra com dois produtos/rateio/duas parcelas, confirmação, recebimento, visual desktop/mobile e transferência Mercadovet → Full. Evidências no PR da fase.

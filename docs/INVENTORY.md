@@ -59,3 +59,7 @@ O local padrão é Estoque inicial, pois a planilha não identifica o depósito 
 
 ## Integração com vendas (Fase 3)
 SALE_OUT baixa os produtos/componentes na confirmação e SALE_RETURN devolve pelo valor original. O retorno recalcula a média corrente; não reescreve snapshots de vendas. Use cancelar na tela de vendas; estorno genérico rejeita essas operações. Produto referenciado em item, inclusive rascunho, é inativado e não excluído; tipo/unidade ficam preservados. Ver docs/SALES.md e ADR 0008.
+
+## Compras e transferências (Fase 4)
+PUR_RECEIPT valoriza cada entrada pelo rateio exato de aquisição, no estoque selecionado. PUR_RETURN cancela o recebimento somente se não houver movimentos posteriores nos produtos. Não estornar essas operações pelo estorno genérico: usar a tela de compra. Produto utilizado em item de compra também é inativado, sem exclusão física ou troca de tipo/unidade.
+Transferência entre quaisquer estoques ativos continua disponível, inclusive após receber compras; conserva quantidade/valor global e média. Testes cobrem receber no Mercadovet, transferir parte ao Full, bloquear cancelamento indevido e reverter a transferência antes de cancelar a compra.

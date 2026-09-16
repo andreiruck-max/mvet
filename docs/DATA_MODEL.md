@@ -102,3 +102,19 @@ erDiagram
     TaxRateChange ||--o{ SaleTaxRevision : recalculos
     Sale ||--o{ SaleTaxRevision : historico
 ```
+
+## Implementação da Fase 4
+
+```mermaid
+erDiagram
+    Supplier ||--o{ Purchase : compras
+    StockLocation ||--o{ Purchase : destino
+    Purchase ||--|{ PurchaseItem : itens
+    Product ||--o{ PurchaseItem : produto
+    Purchase ||--o{ PurchaseInstallment : parcelas
+    StockMovement o|--o| PurchaseItem : recebimento
+    StockOperation o|--o| Purchase : entrada
+    StockOperation o|--o| Purchase : cancelamento
+```
+
+Purchase armazena totais, revisão/UUID, documento/série únicos por fornecedor, estados e atores/datas. PurchaseItem conserva preço, subtotal, rateio monetário, custo unitário e SKU/nome. PurchaseInstallment contém obrigação planejada ou confirmada; liquidação bancária ainda não implementada. Triggers protegem snapshots confirmados/recebidos e mantêm possibilidade exclusiva de vincular movimento no recebimento e cancelar parcelas.

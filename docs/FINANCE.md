@@ -20,3 +20,6 @@ Saldo inicial é abertura do dia. Empréstimo: principal patrimonial e juros fin
 ## Despesas
 Competência, vencimento, valor, favorecido, categoria hierárquica, status, conta/pagamento, recorrência. Regras determinísticas configuráveis por prioridade/campo/operador/valor/categoria; correção humana prevalece.
 Testes: crédito/débito, transferência conservativa, saldo diário, retroativo, futuro, abertura, título legado, duplo clique e estorno.
+
+## Atualização Fase 4
+Compras e PurchaseInstallment já implementados. Obrigações de compras ORDERED/RECEIVED, com status PENDING, são compromissos válidos; rascunhos/canceladas não compõem pendências. A Fase 5 deve vincular essas parcelas à liquidação/título sem duplicação, manter valor principal e tratar diferenças/juros/descontos explicitamente. Atualizar proteção PostgreSQL para transições financeiras legítimas e bloquear cancelamento de compra com liquidação não estornada. Não há pagamento simulado nesta fase.
