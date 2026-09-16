@@ -53,3 +53,10 @@ Consulte [DEPLOYMENT](docs/DEPLOYMENT.md). Use ambiente virtual Python 3.12 e Po
 Banco sem porta publicada no Compose padrão. Aplicação ligada apenas em 127.0.0.1 por padrão. Para rede interna, seguir DEPLOYMENT e ajustar hosts/CSRF/firewall; não expor banco à internet.
 `bash scripts/backup.sh` cria dump e valida seu catálogo; `bash scripts/test_restore.sh caminho.dump` testa em banco temporário isolado. Cópia externa e agendamento dependem da máquina da empresa; não estão automaticamente ativados.
 Nunca versionar `.env`, planilhas comerciais, banco ou backups.
+
+## Fase 2 — Produtos e estoque
+Disponível na branch `feat/inventory-phase2` sobre a fundação. Após aplicar migrations, acesse **Produtos e estoque**. Cadastre locais e produtos e use **Movimentar estoque**. As permissões da operação estão em [docs/PERMISSIONS.md](docs/PERMISSIONS.md).
+
+A abertura pode usar somente o estoque da planilha, sem importar vendas, compras ou caixa. Execute primeiro a validação sem `--commit`, conforme [docs/INVENTORY.md](docs/INVENTORY.md). Nunca copie a planilha ou banco para o Git. A carga de desenvolvimento não representa instalação na máquina da empresa.
+
+`python manage.py check_inventory` confere o saldo por produto/local e a valorização contra o livro de movimentos. Cópia de segurança e instalação continuam conforme os guias existentes.

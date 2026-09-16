@@ -1,11 +1,11 @@
 # Backlog
-Atualização: 15/09/2026. A entrada inicial será manual por decisão do usuário.
+Atualização: 15/09/2026. Operação manual, com carga inicial restrita ao estoque autorizada pelo usuário.
 
 | Fase | Entrega / aceite | Estado |
 |---|---|---|
 | 0 | Diagnóstico, arquitetura, ERD, ADRs e regras de corte | Documentado |
 | 1 | Django/PostgreSQL/Docker, login, permissões, layout, auditoria, configuração, testes | Implementado no PR #2; CI PostgreSQL aprovado; revisão visual e instalação destino pendentes |
-| 2 | Produtos, locais, abertura manual, entradas/saídas, média, fracionamento e kits | Planejado |
+| 2 | Produtos, locais, abertura, entradas/saídas, ajustes, média, fracionamento e kits | Implementado na branch feat/inventory-phase2; validação final em andamento |
 | 3 | Venda manual com múltiplos itens, SKU/nome, snapshots, confirmação, cancelamento, filtros | Planejado |
 | 4 | Fornecedores, compra manual, recebimento, rateio e parcelas | Planejado |
 | 5 | Contas, pagar/receber, liquidações, transferências, saldo diário/projetado | Planejado |
@@ -36,4 +36,4 @@ Milestones nativos e proteção de branch ainda não configurados: as ferramenta
 A fundação foi publicada por plugin após indisponibilidade do ambiente local. O código de módulos transacionais iniciado localmente não foi incorporado, pois não foi validado. A branch remota é a fonte de verdade.
 
 ## Atualização autorizada — estoque inicial
-Usar somente o estoque de ERP Mvet(2).xlsx como base atual de desenvolvimento, com abertura em 15/09/2026. A Fase 2 inclui carga validada/idempotente e ajustes positivos, negativos e de custo auditados. Demais operações continuam manuais. Carga e interface ainda não implementadas. Ver docs/INVENTORY.md e ADR 0005.
+Usar somente o estoque de ERP Mvet(2).xlsx como base atual de desenvolvimento, com abertura em 15/09/2026. A Fase 2 inclui carga validada/idempotente e ajustes positivos, negativos e de custo auditados. Demais operações continuam manuais. Carga e interface implementadas na Fase 2. Ver docs/INVENTORY.md e ADR 0006.

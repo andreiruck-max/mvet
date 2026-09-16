@@ -170,7 +170,7 @@ def reverse(*,actor,operation_id,key,date,reason):
     moves=list(original.movements.order_by('-pk'))
     products={p.pk:p for p in Product.objects.select_for_update().filter(pk__in=[m.product_id for m in moves]).order_by('pk')}
     for p in products.values():
-        if p.movements.order_by('-pk').first().operation_id!=original.pk:
+        if p.movements.filter(operation__reversal__isnull=True).exclude(operation__kind='REVERSAL').order_by('-pk').first().operation_id!=original.pk:
             raise ValidationError('Há movimentos posteriores. Estorne-os primeiro ou registre um ajuste atual.')
     _date(date,products.values())
     operation=StockOperation.objects.create(key=key,fingerprint=fingerprint,kind='REVERSAL',date=date,reason=reason,actor=actor,reversal_of=original)

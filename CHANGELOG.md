@@ -12,3 +12,11 @@
 ## Decisão de estoque inicial — 15/09/2026
 - Autorizado usar o estoque da planilha como base atual de desenvolvimento, com abertura na data de corte e ajustes posteriores auditados.
 - Alteração documental: carga e tela de ajustes permanecem na Fase 2, sem carga de dados nesta alteração.
+
+## 0.2.0 — Produtos e estoque
+- Cadastro manual, pesquisa SKU/nome, paginação, categorias, marcas, locais e inativação.
+- Abertura, custo médio, entradas, saídas, ajustes, correção de custo, transferências, fracionamento e kits virtuais.
+- Livro imutável, operações atômicas/idempotentes, estornos e auditoria.
+- Carga inicial validada/idempotente da aba ESTOQUE MVET e conferência do livro.
+- Interface Mercadovet e autorização de custos no backend.
+- Testes de domínio, HTTP, permissões, importação, concorrência PostgreSQL e fluxo visual com dados sintéticos.

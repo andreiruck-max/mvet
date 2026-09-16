@@ -94,7 +94,7 @@ def operation_new(request):
         try:
             op=execute(actor=request.user,key=d['key'],kind=d['kind'],date=d['date'],reason=d['reason'],product_id=d['product'].pk,location_id=d['location'].pk,quantity=Decimal(d['quantity']),cost=d.get('cost'),target_location_id=d['target_location'].pk if d.get('target_location') else None,target_product_id=d['target_product'].pk if d.get('target_product') else None,target_quantity=d.get('target_quantity'))
             messages.success(request,'Movimento confirmado.');return redirect('operation_detail',pk=op.pk)
-        except ValidationError as exc:form.add_error(None,exc)
+        except ValidationError as exc:form.add_error(None,"; ".join(exc.messages))
     return render(request,'inventory/form.html',{'form':form,'title':'Movimentar estoque','operation':True})
 
 @login_required
@@ -121,7 +121,7 @@ def operation_detail(request,pk):
             try:
                 new=reverse(actor=request.user,operation_id=pk,**form.cleaned_data)
                 messages.success(request,'Estorno registrado.');return redirect('operation_detail',pk=new.pk)
-            except ValidationError as exc:form.add_error(None,exc)
+            except ValidationError as exc:form.add_error(None,"; ".join(exc.messages))
     return render(request,'inventory/operation.html',{'operation':op,'movements':op.movements.select_related('product','location'),'form':form})
 
 NAMED={'locais':(StockLocation,'Locais de estoque'),'marcas':(Brand,'Marcas'),'categorias':(ProductCategory,'Categorias')}
