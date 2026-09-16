@@ -90,3 +90,15 @@ erDiagram
 ```
 
 Sale armazena data comercial, NF/série únicas, UUID de criação, revisão, valores, snapshot tributário/margem mínima, estado e atores/horários. SaleItem conserva SKU/nome, quantidade, custo unitário e CMV. SaleConsumption liga cada componente efetivamente baixado ao item; imutável. Operações de estoque usam data física atual. Cancelamento preserva snapshots e vincula retorno ao movimento original.
+
+## Adaptações da Fase 3
+Company.default_stock_location referencia StockLocation (opcional em instalação existente). Sale.extra_costs_total agrega SaleExtraCost; linhas congeladas após confirmação. TaxRateChange registra novas alíquotas/base por data; SaleTaxRevision conserva recálculos individuais imutáveis.
+
+```mermaid
+erDiagram
+    Company }o--o| StockLocation : padrao
+    Sale ||--o{ SaleExtraCost : taxas
+    TaxRule ||--o{ TaxRateChange : vigencias
+    TaxRateChange ||--o{ SaleTaxRevision : recalculos
+    Sale ||--o{ SaleTaxRevision : historico
+```

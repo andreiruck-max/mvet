@@ -1,13 +1,14 @@
 # Vendas — Fase 3
-Implementação: `apps/sales`. Validação remota: 85 testes PostgreSQL e 2 Chromium aprovados no [CI](https://github.com/andreiruck-max/mvet/actions/runs/35083787171). Entrega no PR #12.
+Implementação: `apps/sales`. Entrega e evidências de validação no [PR #12](https://github.com/andreiruck-max/mvet/pull/12).
 
 ## Uso
 1. Em Vendas, administrador cadastra canais e regras tributárias (alíquota, base e vigência). Nenhuma alíquota é presumida.
-2. Nova venda: data comercial, NF/série, canal, local e valores totais. Campos financeiros podem ser zero.
+2. Nova venda: data comercial, NF/série, canal, estoque e valores totais. O estoque físico padrão é sugerido; pode ser trocado para Full ou outro cadastro. Valores opcionais podem ser zero. Em Configurações, escolha o estoque padrão; em Produtos e estoque → Locais, adicione quantos estoques precisar.
 3. Buscar SKU/nome, selecionar produto e informar quantidade; adicionar linhas conforme necessário. Busca informa saldo no local selecionado e custo apenas com permissão.
 4. Salvar e revisar: rascunho ainda não movimenta estoque. Editar permite corrigir os dados.
 5. Confirmar: valida saldo, grava custo e composição, baixa os produtos/componentes e calcula imposto e margem em uma transação.
-6. Cancelar: motivo obrigatório; devolve quantidades e valores efetivamente consumidos. Venda e movimentos permanecem no histórico.
+6. Taxas extras: adicionar linhas com descrição e valor em reais, como MDR ou antecipação. Somadas aos custos da venda; evitar duplicação no campo Taxas.
+7. Cancelar: motivo obrigatório; devolve quantidades e valores efetivamente consumidos. Venda e movimentos permanecem no histórico.
 
 ## Datas e custo
 Data comercial entre o corte e hoje. Baixa física na data atual da confirmação; custo médio atual, explicitamente informado na tela. Não existe reconstrução retroativa de custo. A DRE futura utilizará a data comercial e somente vendas confirmadas. Ver ADR 0008.
@@ -20,15 +21,24 @@ Não há recebíveis/liquidações nesta fase. A Fase 5 deve adicionar bloqueio/
 
 ## Resultado individual
 Receita = produtos − desconto + frete recebido.
-Contribuição = receita − CMV − frete pago − taxas − imposto − DIFAL − comissão − outros custos variáveis.
+Contribuição = receita − CMV − frete pago − taxas − imposto − DIFAL − comissão − outros custos variáveis − taxas extras.
 Percentual = contribuição/receita × 100; indefinido para receita zero. Contribuição negativa: MARGEM NEGATIVA. Abaixo do limite da empresa: ALERTA. Limite salvo na confirmação. Não é EBITDA.
 
 ## Tributos
-Selecionar explicitamente regra válida na data comercial, ou valor manual com motivo (inclusive zero). Base: receita operacional ou produtos menos desconto. Imposto arredondado em centavos, HALF_UP. Snapshot conserva nome, ID, alíquota, base, valor e override/motivo. Alteração futura da regra não muda vendas confirmadas. Regras e canais podem ser editados/inativados, sem exclusão pela interface.
+Selecionar explicitamente regra válida na data comercial, ou valor manual com motivo (inclusive zero). Base: receita operacional ou produtos menos desconto. Imposto arredondado em centavos, HALF_UP. Snapshot conserva nome, ID, alíquota, base, valor e override/motivo. Regras e canais podem ser editados/inativados, sem exclusão pela interface.
+
+### Edição de alíquota e recálculo autorizado
+Em Regras tributárias → Alíquota e vigência, informe nova alíquota, base, data de início e motivo. A vigência inicial da regra permanece preservada.
+- Data anterior a hoje: recalcular vendas confirmadas da regra desde a data escolhida até a próxima vigência já cadastrada. Inclui vendas já lançadas dentro desse período, inclusive hoje.
+- Hoje ou futuro: preservar vendas já confirmadas. Próximas confirmações usam a alíquota aplicável à data comercial.
+- Impostos manuais e vendas canceladas ficam preservados; rascunhos serão calculados ao confirmar.
+- Cada recálculo aparece no detalhe da venda, com valor anterior/novo, vigência, usuário e motivo. CMV e estoque não mudam. Margem reflete o novo imposto.
+- Alterações sucessivas de mesma data preservam histórico; prevalece a mais recente para novos cálculos.
+Ver ADR 0009, que substitui a regra anterior de imutabilidade absoluta do imposto.
 
 ## Integridade e permissões
 Mutex PostgreSQL compartilhado com estoque/cadastros; locks de produto em ordem de ID; tudo atômico. Confirmação/cancelamento repetidos não duplicam movimentos. UUID identifica criação e rejeita payload divergente. Revisão protege rascunho contra edição perdida/confirmar versão obsoleta.
 NF/série têm constraint única, incluindo canceladas. Espaços externos são removidos; letras normalizadas; valores inteiramente numéricos perdem zeros à esquerda. Séries distintas são aceitas.
-PostgreSQL bloqueia alteração/exclusão de consumos e snapshots históricos via triggers. Não há editor transacional no admin. Auditoria cobre rascunho com itens, confirmação, cancelamento, canais e impostos.
+PostgreSQL bloqueia alteração/exclusão de consumos e snapshots históricos via triggers, com exceção explícita para recálculo tributário vinculado a SaleTaxRevision imutável. Não há editor transacional no admin. Auditoria cobre rascunho com itens, confirmação, cancelamento, canais e impostos.
 `operate_sales`: lançar, editar rascunho, confirmar, cancelar, consultar valores informados. Não exibe CMV, custo, margem ou agregados. `view_costs`: consulta de custo/margem individual; não concede lançamento. `manage_configuration`: canais/impostos. API de resultado exige `view_costs` (403 sem permissão). Relatórios consolidados seguem para Fase 7 com permissão própria.
-Listagem paginada em 30, pesquisa NF/SKU/nome, canal/status/datas/períodos e ordenação. Sem somatórios financeiros para perfil operacional.
+Listagem paginada em 30, pesquisa NF/SKU/nome, canal/estoque/status/datas/períodos e ordenação. Sem somatórios financeiros para perfil operacional.

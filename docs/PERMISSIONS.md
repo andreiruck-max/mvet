@@ -26,3 +26,5 @@ Mudanças por shell/SQL não passam pelo fluxo auditado: são procedimentos admi
 - Marcas, categorias e locais são editáveis/inativáveis; não há exclusão destrutiva desses cadastros pela interface.
 
 Fase 3: `operate_sales` permite rascunhos, confirmação e cancelamento integral auditado; não concede `operate_stock` ou `view_costs`. `view_costs` permite leitura de resultado individual em tela/API sem escrita. `manage_configuration` gerencia canais e regras tributárias. Valores lançados são visíveis ao operacional para conferência; custos, CMV, margem e agregados não são exibidos. Listagem de vendas não contém somatórios financeiros.
+
+`manage_configuration` também configura estoque padrão e cria vigências tributárias com recálculo retroativo auditado. `operate_stock` cadastra estoques adicionais; `operate_sales` seleciona estoque e lança taxas extras, sem gerenciar alíquotas.

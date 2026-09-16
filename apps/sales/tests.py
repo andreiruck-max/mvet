@@ -192,3 +192,103 @@ class SalesHistory(Fixture,TestCase):
             with self.assertRaises(DatabaseError),transaction.atomic():mutate()
         cancel(actor=self.actor,sale_id=sale.pk,reason='Permitido')
         with self.assertRaises(DatabaseError),transaction.atomic():Sale.objects.filter(pk=sale.pk).update(status='DRAFT')
+
+class SalesAdaptations(Fixture,TestCase):
+    def change(self,rate='10',effective=None,**kwargs):
+        from .taxes import change_rate
+        latest=self.rule.changes.order_by('-pk').first()
+        return change_rate(actor=self.actor,rule_id=self.rule.pk,rate=D(rate),effective_from=effective or self.company.cutover_date,base='REVENUE',reason='Correção solicitada',revision=latest.pk if latest else 0,**kwargs)
+    def test_default_warehouse_can_be_overridden_and_full_stock_is_separate(self):
+        from apps.core.services import update_company
+        from .forms import SaleForm
+        full=StockLocation.objects.create(name='Estoque Full')
+        update_company(actor=self.actor,name=self.company.name,minimum_margin=D('10'),default_stock_location=self.location)
+        self.assertEqual(SaleForm().initial['location'],self.location.pk)
+        execute(actor=self.actor,key=uuid4(),kind='TRANSFER',date=timezone.localdate(),reason='Envio Full',product_id=self.product.pk,location_id=self.location.pk,target_location_id=full.pk,quantity=D('4'))
+        sale=self.confirmed(location=full)
+        self.assertEqual(self.product.balances.get(location=full).quantity,2)
+        self.assertEqual(self.product.balances.get(location=self.location).quantity,6)
+        cancel(actor=self.actor,sale_id=sale.pk,reason='Retorno Full')
+        self.assertEqual(self.product.balances.get(location=full).quantity,4)
+        self.assertEqual(self.product.balances.get(location=self.location).quantity,6)
+    def test_default_change_does_not_change_existing_draft(self):
+        from apps.core.services import update_company
+        from .forms import SaleForm
+        sale=self.draft();other=StockLocation.objects.create(name='Outro')
+        update_company(actor=self.actor,name=self.company.name,minimum_margin=D('10'),default_stock_location=other)
+        self.assertEqual(SaleForm(instance=sale).initial['location'],self.location.pk)
+        self.assertEqual(SaleForm().initial['location'],other.pk)
+    def test_warehouse_lookup_and_filter(self):
+        full=StockLocation.objects.create(name='Full');self.client.force_login(self.operator)
+        result=self.client.get(reverse('product_lookup'),{'q':'TEST-1','location':full.pk}).json()['results'][0]
+        self.assertEqual(D(result['quantity']),0);self.assertNotIn('cost',result)
+        self.draft();self.assertContains(self.client.get(reverse('sales'),{'location':full.pk}),'Nenhuma venda')
+    def test_extra_costs_reduce_margin_and_remain_historic(self):
+        sale=save_draft(actor=self.operator,key=uuid4(),data=self.data(),items=[(self.product.pk,D('2'))],extra_costs=[('MDR',D('3.50')),('Antecipação',D('1.25'))])
+        sale=confirm(actor=self.operator,sale_id=sale.pk,revision=1)
+        self.assertEqual(sale.extra_costs_total,D('4.75'));self.assertEqual(sale.contribution,D('58.50'))
+        cancel(actor=self.operator,sale_id=sale.pk,reason='Teste');self.assertEqual(sale.extra_costs.count(),2)
+    def test_extra_cost_validation(self):
+        for extras in [[('',D('1'))],[('MDR',D('-1'))],[('MDR',D('1.001'))]]:
+            with self.assertRaises(ValidationError):save_draft(actor=self.operator,key=uuid4(),data=self.data(),items=[(self.product.pk,D('1'))],extra_costs=extras)
+    def test_retroactive_tax_recalculates_only_tax_and_keeps_audit(self):
+        sale=self.confirmed(date=self.company.cutover_date)
+        self.product.refresh_from_db();value=self.product.value;cmv=sale.cmv;movements=StockMovement.objects.count()
+        change,count=self.change();self.assertEqual(count,1)
+        sale.refresh_from_db();self.assertEqual(sale.tax_amount,D('9.50'));self.assertEqual(sale.cmv,cmv)
+        self.product.refresh_from_db();self.assertEqual(self.product.value,value);self.assertEqual(StockMovement.objects.count(),movements)
+        revision=sale.tax_revisions.get();self.assertEqual(revision.before_amount,D('4.75'));self.assertEqual(revision.after_amount,D('9.50'))
+        self.assertTrue(AuditLog.objects.filter(operation='recalculate_sale_tax').exists())
+    def test_today_rate_preserves_confirmed_sales_but_applies_to_next(self):
+        sale=self.confirmed();_,count=self.change(effective=timezone.localdate());self.assertEqual(count,0)
+        sale.refresh_from_db();self.assertEqual(sale.tax_amount,D('4.75'))
+        following=self.confirmed(invoice_number='200');self.assertEqual(following.tax_amount,D('9.50'))
+    def test_future_rate_is_scheduled(self):
+        from .taxes import effective_terms
+        future=timezone.localdate()+timedelta(days=1);_,count=self.change(effective=future)
+        self.assertEqual(count,0);self.assertEqual(effective_terms(self.rule,timezone.localdate())[0],D('5'))
+        self.assertEqual(effective_terms(self.rule,future)[0],D('10'))
+    def test_retroactive_respects_later_scheduled_version(self):
+        from .taxes import effective_terms
+        future=timezone.localdate()+timedelta(days=1);self.change(rate='12',effective=future)
+        self.change(rate='8');self.assertEqual(effective_terms(self.rule,future)[0],D('12'))
+        self.assertEqual(effective_terms(self.rule,self.company.cutover_date)[0],D('8'))
+    def test_retroactive_preserves_overrides_cancelled_and_other_rules(self):
+        manual=self.confirmed(tax_override=D('2'),tax_reason='Manual')
+        cancelled=self.confirmed(invoice_number='200');cancel(actor=self.actor,sale_id=cancelled.pk,reason='Teste')
+        other=TaxRule.objects.create(name='Outra',rate=D('1'),starts_on=self.company.cutover_date,base='REVENUE')
+        different=self.confirmed(invoice_number='300',tax_rule=other)
+        _,count=self.change();self.assertEqual(count,0)
+        manual.refresh_from_db();cancelled.refresh_from_db();different.refresh_from_db()
+        self.assertEqual(manual.tax_amount,2);self.assertEqual(cancelled.tax_amount,D('4.75'));self.assertEqual(different.tax_amount,D('0.95'))
+    def test_tax_edit_stale_revision_and_permission(self):
+        from .taxes import change_rate
+        args=dict(rule_id=self.rule.pk,rate=D('10'),effective_from=timezone.localdate(),base='REVENUE',reason='Teste',revision=0)
+        with self.assertRaises(PermissionDenied):change_rate(actor=self.operator,**args)
+        change_rate(actor=self.actor,**args)
+        with self.assertRaises(ValidationError):change_rate(actor=self.actor,**args)
+        with self.assertRaises(ValidationError):save_configuration(actor=self.actor,model=TaxRule,pk=self.rule.pk,data={'rate':D('99')})
+    def test_tax_change_page_and_post(self):
+        self.client.force_login(self.actor);url=reverse('tax_change',args=[self.rule.pk])
+        self.assertContains(self.client.get(url),'Usar a partir de')
+        self.assertRedirects(self.client.post(url,{'rate':'10','effective_from':timezone.localdate().isoformat(),'base':'REVENUE','reason':'Teste','revision':0}),url)
+        self.assertEqual(self.rule.changes.count(),1)
+
+
+    def test_recalculation_rollback_if_audit_fails(self):
+        from unittest.mock import patch
+        sale=self.confirmed()
+        with patch('apps.sales.taxes.audit',side_effect=RuntimeError('Falha sintética')):
+            with self.assertRaises(RuntimeError):self.change()
+        sale.refresh_from_db();self.assertEqual(sale.tax_amount,D('4.75'));self.assertEqual(sale.tax_revisions.count(),0);self.assertEqual(self.rule.changes.count(),0)
+
+@skipUnless(connection.vendor=='postgresql','PostgreSQL tax and extra cost protection')
+class AdaptationHistory(Fixture,TestCase):
+    def test_tax_revisions_and_extras_cannot_be_overwritten(self):
+        from .taxes import change_rate
+        from .models import TaxRateChange, SaleTaxRevision, SaleExtraCost
+        sale=save_draft(actor=self.operator,key=uuid4(),data=self.data(),items=[(self.product.pk,D('1'))],extra_costs=[('MDR',D('1'))])
+        confirm(actor=self.actor,sale_id=sale.pk,revision=1)
+        change_rate(actor=self.actor,rule_id=self.rule.pk,rate=D('10'),effective_from=self.company.cutover_date,base='REVENUE',reason='Teste',revision=0)
+        for mutate in [lambda:TaxRateChange.objects.all().update(rate=0),lambda:SaleTaxRevision.objects.all().update(after_amount=0),lambda:SaleExtraCost.objects.all().update(amount=0),lambda:Sale.objects.filter(pk=sale.pk).update(tax_amount=0)]:
+            with self.assertRaises(DatabaseError),transaction.atomic():mutate()

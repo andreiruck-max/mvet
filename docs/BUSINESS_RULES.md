@@ -7,7 +7,7 @@ Livro de movimentos obrigatório. Custo médio global = valor global / quantidad
 
 ## Venda
 Receita operacional = produtos − desconto + frete recebido.
-Margem de contribuição = receita operacional − CMV − frete pago − taxas − imposto − DIFAL − comissão − outros custos variáveis.
+Margem de contribuição = receita operacional − CMV − frete pago − taxas − imposto − DIFAL − comissão − outros custos variáveis − taxas extras.
 Percentual = margem / receita operacional, indefinido quando receita zero.
 CMV congelado na confirmação. Imposto exige vigência, base e snapshot; override com motivo auditado. Margem de venda não é EBITDA.
 
@@ -25,3 +25,8 @@ Permissão de lançamento não concede indicadores consolidados, custo, margem, 
 
 ## Implementação
 Este documento define contratos do produto. Consulte BACKLOG para saber quais estão implementados e testados.
+
+## Alterações autorizadas em 16/09/2026
+- Estoque padrão físico configurável por empresa e alterável em cada venda; cadastros adicionais livres, saldo separado por local.
+- Edição de alíquota com início anterior a hoje recalcula vendas confirmadas abrangidas e mantém revisões imutáveis/auditoria. Início hoje/futuro preserva as já confirmadas. CMV e estoque nunca recalculados por imposto. Overrides manuais/canceladas preservados. Ver ADR 0009.
+- Taxas extras nome/valor (ex.: MDR) deduzidas da contribuição uma única vez.
