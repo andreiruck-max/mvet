@@ -1,5 +1,5 @@
 # Backlog
-Atualização: 15/09/2026. Operação manual, com carga inicial restrita ao estoque autorizada pelo usuário.
+Atualização: 16/09/2026. Operação manual, com carga inicial restrita ao estoque autorizada pelo usuário.
 
 | Fase | Entrega / aceite | Estado |
 |---|---|---|
@@ -7,7 +7,7 @@ Atualização: 15/09/2026. Operação manual, com carga inicial restrita ao esto
 | 1 | Django/PostgreSQL/Docker, login, permissões, layout, auditoria, configuração, testes | Implementado no PR #2; CI PostgreSQL aprovado; instalação destino pendente |
 | 2 | Produtos, locais, abertura, entradas/saídas, ajustes, média, fracionamento e kits | Concluído no PR #11; 58 testes PostgreSQL e 1 teste Chromium aprovados |
 | 3 | Venda manual com múltiplos itens, SKU/nome, snapshots, confirmação, cancelamento, filtros | Concluído no PR #12; evidências PostgreSQL/Chromium no PR; inclui estoques, vigências e taxas extras |
-| 4 | Fornecedores, compra manual, recebimento, rateio e parcelas | Implementado; validação PostgreSQL/Chromium no PR da fase |
+| 4 | Fornecedores, compra manual, recebimento, rateio e parcelas | Concluído no PR #13; 128 testes PostgreSQL e 3 Chromium aprovados; pagamento integrado na Fase 5 |
 | 5 | Contas, pagar/receber, liquidações, transferências, saldo diário/projetado | Planejado |
 | 6 | Despesas por competência, plano hierárquico, regras determinísticas | Planejado |
 | 7 | Dashboard, comparativo por canal e DRE após validação das fontes | Planejado |

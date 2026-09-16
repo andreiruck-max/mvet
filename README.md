@@ -2,7 +2,7 @@
 ERP gerencial interno da Mercadovet Produtos Agroveterinários.
 
 ## Estado atual
-**Fundação, estoque, vendas e compras manuais implementados:** autenticação, permissões, auditoria, cadastros, custo médio, ajustes, kits, rascunhos de venda, confirmação/cancelamento e margem individual. Fase 3 entregue no [PR #12](https://github.com/andreiruck-max/mvet/pull/12), com evidências de testes PostgreSQL e Chromium no PR. Compras incluem fornecedores, recebimento, rateio e parcelas. Liquidações financeiras e DRE continuam nas próximas fases; ainda não é o ERP completo.
+**Fundação, estoque, vendas e compras manuais implementados:** autenticação, permissões, auditoria, cadastros, custo médio, ajustes, kits, rascunhos de venda, confirmação/cancelamento e margem individual. Fase 4 entregue no [PR #13](https://github.com/andreiruck-max/mvet/pull/13), com 128 testes de backend PostgreSQL e 3 testes Chromium aprovados. Compras incluem fornecedores, recebimento, rateio e parcelas. Liquidações financeiras e DRE continuam nas próximas fases; ainda não é o ERP completo.
 
 **Entrada manual; corte em 15/09/2026**, America/Sao_Paulo. A planilha é referência funcional, sem migração integral. Aberturas não afetam a DRE. Sem emissão fiscal e sem substituição do Bling.
 
@@ -44,7 +44,7 @@ Consulte [DEPLOYMENT](docs/DEPLOYMENT.md). Use ambiente virtual Python 3.12 e Po
 
 ## Documentação
 - [Visão](docs/PRODUCT_VISION.md), [backlog](docs/BACKLOG.md), [arquitetura](docs/ARCHITECTURE.md), [modelo/ERD](docs/DATA_MODEL.md), [regras](docs/BUSINESS_RULES.md).
-- [Estoque](docs/INVENTORY.md), [vendas](docs/SALES.md), [financeiro](docs/FINANCE.md), [DRE](docs/DRE.md).
+- [Estoque](docs/INVENTORY.md), [vendas](docs/SALES.md), [compras](docs/PURCHASES.md), [financeiro](docs/FINANCE.md), [DRE](docs/DRE.md).
 - [Permissões](docs/PERMISSIONS.md), [API](docs/API.md), [importações](docs/IMPORTS.md), [testes](docs/TESTING.md).
 - [Instalação](docs/DEPLOYMENT.md), [backup/restauração](docs/BACKUP_RESTORE.md), [manutenção por IA](docs/AI_MAINTENANCE.md), [ADRs](docs/adr/).
 - [AGENTS](AGENTS.md), [CHANGELOG](CHANGELOG.md).

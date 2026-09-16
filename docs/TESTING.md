@@ -61,3 +61,6 @@ Adaptações solicitadas: testes adicionais de estoque padrão e troca para Full
 ## Fase 4
 Testes: separação compromisso/recebimento, rateio com resíduo, média por recebimento, local de estoque, documento duplicado, parcelas sem multiplicar compra, valores inválidos, gratuitos, kits proibidos na aquisição, UUID/revisão, cancelamento seguro, rollback, CMV histórico, fornecedores, permissões HTML/API, CSRF e filtros por mesma parcela.
 PostgreSQL: dois recebimentos concorrentes da mesma compra e proteção dos históricos. Chromium: fornecedor, compra com dois produtos/rateio/duas parcelas, confirmação, recebimento, visual desktop/mobile e transferência Mercadovet → Full. Evidências no PR da fase.
+
+### Resultado verificado da Fase 4
+[CI 35152071410](https://github.com/andreiruck-max/mvet/actions/runs/35152071410), commit `1fa5da17a76f1f4b262a415c4ce23ff5ac2ef305`: 131 testes descobertos, 128 backend PostgreSQL aprovados e 3 testes Chromium executados separadamente, todos aprovados. Migrations, setup, collectstatic e verificações sem falhas. Capturas de compra em desktop e celular revisadas; transferência Mercadovet → Full confirmada no teste de interface. Commit posterior registra somente esta evidência e o estado da documentação. Instalação, Docker e restauração na máquina da empresa permanecem pendentes.
