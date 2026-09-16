@@ -18,7 +18,7 @@
     timer=setTimeout(async()=>{
      controller=new AbortController();
      try {
-      const response=await fetch(endpoint+'?q='+encodeURIComponent(input.value),{signal:controller.signal});
+      const response=await fetch(endpoint+'?q='+encodeURIComponent(input.value)+'&location='+encodeURIComponent(document.getElementById('id_location')?.value || ''),{signal:controller.signal});
       if(!response.ok)throw new Error();
       const data=await response.json();
       for(const p of data.results){const button=document.createElement('button');button.type='button';button.textContent=p.label;button.addEventListener('click',()=>{hidden.value=p.id;input.value=p.label;hint.textContent='Disponível: '+p.quantity+(p.cost!==undefined?' · Custo: R$ '+p.cost:'');results.replaceChildren();});results.append(button);}

@@ -5,8 +5,11 @@ from apps.core import views
 from apps.accounts.views import AuditedPasswordChangeView
 
 from apps.inventory.views import lookup
+from apps.sales.views import sale_result
 
 urlpatterns = [
+    path("vendas/", include("apps.sales.urls")),
+    path("api/v1/vendas/<int:pk>/resultado/", sale_result, name="sale_result"),
     path("estoque/", include("apps.inventory.urls")),
     path("api/v1/produtos/", lookup, name="product_lookup"),
     path("entrar/", auth_views.LoginView.as_view(template_name="registration/login.html"), name="login"),

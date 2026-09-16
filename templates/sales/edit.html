@@ -1,0 +1,17 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}Nova venda{% endblock %}
+{% block content %}
+<div class="page-heading"><div><p class="eyebrow">VENDAS</p><h1>{% if sale %}Editar rascunho{% else %}Nova venda{% endif %}</h1><p class="muted">Informe os valores totais da venda e as quantidades de cada produto.</p></div><a href="{% url 'sales' %}">Voltar</a></div>
+<form method="post" class="panel">{% csrf_token %}{{ form.non_field_errors }}
+{% for hidden in form.hidden_fields %}{{ hidden }}{{ hidden.errors }}{% endfor %}
+<div class="form-grid">{% for field in form.visible_fields %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}</div>
+<h2>Produtos</h2><p class="muted">Busque pelo SKU ou nome. O custo será calculado na confirmação, conforme o estoque daquele momento.</p>
+{{ formset.management_form }}{{ formset.non_form_errors }}
+<div id="component-rows">{% for item in formset %}<div class="sale-item panel">{{ item.as_p }}</div>{% endfor %}</div>
+<template id="component-empty"><div class="sale-item panel">{{ formset.empty_form.as_p }}</div></template>
+<button type="button" class="quiet" id="add-component">Adicionar produto</button>
+<p class="notice">Salvar cria um rascunho. A baixa física ocorrerá ao confirmar, na data atual. Para venda retroativa, será utilizado o custo atual, sem reconstruir o estoque passado.</p>
+<button type="submit">Salvar e revisar</button>
+</form>
+{{ labels|json_script:'component-labels' }}<script src="{% static 'inventory.js' %}" defer></script>
+{% endblock %}

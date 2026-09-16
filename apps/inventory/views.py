@@ -11,7 +11,7 @@ from django.views.decorators.http import require_POST
 from apps.core.services import audit
 from apps.products.models import Product, Brand, ProductCategory
 from apps.products.services import save_product, remove_product, set_components
-from .models import StockLocation, StockOperation, StockMovement
+from .models import StockLocation, StockOperation, StockMovement, StockBalance
 from .forms import ProductForm, OperationForm, NamedForm, ReversalForm, Components
 from .selectors import catalog, kit_summary
 from .services import execute, reverse, domain_lock
@@ -34,12 +34,20 @@ def lookup(request):
     query=request.GET.get('q','').strip()
     if not query:return JsonResponse({'results':[]})
     rows=Product.objects.filter(active=True).filter(Q(sku__icontains=query)|Q(name__icontains=query)).order_by('name')[:20]
+    location=request.GET.get('location')
+    if location and not location.isdecimal():return JsonResponse({'results':[]},status=400)
     results=[]
     for p in rows:
         item={'id':p.pk,'label':str(p),'quantity':str(p.quantity),'kind':p.kind}
         if p.kind=='KIT':
             _,qty,cost=kit_summary(p);item['quantity']=str(qty)
         else:cost=p.average_cost
+        if location:
+            if p.kind=='KIT':
+                parts=list(p.components.select_related('component'))
+                balances={b.product_id:b.quantity for b in StockBalance.objects.filter(location_id=location,product_id__in=[part.component_id for part in parts])}
+                item['quantity']=str(min((balances.get(part.component_id,Decimal('0'))//part.quantity for part in parts),default=0))
+            else:item['quantity']=str(p.balances.filter(location_id=location).values_list('quantity',flat=True).first() or 0)
         if request.user.has_perm('core.view_costs'):item['cost']=str(cost)
         results.append(item)
     return JsonResponse({'results':results})
