@@ -5,7 +5,7 @@ from unittest import skipUnless
 from concurrent.futures import ThreadPoolExecutor
 from django.contrib.auth.models import User, Permission
 from django.core.exceptions import ValidationError, PermissionDenied
-from django.db import connection, close_old_connections, transaction, DatabaseError
+from django.db import connection, connections, close_old_connections, transaction, DatabaseError
 from django.test import TestCase, TransactionTestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -39,6 +39,10 @@ class Fixture:
         sale=self.draft(**changes);return confirm(actor=self.operator,sale_id=sale.pk,revision=sale.revision)
 
 class SalesTests(Fixture,TestCase):
+    def test_full_product_name_is_preserved(self):
+        self.product.name="P"*240;self.product.save(update_fields=["name"])
+        sale=self.confirmed();self.assertEqual(sale.items.get().name_snapshot,"P"*240)
+
     def test_draft_then_confirm_financial_formula(self):
         sale=self.draft();self.product.refresh_from_db();self.assertEqual(self.product.quantity,10)
         sale=confirm(actor=self.operator,sale_id=sale.pk,revision=sale.revision)
@@ -168,7 +172,7 @@ class SalesConcurrency(Fixture,TransactionTestCase):
                 actor=User.objects.get(pk=self.operator.pk)
                 confirm(actor=actor,sale_id=pk,revision=1);return 'ok'
             except ValidationError:return 'shortage'
-            finally:close_old_connections()
+            finally:connections.close_all()
         with ThreadPoolExecutor(max_workers=2) as pool:results=list(pool.map(worker,[first.pk,second.pk]))
         self.assertCountEqual(results,['ok','shortage']);self.product.refresh_from_db();self.assertEqual(self.product.quantity,0)
     def test_concurrent_same_sale_is_idempotent(self):
@@ -176,7 +180,7 @@ class SalesConcurrency(Fixture,TransactionTestCase):
         def worker(_):
             close_old_connections()
             try:return confirm(actor=User.objects.get(pk=self.operator.pk),sale_id=sale.pk,revision=1).pk
-            finally:close_old_connections()
+            finally:connections.close_all()
         with ThreadPoolExecutor(max_workers=2) as pool:self.assertEqual(list(pool.map(worker,[1,2])),[sale.pk,sale.pk])
         self.assertEqual(StockOperation.objects.filter(kind='SALE_OUT').count(),1)
 

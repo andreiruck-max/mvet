@@ -84,7 +84,7 @@ class SaleItem(models.Model):
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     quantity = models.DecimalField(max_digits=18, decimal_places=4, validators=[MinValueValidator(Decimal('0.0001'))])
     sku_snapshot = models.CharField(max_length=60, blank=True)
-    name_snapshot = models.CharField(max_length=200, blank=True)
+    name_snapshot = models.CharField(max_length=240, blank=True)
     unit_cost = models.DecimalField(max_digits=24, decimal_places=6, default=0)
     cmv = models.DecimalField(max_digits=24, decimal_places=6, default=0)
     class Meta:
