@@ -1,0 +1,5 @@
+{% extends 'base.html' %}{% load static %}{% block title %}{{ title }}{% endblock %}{% block content %}
+<a href="{% url 'products' %}">Produtos e estoque</a><h1>{{ title }}</h1>
+{% if operation %}<p class="muted">Movimentos confirmados ficam no histórico. Para corrigir, use ajuste ou estorno.</p>{% endif %}
+<form method="post" class="card form-card" id="stock-form">{% csrf_token %}{% include 'inventory/form_fields.html' %}<button class="primary">Confirmar</button></form>
+<script src="{% static 'inventory.js' %}" defer></script>{% endblock %}

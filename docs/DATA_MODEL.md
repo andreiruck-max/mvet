@@ -55,3 +55,20 @@ erDiagram
 - ImportBatch: origem/hash/arquivo/metadados/contadores; ImportRow: conteúdo validado, erros e registro criado. unique(source, external_id) nos destinos pertinentes.
 
 NUMERIC: quantidades 4 casas, custo/valorização 6, dinheiro 2. Índices por vencimento/status, conta/data, canal/data, produto/local. IDs internos independem de SKU/NF.
+
+## Entidades concretas da Fase 2
+```mermaid
+erDiagram
+    Product ||--o{ StockBalance : saldos
+    StockLocation ||--o{ StockBalance : locais
+    Product ||--o{ StockMovement : livro
+    StockOperation ||--|{ StockMovement : movimentos
+    StockLocation ||--o{ StockMovement : local
+    Product ||--o{ ProductComposition : kit
+    Product ||--o{ ProductComposition : componente
+    User ||--o{ StockOperation : autor
+    User ||--o{ OpeningImport : carga
+    Brand ||--o{ Product : marca
+    ProductCategory ||--o{ Product : categoria
+```
+Product mantém quantity/value/average_cost como projeção; StockBalance quantidade por local. StockMovement guarda deltas de quantidade/valor, custo unitário e posição global antes/depois. StockOperation agrupa tipo, data, motivo, autor, chave idempotente, hash do pedido e ligação única de estorno. OpeningImport guarda hash do arquivo e relatório, sem anexar a planilha ao repositório. Brand/ProductCategory/StockLocation têm ativo/inativo.

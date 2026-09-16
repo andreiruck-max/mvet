@@ -16,7 +16,7 @@ python manage.py test --verbosity 2
 .github/workflows/tests.yml usa PostgreSQL 16 e Python 3.12. Teste falho ou migration pendente bloqueia aceite. Status real deve ser conferido no GitHub Actions, não inferido da existência do workflow.
 
 ## Fases futuras
-Estoque: entrada/média/saída/insuficiência/transferência/fracionamento/kit/reversão e concorrência com TransactionTestCase e conexões separadas.
+Estoque já coberto na Fase 2; ver validação abaixo.
 Vendas: snapshot histórico, múltiplos itens, margem/impostos e cancelamento.
 Financeiro: idempotência, saldos retroativos/futuros, transferência, abertura e competência.
 Importação: duplicidade/preview/rollback quando implementada.
@@ -29,4 +29,24 @@ Em 15/09/2026, [execução PostgreSQL 35010742097](https://github.com/andreiruck
 - Nenhuma migration pendente de geração.
 - Migrations, setup e collectstatic executados com sucesso.
 
-Limites: não houve revisão visual interativa, build do Dockerfile nem teste de backup/restauração na máquina destino. A suite valida templates por HTTP, não substitui essas verificações.
+Limites da entrega 0.1.0: não houve revisão visual interativa, build do Dockerfile nem teste de backup/restauração na máquina destino. A suite valida templates por HTTP, não substitui essas verificações.
+
+## Fase 2 — cobertura implementada
+- 55 testes locais de backend (fundação, estoque, HTTP, permissões e importação).
+- 3 testes adicionais PostgreSQL: saídas concorrentes, envio idempotente concorrente e triggers contra alteração/exclusão do livro.
+- 1 teste Chromium separado: busca por SKU, entrada pelo formulário, persistência de quantidade/valor e layout móvel sem transbordamento da página.
+- O CI primeiro executa 58 testes de backend no PostgreSQL (o teste de navegador é ignorado nessa execução), depois executa o teste de navegador com MVET_BROWSER_TESTS=1.
+- Capturas de desktop e celular são artefatos do CI com dados exclusivamente sintéticos.
+
+```bash
+pip install playwright==1.58.0
+python -m playwright install --with-deps chromium
+MVET_BROWSER_TESTS=1 python manage.py test apps.inventory.test_browser --verbosity 2
+```
+
+A base de desenvolvimento foi carregada separadamente e conferida com check_inventory. O arquivo real e o banco não fazem parte do repositório. O ambiente local usou SQLite apenas para desenvolvimento e carga de referência; as garantias de concorrência e triggers foram verificadas no PostgreSQL do CI. A instalação da empresa deve usar PostgreSQL.
+
+### Resultado verificado em 16/09/2026
+[CI 35041612447](https://github.com/andreiruck-max/mvet/actions/runs/35041612447), commit 915227b2f79778da6d4c93fbe0c07200a9f9f30d: 58 testes de backend PostgreSQL e 1 de navegador Chromium aprovados; check, migrations, setup e collectstatic aprovados. Capturas desktop e móvel revisadas. A alteração posterior atualiza a documentação e o texto/atalho da página inicial, sem mudar regras transacionais.
+
+Limites mantidos: build Docker e backup/restauração na máquina da empresa ainda não executados. A carga real foi realizada somente em desenvolvimento, sem publicação de dados comerciais.

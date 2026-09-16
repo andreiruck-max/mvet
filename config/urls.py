@@ -1,10 +1,14 @@
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
-from django.urls import path
+from django.urls import path, include
 from apps.core import views
 from apps.accounts.views import AuditedPasswordChangeView
 
+from apps.inventory.views import lookup
+
 urlpatterns = [
+    path("estoque/", include("apps.inventory.urls")),
+    path("api/v1/produtos/", lookup, name="product_lookup"),
     path("entrar/", auth_views.LoginView.as_view(template_name="registration/login.html"), name="login"),
     path("sair/", auth_views.LogoutView.as_view(), name="logout"),
     path("senha/", AuditedPasswordChangeView.as_view(), name="password_change"),
