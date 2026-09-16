@@ -5,9 +5,9 @@ from apps.core.models import Company
 
 ROLE_PERMISSIONS = {
     "ADMINISTRADOR": ["manage_configuration", "view_dashboard", "view_dre", "view_costs",
-                      "view_finance", "operate_sales", "operate_stock", "operate_finance", "view_auditlog"],
-    "GERENCIAL": ["view_dashboard", "view_dre", "view_costs"],
-    "FINANCEIRO": ["view_finance", "operate_finance"],
+                      "view_finance", "operate_purchases", "view_purchase_reports", "operate_sales", "operate_stock", "operate_finance", "view_auditlog"],
+    "GERENCIAL": ["view_dashboard", "view_dre", "view_costs", "view_purchase_reports"],
+    "FINANCEIRO": ["view_finance", "operate_finance", "operate_purchases", "view_purchase_reports"],
     "VENDAS_OPERACIONAL": ["operate_sales"],
     "ESTOQUE": ["operate_stock"],
 }

@@ -37,7 +37,7 @@ jobs:
       - run: python manage.py test --verbosity 2
       - run: pip install playwright==1.58.0
       - run: python -m playwright install --with-deps chromium
-      - run: python manage.py test apps.inventory.test_browser apps.sales.test_browser --verbosity 2
+      - run: python manage.py test apps.inventory.test_browser apps.sales.test_browser apps.purchases.test_browser --verbosity 2
         env:
           MVET_BROWSER_TESTS: '1'
       - uses: actions/upload-artifact@v4

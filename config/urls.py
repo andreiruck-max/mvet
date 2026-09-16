@@ -6,8 +6,11 @@ from apps.accounts.views import AuditedPasswordChangeView
 
 from apps.inventory.views import lookup
 from apps.sales.views import sale_result
+from apps.purchases.views import supplier_summary
 
 urlpatterns = [
+    path("compras/", include("apps.purchases.urls")),
+    path("api/v1/fornecedores/<int:pk>/resumo/", supplier_summary, name="supplier_summary"),
     path("vendas/", include("apps.sales.urls")),
     path("api/v1/vendas/<int:pk>/resultado/", sale_result, name="sale_result"),
     path("estoque/", include("apps.inventory.urls")),

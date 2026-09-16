@@ -21,6 +21,8 @@ class Company(models.Model):
             ("view_dre", "Visualizar DRE gerencial"),
             ("view_costs", "Visualizar custos e margens"),
             ("view_finance", "Visualizar contas e saldos financeiros"),
+            ("operate_purchases", "Cadastrar e receber compras"),
+            ("view_purchase_reports", "Visualizar relatórios consolidados de compras"),
             ("operate_sales", "Lançar vendas operacionais"),
             ("operate_stock", "Lançar movimentações autorizadas de estoque"),
             ("operate_finance", "Lançar pagamentos e recebimentos"),

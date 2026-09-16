@@ -1,3 +1,9 @@
+# 0.4.0 — Compras e fornecedores
+- Fornecedores editáveis/inativáveis, compra manual com vários itens, documentos únicos e parcelas.
+- Confirmação de compromisso separada de recebimento físico, rateio exato em centavos, custo médio e histórico preservado.
+- Cancelamento seguro, relatórios de fornecedor com permissão própria e testes de transferência Mercadovet → Full.
+- Liquidações bancárias permanecem na Fase 5. Validação e evidências no PR da fase.
+
 # 0.3.0 — Vendas manuais
 - Estoque padrão configurável e troca no lançamento; locais adicionais.
 - Edição de alíquota com vigência e recálculo retroativo auditado conforme solicitação do usuário.

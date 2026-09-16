@@ -15,6 +15,7 @@
 <aside class="sidebar">
   <a class="brand" href="{% url 'home' %}"><span class="brand-mark">M</span><span>Mercadovet<small>MVet 1.0</small></span></a>
   <nav aria-label="Navegação principal">
+    {% if perms.core.operate_purchases or perms.core.view_purchase_reports %}<a href="{% url 'purchases' %}">Compras</a>{% endif %}
     {% if perms.core.operate_sales or perms.core.view_costs %}<a href="{% url 'sales' %}">Vendas</a>{% endif %}
     {% if perms.core.operate_stock or perms.core.operate_sales or perms.core.view_costs %}<a href="{% url 'products' %}">Produtos e estoque</a>{% endif %}
     {% if perms.core.operate_stock %}<a href="{% url 'operations' %}">Movimentações</a>{% endif %}
