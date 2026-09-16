@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Configurações{% endblock %}
+{% block content %}
+<div class="eyebrow">EMPRESA</div>
+<h1>Configurações</h1>
+<p class="muted">Corte operacional: {{ company.cutover_date|date:"d/m/Y" }}. A alteração de parâmetros fica registrada na auditoria.</p>
+<form method="post" class="card form-card">{% csrf_token %}
+{{ form.non_field_errors }}
+{% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
+<p class="help">A margem mínima será utilizada pelos alertas quando o módulo de vendas estiver disponível.</p>
+<button class="primary">Salvar configurações</button>
+</form>
+{% endblock %}

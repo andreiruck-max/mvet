@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="eyebrow">ÁREA DE TRABALHO</div>
+<h1>MVet 1.0</h1>
+<p class="lead">{{ company.name|default:"Mercadovet Produtos Agroveterinários" }}</p>
+<section class="grid">
+  <article class="card"><h2>Início da operação</h2><p class="large">{{ company.cutover_date|date:"d/m/Y"|default:"15/09/2026" }}</p><p class="muted">Cadastros e saldos iniciais serão lançados manualmente.</p></article>
+  <article class="card"><h2>Seu acesso</h2><p>{{ user.get_full_name|default:user.username }}</p><p class="muted">As opções disponíveis seguem as permissões atribuídas ao seu usuário.</p></article>
+</section>
+<section class="card section">
+  <h2>Implantação em andamento</h2>
+  <p>Autenticação, permissões e configurações são a base desta versão. Os lançamentos de produtos, estoque, vendas, compras e financeiro serão liberados nas próximas etapas.</p>
+  <p class="muted">Ainda não há módulos transacionais disponíveis para operação da empresa.</p>
+  {% if perms.core.manage_configuration %}<a class="button primary" href="{% url 'configuration' %}">Configurar empresa</a>{% endif %}
+</section>
+{% endblock %}
