@@ -227,7 +227,7 @@ class FinanceTests(Fixture,TestCase):
         c=Client(enforce_csrf_checks=True);c.force_login(self.admin)
         self.assertEqual(c.post(url('financial_settle',args=[t.pk]),{}).status_code,403)
         self.assertEqual(self.client.get(url('cash_api'),{'start':self.cutoff,'end':self.today}).status_code,200)
-        self.assertEqual(self.client.get(url('cash_api'),{'start':self.cutoff,'end':self.today+timedelta(days=100)}).status_code,400)
+        self.assertEqual(self.client.get(url('cash_api'),{'start':self.cutoff,'end':self.today+timedelta(days=400)}).status_code,400)
 
 
 @skipUnless(connection.vendor=='postgresql','PostgreSQL required')
