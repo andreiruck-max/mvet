@@ -8,8 +8,11 @@ from apps.inventory.views import lookup
 from apps.sales.views import sale_result
 from apps.purchases.views import supplier_summary
 from apps.finance.views import cash_api
+from apps.expenses.views import report_api as expense_report_api
 
 urlpatterns = [
+    path('despesas/',include('apps.expenses.urls')),
+    path('api/v1/despesas/competencia/',expense_report_api,name='expense_report_api'),
     path("compras/", include("apps.purchases.urls")),
     path("api/v1/fornecedores/<int:pk>/resumo/", supplier_summary, name="supplier_summary"),
     path("vendas/", include("apps.sales.urls")),

@@ -26,6 +26,9 @@ class Company(models.Model):
             ("operate_sales", "Lançar vendas operacionais"),
             ("operate_stock", "Lançar movimentações autorizadas de estoque"),
             ("operate_finance", "Lançar pagamentos e recebimentos"),
+            ("operate_expenses", "Registrar e classificar despesas"),
+            ("manage_expense_rules", "Gerenciar plano de contas e regras"),
+            ("view_expense_reports", "Visualizar despesas consolidadas por competência"),
         ]
         constraints = [
             models.CheckConstraint(condition=models.Q(id=1), name="single_company"),
