@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Vendas{% endblock %}
 {% block content %}
+{% if perms.core.view_dashboard %}<p><a href="{% url 'sales_sheet' %}">Abrir vendas em tabela gerencial</a></p>{% endif %}
 <div class="page-heading"><div><p class="eyebrow">OPERAÇÃO</p><h1>Vendas</h1><p class="muted">Rascunhos, confirmações e cancelamentos rastreáveis.</p></div>{% if perms.core.operate_sales %}<a class="button" href="{% url 'sale_new' %}">Nova venda</a>{% endif %}</div>
 {% if perms.core.operate_stock %}<p><a href="{% url 'named' 'locais' %}">Cadastrar ou editar estoques</a></p>{% endif %}
 {% if perms.core.manage_configuration %}<p><a href="{% url 'configuration' %}">Estoque padrão das vendas</a> · <a href="{% url 'sales_configuration' 'canais' %}">Canais de venda</a> · <a href="{% url 'sales_configuration' 'impostos' %}">Regras tributárias</a></p>{% endif %}

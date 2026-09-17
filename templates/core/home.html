@@ -10,7 +10,8 @@
 <section class="card section">
   <h2>Implantação em andamento</h2>
   <p>Produtos e estoque estão disponíveis: cadastros, entradas, saídas, ajustes, transferências, fracionamento e kits.</p>
-  <p class="muted">Vendas, compras e financeiro disponíveis. Despesas têm competência, plano de contas, classificação e recorrência mensal com prévia. A DRE completa será a próxima etapa.</p>
+  <p class="muted">Vendas, compras, financeiro e despesas disponíveis. Consultas gerenciais incluem vendas em tabela, caixa por dia, compras a pagar e DRE por competência, conforme suas permissões.</p>
+  {% if perms.core.view_dashboard %}<a class="button primary" href="{% url 'dashboard' %}">Abrir dashboard</a>{% endif %}
   {% if perms.core.operate_stock or perms.core.operate_sales or perms.core.view_costs %}<a class="button primary" href="{% url 'products' %}">Abrir produtos e estoque</a>{% endif %}
   {% if perms.core.operate_sales or perms.core.view_costs %}<a class="button primary" href="{% url 'sales' %}">Abrir vendas</a>{% endif %}
   {% if perms.core.operate_purchases or perms.core.view_purchase_reports %}<a class="button primary" href="{% url 'purchases' %}">Abrir compras</a>{% endif %}

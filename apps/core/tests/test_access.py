@@ -42,8 +42,9 @@ class FoundationTests(TestCase):
         self.assertEqual(self.client.get(reverse("finance")).status_code, 403)
         self.assertEqual(self.client.get(reverse("configuration")).status_code, 403)
         response = self.client.get(reverse("dashboard_api"))
-        self.assertEqual(response.status_code, 501)
-        self.assertEqual(response.json()["status"], "not_implemented")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["sales"]["count"], 0)
+        self.assertNotIn("cash_today", response.json())
 
     def test_forged_post_does_not_bypass_permission(self):
         self.client.force_login(self.operator)

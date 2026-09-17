@@ -1,4 +1,5 @@
 from datetime import timedelta
+from collections import OrderedDict
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied, ValidationError
@@ -39,7 +40,7 @@ def title_new(request):
             messages.success(request,'Título registrado. Ainda não houve movimento bancário.')
             return redirect('financial_title',pk=title.pk)
         except (ValidationError,IntegrityError) as exc: error(form,exc)
-    return render(request,'finance/form.html',{'form':form,'title':'Novo título / crédito ou débito previsto','button':'Registrar título','help':'Compras e vendas confirmadas já geram títulos automaticamente. Não os cadastre novamente. Para movimentar dinheiro, registre e depois liquide. Empréstimos: separe principal patrimonial e juros em títulos distintos.'})
+    return render(request,'finance/form.html',{'form':form,'title':'Novo título / crédito ou débito previsto','button':'Registrar título','help':'Compras, vendas e despesas já geram títulos automaticamente. Não os cadastre novamente. Despesas operacionais devem ser registradas em Despesas. Para títulos financeiros manuais, Data de origem é a competência do rendimento/juros, mesmo se não pago. Empréstimos: principal patrimonial separado dos juros; não repita juros já lançados em Despesas. O pagamento movimenta somente o caixa.'})
 
 
 @login_required
@@ -140,10 +141,16 @@ def operation_action(request,pk,action):
 @permission_required('core.view_finance',raise_exception=True)
 def cash(request):
     form=forms.CashForm(request.GET or {'start':timezone.localdate(),'end':timezone.localdate()+timedelta(days=30)})
-    rows=[];unallocated={}
+    rows=[];unallocated={};days=[];page=None
     if form.is_valid():
-        data=form.cleaned_data;rows,unallocated=selectors.daily_cash(data['start'],data['end'],data['account'].pk if data['account'] else None)
-    return render(request,'finance/cash.html',{'form':form,'rows':rows,'unallocated':unallocated})
+        data=form.cleaned_data
+        dates=[data['start']+timedelta(days=i) for i in range((data['end']-data['start']).days+1)]
+        page=Paginator(dates,14).get_page(request.GET.get('page'))
+        rows,unallocated=selectors.daily_cash(page.object_list[0],page.object_list[-1],data['account'].pk if data['account'] else None)
+        grouped=OrderedDict((date,[]) for date in page.object_list)
+        for row in rows:grouped[row['date']].append(row)
+        days=[{'date':date,'rows':values} for date,values in grouped.items()]
+    return render(request,'reporting/cash.html',{'form':form,'rows':rows,'days':days,'page':page,'unallocated':unallocated})
 
 
 @login_required

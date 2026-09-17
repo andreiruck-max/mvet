@@ -2,10 +2,12 @@
 Prefixo reservado: /api/v1/. Arquitetura futura chama os mesmos serviços das telas.
 
 ## Implementado
-GET /api/v1/indicadores/:
+GET /api/v1/indicadores/ (Fase 7):
 - Anônimo: redirecionado ao login por sessão.
 - Autenticado sem core.view_dashboard: 403.
-- Autorizado: 501 com status=not_implemented, sem dados fictícios.
+- Autorizado: 200 com período, totais de vendas confirmadas e comparativo por canal. Sem bancos/estoque/DRE. Valores Decimal serializados como strings, margem nula quando sem receita. Filtros period/start/end/channel, mesmos das telas, até 366 dias. Inválidos retornam 400; POST retorna 405.
+
+GET `/api/v1/dre/`: exige `core.view_dre`, mesmos filtros. Retorna vendas, despesas por natureza/categoria, resultado financeiro, ebitda/result, `provisional` e `channel_only`. Para canal específico, ebitda/result são null; despesas comuns não são rateadas. Provisório significa resultado parcial, com pendências explícitas. Ver docs/DRE.md e ADR 0013.
 
 As consultas descritas abaixo usam sessão autenticada. API pública de integração/escrita permanece futura.
 
@@ -24,7 +26,7 @@ GET `/api/v1/produtos/?q=SKU_OU_NOME`, com sessão autenticada. Aceita operate_s
 - UI `/vendas/`: listagem/edição; confirmação e cancelamento exclusivamente POST autenticado com CSRF, mesmos serviços de domínio. API pública de escrita futura.
 
 ## Fase 5
-`GET /api/v1/financeiro/diario/?start=AAAA-MM-DD&end=AAAA-MM-DD&account=<id>` exige `core.view_finance`. Até 62 dias; retorna quadros por conta e valores sem conta definida, como strings decimais. Parâmetros inválidos: 400; sem permissão: 403. Não expõe saldos a usuário com apenas `operate_finance`.
+`GET /api/v1/financeiro/diario/?start=AAAA-MM-DD&end=AAAA-MM-DD&account=<id>` exige `core.view_finance`. Até 366 dias; aceita também period. Retorna quadros por conta e valores sem conta definida, como strings decimais. Parâmetros inválidos: 400; sem permissão: 403. Não expõe saldos a usuário com apenas `operate_finance`. UI apresenta o intervalo em páginas de 14 dias.
 UI `/financeiro/` usa serviços transacionais e CSRF. POST de liquidação, estorno, cancelamento, realização de transferência e exclusão de conta rejeitam GET. UUID/revisão são obrigatórios para liquidação; integração futura deve usar os mesmos serviços.
 
 ## Fase 4
