@@ -58,6 +58,10 @@ Evidência Fase 3: [execução 35083787171](https://github.com/andreiruck-max/mv
 
 Adaptações solicitadas: testes adicionais de estoque padrão e troca para Full, cancelamento no local original, taxa MDR, alíquota retroativa/hoje/futura, vigências sucessivas, preservação de overrides/canceladas, rollback da auditoria e proteção PostgreSQL de revisões/taxas extras. Teste Chromium cobre seleção de outro estoque, taxa extra e alteração de alíquota. Resultado final registrado no PR #12.
 
+## Fase 5
+Testes de obrigação sem caixa, pagamento/recebimento, parcial/integral, juros/descontos, abatimento total, UUID normalizado, revisão otimista, estorno/rollback, datas futuras/retroativas, abertura negativa/legada, conta inativa/exclusão protegida, projeção sem duplicidade, pendências sem conta, transferência prevista/realizada/cancelada, integração compra/venda e permissões/CSRF/API.
+PostgreSQL: dois pagamentos simultâneos do mesmo envio; triggers contra alterações do livro/principal/abertura e transferência desequilibrada. Chromium: título, pagamento parcial, transferência entre bancos, quadro diário em desktop/mobile. Capturas usam apenas dados sintéticos. Evidências e revisão visual no PR da fase.
+
 ## Fase 4
 Testes: separação compromisso/recebimento, rateio com resíduo, média por recebimento, local de estoque, documento duplicado, parcelas sem multiplicar compra, valores inválidos, gratuitos, kits proibidos na aquisição, UUID/revisão, cancelamento seguro, rollback, CMV histórico, fornecedores, permissões HTML/API, CSRF e filtros por mesma parcela.
 PostgreSQL: dois recebimentos concorrentes da mesma compra e proteção dos históricos. Chromium: fornecedor, compra com dois produtos/rateio/duas parcelas, confirmação, recebimento, visual desktop/mobile e transferência Mercadovet → Full. Evidências no PR da fase.

@@ -9,7 +9,9 @@ Implementado com User, Group e Permission nativos do Django. Serviços e views v
 | VENDAS_OPERACIONAL | Operar vendas |
 | ESTOQUE | Operar estoque |
 
-Estoque está implementado. Vendas e financeiro continuam nas próximas fases.
+Estoque, vendas, compras e financeiro implementados. Despesas e DRE seguem nas próximas fases.
+
+Fase 5: `operate_finance` permite títulos, liquidações, transferências e estornos, sem saldos consolidados. `view_finance` permite contas, fluxo diário e API; não permite escritas. Criar/editar/excluir contas exige ambas. Perfis existentes são preservados. Integração automática de títulos não concede acesso financeiro a compradores/vendedores.
 Administração de usuários/grupos exige superusuário ativo. O grupo ADMINISTRADOR não equivale a is_superuser. is_staff permite entrar no admin, mas não concede autorização para promover usuários.
 Perfis podem ser personalizados no admin. setup_mvet só atribui permissões quando cria um grupo, preservando ajustes posteriores. Nenhum usuário/senha padrão é criado.
 Custos e saldos não aparecem no início comum. URLs de indicadores, DRE e financeiro e /api/v1/indicadores validam autorização mesmo quando acessadas diretamente.
