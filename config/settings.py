@@ -10,6 +10,7 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "0") == "1"
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 CSRF_TRUSTED_ORIGINS = [v for v in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if v]
 INSTALLED_APPS = [
+    "apps.reporting.apps.ReportingConfig",
     "apps.expenses.apps.ExpensesConfig",
     "apps.finance.apps.FinanceConfig",
     "django.contrib.admin", "django.contrib.auth", "django.contrib.contenttypes",

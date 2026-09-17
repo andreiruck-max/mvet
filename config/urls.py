@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import path, include
 from apps.core import views
+from apps.reporting import views as reports
 from apps.accounts.views import AuditedPasswordChangeView
 
 from apps.inventory.views import lookup
@@ -24,10 +25,13 @@ urlpatterns = [
     path("senha/", AuditedPasswordChangeView.as_view(), name="password_change"),
     path("", views.home, name="home"),
     path("configuracoes/", views.configuration, name="configuration"),
-    path("indicadores/", views.dashboard, name="dashboard"),
-    path("dre/", views.dre, name="dre"),
+    path("indicadores/", reports.dashboard, name="dashboard"),
+    path("relatorios/vendas/", reports.sales_sheet, name="sales_sheet"),
+    path("relatorios/compras-a-pagar/", reports.purchase_payables, name="purchase_payables"),
+    path("dre/", reports.dre, name="dre"),
+    path("api/v1/dre/", reports.dre_api, name="dre_api"),
     path("financeiro/", include("apps.finance.urls")),
     path("api/v1/financeiro/diario/", cash_api, name="cash_api"),
-    path("api/v1/indicadores/", views.dashboard_api, name="dashboard_api"),
+    path("api/v1/indicadores/", reports.dashboard_api, name="dashboard_api"),
     path("admin/", admin.site.urls),
 ]

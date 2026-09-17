@@ -77,11 +77,14 @@ class FilterForm(forms.Form):
 
 
 class CashForm(forms.Form):
-    start=forms.DateField(label='De',widget=DateInput(),initial=timezone.localdate)
-    end=forms.DateField(label='Até',widget=DateInput(),initial=lambda:timezone.localdate()+timedelta(days=30))
+    period=forms.ChoiceField(label='Período',required=False,choices=[('','Personalizado'),('today','Hoje'),('yesterday','Ontem'),('last7','Últimos 7 dias'),('week','Semana'),('month','Mês'),('previous_month','Mês anterior'),('year','Ano')])
+    start=forms.DateField(label='De',widget=DateInput(),initial=timezone.localdate,required=False)
+    end=forms.DateField(label='Até',widget=DateInput(),initial=lambda:timezone.localdate()+timedelta(days=30),required=False)
     account=forms.ModelChoiceField(label='Conta',queryset=Account.objects.all(),required=False)
     def clean(self):
         data=super().clean()
-        if data.get('start') and data.get('end') and not 0<=(data['end']-data['start']).days<=61:
-            raise forms.ValidationError('Selecione até 62 dias, em ordem cronológica.')
+        from apps.reporting.forms import PeriodForm
+        period=PeriodForm({k:data.get(k) for k in ['start','end','period']})
+        if not period.is_valid():raise forms.ValidationError('Selecione um período válido, de até 366 dias.')
+        data.update(start=period.cleaned_data['start'],end=period.cleaned_data['end'])
         return data
