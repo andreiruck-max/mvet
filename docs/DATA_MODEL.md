@@ -130,4 +130,18 @@ erDiagram
     PurchaseInstallment o|--o| FinancialTitle : obrigacao
     Sale o|--o| FinancialTitle : recebivel
 ```
-FinancialTitle: direção, origem, principal, baixado, vencimento, conta prevista, categoria básica, abertura, status, revisão, UUID, ator/timestamps e fonte. FinancialOperation: UUID/fingerprint, tipo/status/data, principal/juros/desconto/efetivo e reversão única. FinancialEntry: conta/operação/valor com sinal; livro imutável. Saldo diário é derivado, não tabela editável. Classificação hierárquica e competência permanecem na Fase 6.
+FinancialTitle: direção, origem, principal, baixado, vencimento, conta prevista, categoria básica, abertura, status, revisão, UUID, ator/timestamps e fonte. FinancialOperation: UUID/fingerprint, tipo/status/data, principal/juros/desconto/efetivo e reversão única. FinancialEntry: conta/operação/valor com sinal; livro imutável. Saldo diário é derivado, não tabela editável.
+
+## Fase 6 — entidades implementadas
+```mermaid
+erDiagram
+    ChartOfAccount o|--o{ ChartOfAccount : superior
+    ChartOfAccount ||--o{ ClassificationRule : destino
+    ChartOfAccount o|--o{ Expense : classifica
+    Supplier o|--o{ Expense : favorecido
+    Expense ||--|| FinancialTitle : obrigacao
+    Expense o|--o{ Expense : recorrencia
+    Expense ||--o{ ExpenseRevision : correcoes
+    User ||--o{ ExpenseRevision : autor
+```
+Expense conserva competência, documento, valor NUMERIC, fornecedor/favorecido, categoria/caminho/natureza e regra snapshots, centro de custo, status, UUID/fingerprint, título único, base/índice de recorrência, revisão e atores/datas. Restrição positiva e unique(base,índice). ExpenseRevision conserva motivo e antes/depois imutáveis. Plano tem código único, pai protegido, natureza e grupo/analítica. Relações concretas acima substituem a cardinalidade futura inicial de Expense/FinancialTitle.

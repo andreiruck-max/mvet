@@ -9,7 +9,9 @@ Implementado com User, Group e Permission nativos do Django. Serviços e views v
 | VENDAS_OPERACIONAL | Operar vendas |
 | ESTOQUE | Operar estoque |
 
-Estoque, vendas, compras e financeiro implementados. Despesas e DRE seguem nas próximas fases.
+Estoque, vendas, compras, financeiro e despesas implementados. DRE segue na próxima fase.
+
+Fase 6: `operate_expenses` permite registros, classificação/cancelamento e recorrência, sem bancos ou consolidados. `manage_expense_rules` gerencia plano e regras. `view_expense_reports` permite consulta e relatório/API por competência, sem escritas. ADMINISTRADOR/FINANCEIRO recebem as três; GERENCIAL recebe relatórios. Migration concede apenas as permissões novas aos perfis existentes. Operacional de vendas não recebe acesso.
 
 Fase 5: `operate_finance` permite títulos, liquidações, transferências e estornos, sem saldos consolidados. `view_finance` permite contas, fluxo diário e API; não permite escritas. Criar/editar/excluir contas exige ambas. Perfis existentes são preservados. Integração automática de títulos não concede acesso financeiro a compradores/vendedores.
 Administração de usuários/grupos exige superusuário ativo. O grupo ADMINISTRADOR não equivale a is_superuser. is_staff permite entrar no admin, mas não concede autorização para promover usuários.

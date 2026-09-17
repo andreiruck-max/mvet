@@ -1,3 +1,11 @@
+# 0.6.0 — Despesas por competência
+- Plano hierárquico por natureza, regras configuráveis e seleção manual prioritária.
+- Despesa gera obrigação sem caixa; pagamento, estorno e cancelamento integrados.
+- Classificação histórica, correção com motivo/revisão e não classificados visíveis.
+- Recorrência mensal com prévia, prevenção de duplicidade e encerramento sem apagar ocorrências.
+- Relatórios HTML/API por competência com permissões independentes; proteção PostgreSQL e teste Chromium.
+- DRE completa e recorrência agendada permanecem futuras.
+
 # 0.5.0 — Financeiro
 - Contas com abertura protegida, títulos vinculados a compras/vendas, pagamentos parciais e recebimentos.
 - Juros/descontos explícitos, idempotência, revisão otimista, guarda financeira no cancelamento e estornos rastreáveis.

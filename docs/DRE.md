@@ -19,3 +19,5 @@ Estado: especificado; tela atual informa implantação, sem números.
 Compra de estoque não é despesa imediata. Transferências, aportes, retiradas patrimoniais, abertura e principal de dívida não são operação da DRE. Venda a prazo é competência hoje e caixa na liquidação.
 Filtros por período/canal não devem ratear despesas comuns arbitrariamente: exibir despesas não atribuídas separadas ou adotar rateio documentado.
 Não apresentar gráfico/KPI antes de reconciliar fontes com movimentos e snapshots.
+
+Fase 6 entrega Expense ativo por competência e natureza histórica (OPERATING, FINANCIAL ou não classificada). Obrigação e pagamento vinculados não duplicam despesa. Correção auditada de classificação altera o relatório da competência original. Não classificados precisam aparecer explicitamente. Juros de liquidação exigem política de reconhecimento e prevenção de dupla contagem na Fase 7. Ver docs/EXPENSES.md.
