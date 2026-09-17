@@ -1,4 +1,5 @@
 import os
+from decimal import Decimal
 from pathlib import Path
 from unittest import skipUnless
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
@@ -21,7 +22,7 @@ class ExpenseBrowser(StaticLiveServerTestCase):
         actor=User.objects.create_superuser('expense-browser')
         category=save_category(actor=actor,data=dict(code='04',name='Contabilidade',nature='OPERATING'))
         save_rule(actor=actor,data=dict(name='Honorários',field='description',operator='CONTAINS',value='contabilidade',category=category))
-        save_account(actor=actor,data=dict(name='Conta de teste',kind='BANK',opening_date=today,opening_balance=1000))
+        save_account(actor=actor,data=dict(name='Conta de teste',kind='BANK',opening_date=today,opening_balance=Decimal('1000')))
         client=Client();client.force_login(actor);output=Path('artifacts');output.mkdir(exist_ok=True)
         with sync_playwright() as pw:
             browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1050},locale='pt-BR')
