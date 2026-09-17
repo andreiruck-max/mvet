@@ -9,8 +9,8 @@ Atualização: 17/09/2026. Operação manual, com carga inicial restrita ao esto
 | 3 | Venda manual com múltiplos itens, SKU/nome, snapshots, confirmação, cancelamento, filtros | Concluído no PR #12; evidências PostgreSQL/Chromium no PR; inclui estoques, vigências e taxas extras |
 | 4 | Fornecedores, compra manual, recebimento, rateio e parcelas | Concluído no PR #13; 128 testes PostgreSQL e 3 Chromium aprovados; pagamento integrado na Fase 5 |
 | 5 | Contas, pagar/receber, liquidações, transferências, saldo diário/projetado | Concluído no PR #14; 158 testes PostgreSQL e 4 Chromium aprovados |
-| 6 | Despesas por competência, plano hierárquico, regras determinísticas e recorrência mensal | Implementado; validação PostgreSQL/Chromium em andamento |
-| 7 | Dashboard, comparativo por canal e DRE após validação das fontes | Planejado |
+| 6 | Despesas por competência, plano hierárquico, regras determinísticas e recorrência mensal | Concluído no PR #15; 187 testes PostgreSQL e 5 Chromium aprovados |
+| 7 | Dashboard próximo das planilhas, vendas tabulares, caixa por dia, compras a pagar, comparativo por canal e DRE | Próxima etapa; critérios em docs/DASHBOARD.md |
 | 8 | Notificações e preferências, comando agendado | Planejado |
 | 9 | Importações e integrações com preview, idempotência e rollback seguro | Evolução opcional |
 

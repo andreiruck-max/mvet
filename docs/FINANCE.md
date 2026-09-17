@@ -1,5 +1,5 @@
 # Financeiro — Fase 5
-Contas, títulos, liquidações, transferências e caixa diário implementados. Evidências de validação no PR da fase. Despesas por competência e DRE permanecem nas Fases 6/7.
+Contas, títulos, liquidações, transferências e caixa diário implementados. Despesas por competência foram integradas na Fase 6; DRE permanece na Fase 7. Evidências de validação no PR de cada fase.
 
 ## Entidades
 Compra é aquisição; parcela é obrigação. Recebimento físico cria estoque. Pagamento só ocorre por liquidação.

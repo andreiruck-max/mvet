@@ -7,5 +7,8 @@ Decisão do usuário de 15/09/2026: não migrar todos os dados da planilha, forn
 ## Limites
 Não emitir NF-e/NFC-e/DANFE/XML, SPED, folha ou contabilidade oficial. Não substituir Bling fiscal, criar CRM completo, e-commerce ou app nativo.
 
+## Visual próximo das planilhas
+Decisão de 17/09/2026: dashboard deve priorizar vendas em tabela com valores/custos/resultados por linha, caixa organizado dia a dia no período selecionado e lista de compras/parcelas a pagar. Totais e filtros consistentes, com permissões granulares. Critérios detalhados em docs/DASHBOARD.md; implementação na Fase 7.
+
 ## Aceite
 Código, migration quando aplicável, regras preservadas, autorização backend, testes pertinentes aprovados, UI utilizável, documentação atualizada e commit GitHub. Não confundir estrutura preparada com funcionalidade concluída.
