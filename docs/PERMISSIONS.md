@@ -36,3 +36,6 @@ Fase 3: `operate_sales` permite rascunhos, confirmação e cancelamento integral
 `manage_configuration` também configura estoque padrão e cria vigências tributárias com recálculo retroativo auditado. `operate_stock` cadastra estoques adicionais; `operate_sales` seleciona estoque e lança taxas extras, sem gerenciar alíquotas.
 
 Fase 4: `operate_purchases` permite fornecedores, compras, parcelas, recebimento e cancelamento; valores da compra são necessários à operação, mas não autoriza custo médio/margem global. `view_purchase_reports` permite consolidados de fornecedor e API de resumo. ADMINISTRADOR/FINANCEIRO recebem ambas; GERENCIAL recebe relatórios. Migration aplica apenas novas concessões aos perfis existentes. `operate_stock` continua necessário para transferir entre depósitos. Vendedor não recebe permissões de compras.
+
+## Notificações
+Qualquer usuário autenticado abre a central, mas recebe somente categorias autorizadas. Estoque: operate_stock/operate_sales/view_costs; margem: view_costs; vencimentos: operate_finance/view_finance; backup/configuração/processamento manual: manage_configuration. Preferências e leitura pertencem ao usuário atual. HTML, API, contagens e POST aplicam o mesmo escopo; revogação de permissão oculta avisos já existentes. Ver NOTIFICATIONS.md.

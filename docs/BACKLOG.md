@@ -11,7 +11,7 @@ Atualização: 17/09/2026. Operação manual, com carga inicial restrita ao esto
 | 5 | Contas, pagar/receber, liquidações, transferências, saldo diário/projetado | Concluído no PR #14; 158 testes PostgreSQL e 4 Chromium aprovados |
 | 6 | Despesas por competência, plano hierárquico, regras determinísticas e recorrência mensal | Concluído no PR #15; 187 testes PostgreSQL e 5 Chromium aprovados |
 | 7 | Dashboard próximo das planilhas, vendas tabulares, caixa por dia, compras a pagar, comparativo por canal e DRE | Concluído no PR #16; 206 testes PostgreSQL e 6 Chromium aprovados |
-| 8 | Notificações e preferências, comando agendado | Planejado |
+| 8 | Notificações, preferências, comando agendado e evidências de backup | Implementado; validação PostgreSQL/Chromium pendente |
 | 9 | Importações e integrações com preview, idempotência e rollback seguro | Evolução opcional |
 
 ## Não confundir com entrega

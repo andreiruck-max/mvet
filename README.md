@@ -71,3 +71,6 @@ Acesse **Compras**: cadastre fornecedor, produtos e parcelas; confirme o comprom
 
 ## Financeiro
 Cadastre contas e saldos iniciais em **Financeiro → Contas financeiras**. Compras/vendas confirmadas já geram títulos: não recadastre. Defina conta/vencimento previstos e registre a liquidação efetiva. Transferências entre bancos são separadas das transferências de estoque. Consulte [operação e limites](docs/FINANCE.md).
+
+## Central de notificações
+Alertas internos de estoque mínimo, margem, vencimentos e backup, com leitura e preferências por usuário. Acesse **Notificações** no menu. Processamento periódico: `python manage.py refresh_notifications`; ver [regras e operação](docs/NOTIFICATIONS.md). Agendamento, backup externo e restauração na empresa continuam pendentes.
