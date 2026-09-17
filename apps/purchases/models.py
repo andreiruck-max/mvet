@@ -91,4 +91,8 @@ class PurchaseInstallment(models.Model):
     def display_status(self):
         if self.status=='CANCELLED':return 'Cancelada'
         if self.purchase.status=='DRAFT':return 'Planejada (rascunho)'
+        if hasattr(self,'financial_title'):return self.financial_title.display_status
         return 'Vencida' if self.due_date<timezone.localdate() else 'Pendente'
+    @property
+    def remaining(self):
+        return self.financial_title.remaining if hasattr(self,'financial_title') else self.amount

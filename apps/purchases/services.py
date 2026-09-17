@@ -116,6 +116,8 @@ def confirm(*,actor,purchase_id,revision):
     if not p.items.exists():raise ValidationError('Compra sem itens.')
     if p.items.filter(product__active=False).exists():raise ValidationError('Produto inativo.')
     p.status='ORDERED';p.confirmed_by=actor;p.confirmed_at=timezone.now();p.revision+=1;p.save()
+    from apps.finance.services import create_purchase_titles
+    create_purchase_titles(p,actor)
     audit(actor,p,'confirm_purchase',{'status':'DRAFT'},{'status':p.status,'total':str(p.total),'installments':p.installments.count()});return p
 
 @transaction.atomic
@@ -145,6 +147,8 @@ def cancel(*,actor,purchase_id,reason):
     if not reason.strip() or len(reason)>500:raise ValidationError('Informe motivo de até 500 caracteres.')
     domain_lock();p=Purchase.objects.select_for_update().get(pk=purchase_id)
     if p.status=='CANCELLED':return p
+    from apps.finance.services import cancel_origin
+    cancel_origin(actor,reason,purchase_installment__purchase=p)
     previous=p.status
     if previous=='RECEIVED':
         moves=list(p.receipt.movements.select_related('location').order_by('-pk'))

@@ -7,6 +7,7 @@ from apps.accounts.views import AuditedPasswordChangeView
 from apps.inventory.views import lookup
 from apps.sales.views import sale_result
 from apps.purchases.views import supplier_summary
+from apps.finance.views import cash_api
 
 urlpatterns = [
     path("compras/", include("apps.purchases.urls")),
@@ -22,7 +23,8 @@ urlpatterns = [
     path("configuracoes/", views.configuration, name="configuration"),
     path("indicadores/", views.dashboard, name="dashboard"),
     path("dre/", views.dre, name="dre"),
-    path("financeiro/", views.finance, name="finance"),
+    path("financeiro/", include("apps.finance.urls")),
+    path("api/v1/financeiro/diario/", cash_api, name="cash_api"),
     path("api/v1/indicadores/", views.dashboard_api, name="dashboard_api"),
     path("admin/", admin.site.urls),
 ]
