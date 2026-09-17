@@ -9,7 +9,9 @@ Implementado com User, Group e Permission nativos do Django. Serviços e views v
 | VENDAS_OPERACIONAL | Operar vendas |
 | ESTOQUE | Operar estoque |
 
-Estoque, vendas, compras, financeiro e despesas implementados. DRE segue na próxima fase.
+Estoque, vendas, compras, financeiro, despesas e relatórios gerenciais implementados.
+
+Fase 7: `view_dashboard` autoriza consolidados e tabela gerencial de vendas, incluindo CMV/margem por linha; `view_dre` autoriza DRE HTML/API; `view_finance` autoriza lista de compras a pagar e caixa. Dentro do dashboard, resultado por competência exige adicionalmente view_dre, estoque exige view_costs e bancos exigem view_finance. API de indicadores omite esses blocos independentes. Atalhos de operação continuam exigindo as permissões de origem. Lançar vendas/financeiro não autoriza relatórios.
 
 Fase 6: `operate_expenses` permite registros, classificação/cancelamento e recorrência, sem bancos ou consolidados. `manage_expense_rules` gerencia plano e regras. `view_expense_reports` permite consulta e relatório/API por competência, sem escritas. ADMINISTRADOR/FINANCEIRO recebem as três; GERENCIAL recebe relatórios. Migration concede apenas as permissões novas aos perfis existentes. Operacional de vendas não recebe acesso.
 

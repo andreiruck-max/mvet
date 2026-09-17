@@ -2,7 +2,7 @@
 ERP gerencial interno da Mercadovet Produtos Agroveterinários.
 
 ## Estado atual
-**Fundação, estoque, vendas, compras, financeiro e despesas implementados.** A Fase 6 adiciona [despesas por competência](docs/EXPENSES.md), plano de contas, regras de classificação, correção auditada e recorrência mensal com prévia, integrados aos pagamentos. [PR #15](https://github.com/andreiruck-max/mvet/pull/15): 187 testes PostgreSQL e 5 Chromium aprovados. A próxima fase entrega DRE e [dashboard próximo das planilhas](docs/DASHBOARD.md); ainda não é o ERP completo.
+**Fundação, estoque, vendas, compras, financeiro e despesas implementados.** A Fase 7 adiciona [dashboard próximo das planilhas](docs/DASHBOARD.md), vendas tabulares, caixa organizado por dia, compras a pagar e [DRE gerencial](docs/DRE.md). Validação PostgreSQL/Chromium em andamento. Notificações permanecem na próxima etapa. Depreciação/amortização, classificação de abatimentos e fechamento contábil não estão implementados; pendências ficam explícitas no resultado.
 
 **Entrada manual; corte em 15/09/2026**, America/Sao_Paulo. A planilha é referência funcional, sem migração integral. Aberturas não afetam a DRE. Sem emissão fiscal e sem substituição do Bling.
 

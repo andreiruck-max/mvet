@@ -25,3 +25,5 @@ Custo médio global por produto. Locais segregam quantidades. Transferência con
 Docker Compose, WSGI, banco sem porta publicada. VS Code com ambiente virtual para desenvolvimento. Sessões Django, CSRF, validação de senha, timezone São Paulo e locale pt-br. Repositório não contém dados reais.
 
 Referências: [Django 5.2](https://docs.djangoproject.com/en/5.2/releases/5.2/), [transações](https://docs.djangoproject.com/en/5.2/topics/db/transactions/), [locks](https://docs.djangoproject.com/en/5.2/ref/models/querysets/#select-for-update).
+## Relatórios (Fase 7)
+apps/reporting contém forms de período, selectors de agregação Decimal e views read-only. Consome fontes existentes sem novas tabelas. Relatórios gerenciais usam a transação/mutex de domínio para ler múltiplas fontes consistentemente. Dashboards não gravam totais nem inferem competência de movimentação bancária. Apresentação tabular preserva o uso das planilhas; regras em docs/DASHBOARD.md, docs/DRE.md e ADR 0013.

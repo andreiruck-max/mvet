@@ -1,3 +1,11 @@
+# 0.7.0 — Dashboard e consultas gerenciais
+- Vendas como planilha, com filtros, colunas de valores/deduções, margem e totais de todo o filtro.
+- Caixa por dia com contas dentro de cada quadro, navegação de 14 dias e períodos de até 366 dias.
+- Compras a pagar por parcela, vencimento, fornecedor e período de aquisição; principal baixado separado de pagamento efetivo.
+- Dashboard com comparativo por canal, DRE e blocos protegidos por permissão.
+- DRE usa snapshots e competência, exclui compras/principal/aberturas/transferências e não duplica liquidação.
+- Pendências explícitas e resultado parcial quando faltam classificações; depreciação e rateio por canal permanecem fora do escopo.
+
 # 0.6.0 — Despesas por competência
 - Plano hierárquico por natureza, regras configuráveis e seleção manual prioritária.
 - Despesa gera obrigação sem caixa; pagamento, estorno e cancelamento integrados.
