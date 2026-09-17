@@ -1,5 +1,5 @@
 # Dashboard e consultas — direção aprovada em 17/09/2026
-Estado: Fase 7 implementada, em validação. O usuário pediu visualização próxima das planilhas, mantendo as fontes transacionais normalizadas.
+Estado: Fase 7 implementada e validada em PostgreSQL/Chromium no PR #16. O usuário pediu visualização próxima das planilhas, mantendo as fontes transacionais normalizadas.
 
 ## Vendas como planilha
 Uma venda por linha, ordenação/paginação e filtros comuns por período, canal, NF e situação. Colunas gerenciais: data, NF/série, canal, estoque, valor dos produtos, desconto, frete recebido, receita operacional, frete pago, CMV histórico, taxas, taxas extras (inclui MDR), impostos, DIFAL, comissão, outros custos variáveis, contribuição em reais e percentual. Abrir NF mostra itens e histórico. Totais representam todo o filtro, não somente a página. Rascunhos/canceladas são claramente distinguidos e excluídos dos resultados confirmados.

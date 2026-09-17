@@ -1,5 +1,5 @@
 # DRE gerencial — Fase 7
-Estado: relatório HTML/API implementado, em validação. Política de reconhecimento detalhada no ADR 0013.
+Estado: relatório HTML/API implementado e validado no PR #16. Política de reconhecimento detalhada no ADR 0013.
 
 | Linha | Fonte por competência |
 |---|---|
@@ -20,7 +20,7 @@ Compra de estoque não é despesa imediata. Transferências, aportes, retiradas 
 Filtros por período/canal não devem ratear despesas comuns arbitrariamente: exibir despesas não atribuídas separadas ou adotar rateio documentado.
 Não apresentar gráfico/KPI antes de reconciliar fontes com movimentos e snapshots.
 
-Fase 6 entrega Expense ativo por competência e natureza histórica (OPERATING, FINANCIAL ou não classificada). Obrigação e pagamento vinculados não duplicam despesa. Correção auditada de classificação altera o relatório da competência original. Não classificados precisam aparecer explicitamente. Juros de liquidação exigem política de reconhecimento e prevenção de dupla contagem na Fase 7. Ver docs/EXPENSES.md.
+Fase 6 entrega Expense ativo por competência e natureza histórica (OPERATING, FINANCIAL ou não classificada). Obrigação e pagamento vinculados não duplicam despesa. Correção auditada de classificação altera o relatório da competência original. Não classificados aparecem explicitamente. Juros de liquidação seguem a política de reconhecimento abaixo. Ver docs/EXPENSES.md.
 
 ## Política implementada
 - Vendas confirmadas por data comercial; cancelamento integral exclui a venda, sem recalcular CMV. Vigência tributária retroativa autorizada reflete os valores auditados vigentes.
