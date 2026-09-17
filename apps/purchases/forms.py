@@ -68,6 +68,6 @@ class FilterForm(forms.Form):
     end=forms.DateField(label='Compra até',required=False,widget=forms.DateInput(attrs={'type':'date'}))
     due_start=forms.DateField(label='Vencimento de',required=False,widget=forms.DateInput(attrs={'type':'date'}))
     due_end=forms.DateField(label='Vencimento até',required=False,widget=forms.DateInput(attrs={'type':'date'}))
-    pending=forms.ChoiceField(label='Parcelas',required=False,choices=[('','Todas'),('pending','Pendentes'),('overdue','Vencidas')])
+    pending=forms.ChoiceField(label='Parcelas',required=False,choices=[('','Todas'),('pending','Pendentes'),('overdue','Vencidas'),('paid','Pagas')])
     period=forms.ChoiceField(label='Período da compra',required=False,choices=[('','Personalizado'),('today','Hoje'),('yesterday','Ontem'),('week','Semana'),('month','Mês'),('previous_month','Mês anterior'),('year','Ano')])
     sort=forms.ChoiceField(label='Ordenação',required=False,choices=[('-date','Mais recentes'),('date','Mais antigas'),('document','Documento')])

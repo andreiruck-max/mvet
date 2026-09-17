@@ -20,6 +20,10 @@ GET `/api/v1/produtos/?q=SKU_OU_NOME`, com sessão autenticada. Aceita operate_s
 - `GET /api/v1/produtos/?q=...&location=<id>`: parâmetro opcional local limita quantidade disponível (inclui componentes de kits); custo permanece condicionado à permissão.
 - UI `/vendas/`: listagem/edição; confirmação e cancelamento exclusivamente POST autenticado com CSRF, mesmos serviços de domínio. API pública de escrita futura.
 
+## Fase 5
+`GET /api/v1/financeiro/diario/?start=AAAA-MM-DD&end=AAAA-MM-DD&account=<id>` exige `core.view_finance`. Até 62 dias; retorna quadros por conta e valores sem conta definida, como strings decimais. Parâmetros inválidos: 400; sem permissão: 403. Não expõe saldos a usuário com apenas `operate_finance`.
+UI `/financeiro/` usa serviços transacionais e CSRF. POST de liquidação, estorno, cancelamento, realização de transferência e exclusão de conta rejeitam GET. UUID/revisão são obrigatórios para liquidação; integração futura deve usar os mesmos serviços.
+
 ## Fase 4
 `GET /api/v1/fornecedores/<id>/resumo/`: exige `core.view_purchase_reports`, retorna total, quantidade, ticket médio, última compra e obrigações abertas (valores decimais como strings). Compras em rascunho/canceladas excluídas. Sem permissão: 403.
 UI `/compras/` usa serviços para todos os POST com sessão/CSRF; confirmação, recebimento e cancelamento rejeitam GET. Autocomplete de produtos permite compradores, mas custo médio só é retornado com `core.view_costs`.

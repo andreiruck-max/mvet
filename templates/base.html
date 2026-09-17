@@ -23,6 +23,7 @@
     {% if perms.core.view_dashboard %}<a href="{% url 'dashboard' %}">Indicadores</a>{% endif %}
     {% if perms.core.view_dre %}<a href="{% url 'dre' %}">DRE gerencial</a>{% endif %}
     {% if perms.core.view_finance %}<a href="{% url 'finance' %}">Financeiro</a>{% endif %}
+    {% if perms.core.operate_finance and not perms.core.view_finance %}<a href="{% url 'financial_titles' %}">Pagar e receber</a>{% endif %}
     {% if perms.core.manage_configuration %}<a href="{% url 'configuration' %}">Configurações</a>{% endif %}
     {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administração</a>{% endif %}
   </nav>

@@ -2,7 +2,7 @@
 ERP gerencial interno da Mercadovet Produtos Agroveterinários.
 
 ## Estado atual
-**Fundação, estoque, vendas e compras manuais implementados:** autenticação, permissões, auditoria, cadastros, custo médio, ajustes, kits, rascunhos de venda, confirmação/cancelamento e margem individual. Fase 4 entregue no [PR #13](https://github.com/andreiruck-max/mvet/pull/13), com 128 testes de backend PostgreSQL e 3 testes Chromium aprovados. Compras incluem fornecedores, recebimento, rateio e parcelas. Liquidações financeiras e DRE continuam nas próximas fases; ainda não é o ERP completo.
+**Fundação, estoque, vendas, compras e financeiro implementados.** A Fase 5 adiciona contas, títulos, pagamentos/recebimentos parciais, transferências, estornos e caixa diário realizado/projetado. [PR #14](https://github.com/andreiruck-max/mvet/pull/14): 158 testes PostgreSQL e 4 Chromium aprovados, com revisão visual. Despesas por competência e DRE permanecem nas próximas etapas; ainda não é o ERP completo.
 
 **Entrada manual; corte em 15/09/2026**, America/Sao_Paulo. A planilha é referência funcional, sem migração integral. Aberturas não afetam a DRE. Sem emissão fiscal e sem substituição do Bling.
 
@@ -62,9 +62,12 @@ A abertura pode usar somente o estoque da planilha, sem importar vendas, compras
 `python manage.py check_inventory` confere o saldo por produto/local e a valorização contra o livro de movimentos. Cópia de segurança e instalação continuam conforme os guias existentes.
 
 ## Vendas manuais
-Fase 3: acesse **Vendas**, cadastre canais/regras tributárias e use **Nova venda**. Salvar gera rascunho; confirmar baixa estoque; cancelar repõe com rastreabilidade. A data física é a confirmação e o custo é snapshot do momento. Consulte [regras e operação](docs/SALES.md). Liquidações e fluxo de caixa continuam no backlog.
+Fase 3: acesse **Vendas**, cadastre canais/regras tributárias e use **Nova venda**. Salvar gera rascunho; confirmar baixa estoque; cancelar repõe com rastreabilidade. A data física é a confirmação e o custo é snapshot do momento. Consulte [regras e operação](docs/SALES.md). Recebimentos e fluxo diário estão no financeiro; liquidações ativas exigem estorno antes de cancelar a venda.
 
 Adaptações: Estoque Mercadovet como padrão físico configurável, Full e outros estoques selecionáveis na venda; alíquotas com data de início e recálculo retroativo auditado; taxas extras nome/valor como MDR. Uma instalação vazia recebe os dois estoques iniciais no setup, editáveis. Saldos existentes não são redistribuídos automaticamente.
 
 ## Compras e transferências
-Acesse **Compras**: cadastre fornecedor, produtos e parcelas; confirme o compromisso e depois o recebimento. Frete/desconto/custos são rateados e o estoque de destino atualizado. Para transferir Mercadovet → Full ou entre outros locais, use **Movimentações → Transferência**. Consulte [regras de compras](docs/PURCHASES.md). Pagamento com conta bancária será integrado na Fase 5.
+Acesse **Compras**: cadastre fornecedor, produtos e parcelas; confirme o compromisso e depois o recebimento. Frete/desconto/custos são rateados e o estoque de destino atualizado. Para transferir Mercadovet → Full ou entre outros locais, use **Movimentações → Transferência**. Consulte [regras de compras](docs/PURCHASES.md). Abra a parcela para marcar como paga no financeiro.
+
+## Financeiro
+Cadastre contas e saldos iniciais em **Financeiro → Contas financeiras**. Compras/vendas confirmadas já geram títulos: não recadastre. Defina conta/vencimento previstos e registre a liquidação efetiva. Transferências entre bancos são separadas das transferências de estoque. Consulte [operação e limites](docs/FINANCE.md).

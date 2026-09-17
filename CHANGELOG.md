@@ -1,3 +1,10 @@
+# 0.5.0 — Financeiro
+- Contas com abertura protegida, títulos vinculados a compras/vendas, pagamentos parciais e recebimentos.
+- Juros/descontos explícitos, idempotência, revisão otimista, guarda financeira no cancelamento e estornos rastreáveis.
+- Transferências previstas/realizadas, caixa diário derivado do livro e alerta de pendências sem conta.
+- Permissões independentes para operação e saldos; PostgreSQL protege histórico e equilíbrio das transferências.
+- Despesas por competência/plano de contas e DRE seguem nas próximas fases.
+
 # 0.4.0 — Compras e fornecedores
 - Fornecedores editáveis/inativáveis, compra manual com vários itens, documentos únicos e parcelas.
 - Confirmação de compromisso separada de recebimento físico, rateio exato em centavos, custo médio e histórico preservado.

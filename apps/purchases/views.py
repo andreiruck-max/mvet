@@ -79,7 +79,7 @@ def purchase_edit(request,pk=None):
 @login_required
 def purchase_detail(request,pk):
     check_read(request.user);p=get_object_or_404(Purchase.objects.select_related('supplier','location','created_by','received_by','cancelled_by'),pk=pk)
-    return render(request,'purchases/detail.html',{'purchase':p,'items':p.items.all(),'installments':p.installments.all(),'receive_form':ReceiveForm(initial={'revision':p.revision}),'cancel_form':CancelForm()})
+    return render(request,'purchases/detail.html',{'purchase':p,'items':p.items.all(),'installments':p.installments.select_related('financial_title','purchase'),'receive_form':ReceiveForm(initial={'revision':p.revision}),'cancel_form':CancelForm()})
 
 @login_required
 @permission_required('core.operate_purchases',raise_exception=True)

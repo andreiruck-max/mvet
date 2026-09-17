@@ -117,4 +117,17 @@ erDiagram
     StockOperation o|--o| Purchase : cancelamento
 ```
 
-Purchase armazena totais, revisão/UUID, documento/série únicos por fornecedor, estados e atores/datas. PurchaseItem conserva preço, subtotal, rateio monetário, custo unitário e SKU/nome. PurchaseInstallment contém obrigação planejada ou confirmada; liquidação bancária ainda não implementada. Triggers protegem snapshots confirmados/recebidos e mantêm possibilidade exclusiva de vincular movimento no recebimento e cancelar parcelas.
+Purchase armazena totais, revisão/UUID, documento/série únicos por fornecedor, estados e atores/datas. PurchaseItem conserva preço, subtotal, rateio monetário, custo unitário e SKU/nome. PurchaseInstallment contém obrigação planejada ou confirmada; na Fase 5, situação financeira deriva do título vinculado. Triggers protegem snapshots confirmados/recebidos e permitem vincular movimento no recebimento e cancelar parcelas.
+
+## Fase 5 — entidades implementadas
+```mermaid
+erDiagram
+    FinancialAccount ||--o{ FinancialEntry : registra
+    FinancialOperation ||--o{ FinancialEntry : possui
+    FinancialOperation o|--o| FinancialOperation : estorna
+    FinancialTitle o|--o{ FinancialOperation : liquida
+    FinancialAccount o|--o{ FinancialTitle : previsao
+    PurchaseInstallment o|--o| FinancialTitle : obrigacao
+    Sale o|--o| FinancialTitle : recebivel
+```
+FinancialTitle: direção, origem, principal, baixado, vencimento, conta prevista, categoria básica, abertura, status, revisão, UUID, ator/timestamps e fonte. FinancialOperation: UUID/fingerprint, tipo/status/data, principal/juros/desconto/efetivo e reversão única. FinancialEntry: conta/operação/valor com sinal; livro imutável. Saldo diário é derivado, não tabela editável. Classificação hierárquica e competência permanecem na Fase 6.
