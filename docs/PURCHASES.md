@@ -31,7 +31,7 @@ A reversão restaura quantidade, valor e média anteriores em ordem inversa dos 
 
 ## Parcelas e financeiro
 PurchaseInstallment guarda número, vencimento, valor, observação e status. Vencida é apresentação derivada da data; não depender de tarefa noturna. Compromissos de rascunhos não entram nos totais abertos. Parcelas não multiplicam o total comprado.
-**Esta fase não liquida pagamentos nem altera contas bancárias.** Não há botão de pago sem débito correspondente. A Fase 5 integrará liquidações e títulos, sem criar obrigações duplicadas, e deverá bloquear cancelamento de compra com parcela liquidada até o estorno financeiro. Compras anteriores ao corte com títulos ainda abertos serão lançadas como abertura financeira, não como nova aquisição de estoque.
+**Pagamento integrado na Fase 5.** Confirmar compra cria título por parcela; abrir o vínculo permite marcar como pago parcial/integralmente, escolhendo conta/data e diferenças explícitas. Situação e saldo pendente derivam do título. Cancelamento da compra exige estornar liquidações ativas primeiro. Compras anteriores ao corte com pendências devem ser lançadas como abertura financeira, não como nova aquisição de estoque. Ver FINANCE.md.
 
 ## Consulta e permissões
 Listagens paginadas, pesquisa documento/SKU/nome, fornecedor, estoque, estado, períodos de compra e vencimento, pendentes/vencidas. Datas de vencimento são filtradas sobre a mesma parcela.
