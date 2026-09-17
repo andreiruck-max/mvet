@@ -9,6 +9,8 @@ Monólito Django 5.2 LTS, PostgreSQL, templates, CSS/JS locais. Código em ingl�
 - Operações críticas são atômicas. Lock de produtos por ID crescente antes dos saldos por local.
 - Livro de movimentos imutável, com estorno vinculado. Cadastros utilizados são inativados.
 - Entrada de estoque não é despesa; transferência não é receita; amortização do principal não é despesa.
+- Expense reconhece competência e gera título sem caixa. Classificação histórica só muda com ExpenseRevision e motivo; pagamento não recria despesa. Ver docs/EXPENSES.md e ADR 0012.
+- Direção visual aprovada: tabelas de vendas próximas da planilha, caixa por dia/período e compras a pagar. Ver docs/DASHBOARD.md; preservar permissões e normalização.
 - Lançar venda NÃO autoriza ver custos, margens, DRE ou bancos. Verificar backend e endpoints.
 - Corte 15/09/2026. Sem importação integral da planilha. Aberturas não entram na DRE.
 - Nunca versionar dados comerciais, .env real, arquivos de banco ou backups.

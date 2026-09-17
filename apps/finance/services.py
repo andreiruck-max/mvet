@@ -193,7 +193,7 @@ def reverse(*, actor, pk, date, reason):
 def cancel_title(*, actor, pk, reason):
     require(actor,'core.operate_finance'); domain_lock()
     title=Title.objects.select_for_update().get(pk=pk)
-    if title.purchase_installment_id or title.sale_id: raise ValidationError('Cancele pela compra ou venda de origem, após estornar liquidações.')
+    if title.purchase_installment_id or title.sale_id or hasattr(title,'expense'): raise ValidationError('Cancele pela compra, venda ou despesa de origem, após estornar liquidações.')
     _cancel_titles(actor,Title.objects.filter(pk=pk),reason)
 
 

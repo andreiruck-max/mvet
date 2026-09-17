@@ -1,5 +1,5 @@
 # Financeiro — Fase 5
-Contas, títulos, liquidações, transferências e caixa diário implementados. Evidências de validação no PR da fase. Despesas por competência e DRE permanecem nas Fases 6/7.
+Contas, títulos, liquidações, transferências e caixa diário implementados. Despesas por competência foram integradas na Fase 6; DRE permanece na Fase 7. Evidências de validação no PR de cada fase.
 
 ## Entidades
 Compra é aquisição; parcela é obrigação. Recebimento físico cria estoque. Pagamento só ocorre por liquidação.
@@ -42,3 +42,5 @@ Transferência prevista pode ser realizada na data efetiva ou cancelada. Alterar
 Migração cria títulos de compras/vendas já confirmadas, sem gerar dinheiro. Cancelar origem exige primeiro estornar liquidações ativas. PurchaseInstallment preserva valor/vencimento contratual; situação/pagamentos derivam do título. Relatório do fornecedor soma somente o principal restante.
 `operate_finance` permite operar sem conceder saldos consolidados. `view_finance` permite caixa/contas/API. Administração de contas exige ambas. Usuário de vendas não ganha acesso financeiro pelos vínculos automáticos. Não há admin transacional.
 Lock compartilhado, UUID/fingerprint normalizado, revisão otimista, constraints e triggers protegem histórico e transferências equilibradas. Categorias básicas do caixa não substituem plano de contas/competência. Ver ADR 0011, testes e guias de implantação/backup.
+# Integração com despesas (Fase 6)
+Expense cria um FinancialTitle a pagar com source=expense, sem débito bancário. Liquidação e estorno usam o livro existente. Cancelar pelo módulo de despesas exige pagamentos estornados e cancela também a obrigação; cancelamento direto do título é bloqueado. Competência e plano histórico pertencem à despesa, não ao título nem à data do pagamento. Recorrência cria obrigações futuras sem caixa. Ver docs/EXPENSES.md.
