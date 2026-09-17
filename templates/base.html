@@ -20,6 +20,7 @@
     {% if perms.core.operate_stock or perms.core.operate_sales or perms.core.view_costs %}<a href="{% url 'products' %}">Produtos e estoque</a>{% endif %}
     {% if perms.core.operate_stock %}<a href="{% url 'operations' %}">Movimentações</a>{% endif %}
     <a href="{% url 'home' %}">Início</a>
+    <a href="{% url 'notifications' %}">Notificações</a>
     {% if perms.core.operate_expenses or perms.core.view_expense_reports %}<a href="{% url 'expenses' %}">Despesas</a>{% endif %}
     {% if perms.core.view_dashboard %}<a href="{% url 'dashboard' %}">Indicadores</a>{% endif %}
     {% if perms.core.view_dre %}<a href="{% url 'dre' %}">DRE gerencial</a>{% endif %}
