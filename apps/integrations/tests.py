@@ -51,6 +51,7 @@ class ImportTests(Fixture, TestCase):
         row = self.staged(); self.receive(self.product, D('10'), D('15'))
         sale = self.approve(row)
         self.assertEqual(sale.cmv, D('20')); self.assertEqual(sale.invoice_number, '123')
+        self.assertEqual(sale.source, 'bling'); self.assertEqual(sale.external_id, '1000')
         self.assertEqual(sale.extra_costs_total, D('2')); self.assertEqual(sale.location, self.location)
         self.product.refresh_from_db(); self.assertEqual(self.product.quantity, 18)
         self.assertEqual(FinancialTitle.objects.count(), 1)

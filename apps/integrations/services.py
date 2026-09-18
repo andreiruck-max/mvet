@@ -112,6 +112,8 @@ def approve(*, actor, invoice_id, revision, data, extra_costs, reviewed):
     # Never trust posted invoice identifiers, quantities or external costs.
     data = dict(data, date=invoice.issued_on, invoice_number=invoice.number, invoice_series=invoice.series)
     sale = sales.save_draft(actor=actor, key=uuid4(), data=data, items=items, extra_costs=extra_costs)
+    sale.source = 'bling'; sale.external_id = invoice.external_id
+    sale.save(update_fields=['source', 'external_id'])
     sale = sales.confirm(actor=actor, sale_id=sale.pk, revision=sale.revision)
     invoice.sale = sale; invoice.approved_source = invoice.source
     invoice.status = 'IMPORTED'; invoice.revision += 1; invoice.save()

@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from django import forms
 from django.utils import timezone
 from apps.sales.forms import SaleForm
@@ -28,7 +28,7 @@ class ReviewForm(SaleForm):
         if self.actor and self.actor.is_superuser: self.fields['reviewed'].required = False
         if invoice.source:
             amount = sum((Decimal(i['quantity']) * Decimal(i['price']) for i in invoice.source['items']), Decimal(0))
-            self.initial['products_amount'] = amount.quantize(Decimal('.01'))
+            self.initial['products_amount'] = amount.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
             self.initial['shipping_received'] = invoice.source['freight']
 
     def clean(self):
