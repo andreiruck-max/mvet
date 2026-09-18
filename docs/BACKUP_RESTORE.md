@@ -24,3 +24,6 @@ Cria banco temporário com nome próprio, restaura, consulta tabelas de empresa 
 4. Verificar tabelas, usuários, auditoria e totais; executar migrations apenas com plano de atualização.
 5. Alterar configuração da aplicação para banco restaurado e reabrir após validação.
 Nunca executar restore destrutivo sobre banco ativo sem cópia e revisão.
+
+## Evidências na central
+O script registra bytes e SHA-256 após validar o dump. Falhas tentam registrar evento e preservam código de saída; banco/app indisponível exige consultar log do agendador. Ative Monitorar backup em Notificações → Configurar alertas e agende `refresh_notifications` a cada 15 minutos. Sucesso significa arquivo/catalogação validados, não cópia externa nem restauração. Ausência de registro por mais que o prazo configurado gera alerta. Ver NOTIFICATIONS.md.

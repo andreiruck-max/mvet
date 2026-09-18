@@ -1,3 +1,9 @@
+# 0.8.0 — Notificações internas
+- Central paginada com severidade, links, leitura por usuário e filtros.
+- Estoque mínimo, margem e vencimentos com resolução e reativação sem duplicidade.
+- Preferências e configuração auditadas; escopo HTML/API reavaliado a cada acesso.
+- Comando periódico independente das transações e evidências de backup no script.
+
 # 0.7.0 — Dashboard e consultas gerenciais
 - Vendas como planilha, com filtros, colunas de valores/deduções, margem e totais de todo o filtro.
 - Caixa por dia com contas dentro de cada quadro, navegação de 14 dias e períodos de até 366 dias.

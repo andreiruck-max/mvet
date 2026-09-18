@@ -33,3 +33,6 @@ DEBUG=0 em operação. Secrets aleatórios separados. Conta de aplicação sem s
 
 ## Validação
 check, migrations, setup, collectstatic e testes PostgreSQL no CI. Testar backup/restauração na máquina destino. Nenhuma instalação na rede da empresa foi executada por esta entrega.
+
+## Agendamento de notificações
+Após migrations, executar `docker compose exec -T web python manage.py refresh_notifications`. Configurar repetição a cada 15 minutos no agendador do servidor, com diretório do projeto e registro de saída/erros. Habilitar monitoramento de backup somente ao implantar a rotina. O repositório fornece comandos; não instala agendamentos na máquina da empresa.

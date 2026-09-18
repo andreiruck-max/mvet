@@ -32,3 +32,6 @@ UI `/financeiro/` usa serviços transacionais e CSRF. POST de liquidação, esto
 ## Fase 4
 `GET /api/v1/fornecedores/<id>/resumo/`: exige `core.view_purchase_reports`, retorna total, quantidade, ticket médio, última compra e obrigações abertas (valores decimais como strings). Compras em rascunho/canceladas excluídas. Sem permissão: 403.
 UI `/compras/` usa serviços para todos os POST com sessão/CSRF; confirmação, recebimento e cancelamento rejeitam GET. Autocomplete de produtos permite compradores, mas custo médio só é retornado com `core.view_costs`.
+
+## Notificações
+`GET /api/v1/notificacoes/`: autenticado, lista exclusivamente o escopo autorizado e habilitado nas preferências. Parâmetros page, state (active/resolved/all), read (yes/no), kind (STOCK/MARGIN/DUE/BACKUP), severity (INFO/WARNING/CRITICAL). Retorna count, page, pages e até 30 results com id, conteúdo, tipo, severidade, active, read, revision, updated_at e URL local. POST `/notificacoes/<id>/ler/` exige CSRF e revision atual; retorna redirect à central, 404 fora do escopo ou revisão obsoleta. API de leitura não altera estado.

@@ -145,3 +145,12 @@ erDiagram
     User ||--o{ ExpenseRevision : autor
 ```
 Expense conserva competência, documento, valor NUMERIC, fornecedor/favorecido, categoria/caminho/natureza e regra snapshots, centro de custo, status, UUID/fingerprint, título único, base/índice de recorrência, revisão e atores/datas. Restrição positiva e unique(base,índice). ExpenseRevision conserva motivo e antes/depois imutáveis. Plano tem código único, pai protegido, natureza e grupo/analítica. Relações concretas acima substituem a cardinalidade futura inicial de Expense/FinancialTitle.
+
+## Fase 8 — notificações
+```mermaid
+erDiagram
+    User ||--o{ NotificationRead : leitura
+    Notification ||--o{ NotificationRead : revisao
+    User ||--o{ NotificationPreference : prefere
+```
+Notification identifica condição única por tipo/entidade, conteúdo, severidade, revisão, resolução e timestamps. NotificationRead tem unique(notificação, usuário); revisão lida permite reabrir avisos atualizados. NotificationPreference tem unique(usuário, tipo). AlertConfiguration é singleton com habilitação global, antecedência, prazo de backup, início e última execução. BackupEvidence registra resultado, data, bytes e SHA-256; sucesso exige evidência não vazia. Relação polimórfica de Notification é resolvida pelo tipo e ID, com links fixos e autorização dinâmica, sem exclusão do histórico.
