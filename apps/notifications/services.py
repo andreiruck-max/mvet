@@ -91,7 +91,7 @@ def preferences(*, actor, enabled):
 
 @transaction.atomic
 def configure(*, actor, data):
-    require(actor, 'core.manage_configuration')
+    require(actor, 'core.manage_alerts')
     notification_lock()
     obj, _ = AlertConfiguration.objects.get_or_create(pk=1)
     fields = ('stock', 'margin', 'due', 'due_days', 'backup', 'backup_hours')

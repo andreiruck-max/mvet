@@ -41,6 +41,7 @@ def repeat(model, key, payload):
 
 @transaction.atomic
 def save_account(*, actor, data, pk=None):
+    require(actor,'core.manage_financial_accounts')
     require(actor, 'core.view_finance')
     require(actor, 'core.operate_finance'); domain_lock()
     account = Account.objects.select_for_update().get(pk=pk) if pk else Account()
@@ -60,6 +61,7 @@ def save_account(*, actor, data, pk=None):
 
 @transaction.atomic
 def delete_account(*, actor, pk):
+    require(actor,'core.manage_financial_accounts')
     require(actor, 'core.view_finance')
     require(actor,'core.operate_finance'); domain_lock()
     account = Account.objects.select_for_update().get(pk=pk)
@@ -71,6 +73,7 @@ def delete_account(*, actor, pk):
 
 @transaction.atomic
 def create_title(*, actor, key, data):
+    require(actor,'core.create_financial_titles')
     require(actor,'core.operate_finance'); domain_lock()
     allowed = {'direction','description','counterparty','date','due_date','amount','account','category','opening','notes'}
     if set(data)-allowed: raise ValidationError('Campo de título inválido.')
@@ -93,6 +96,7 @@ def create_title(*, actor, key, data):
 
 @transaction.atomic
 def schedule_title(*, actor, pk, due_date, account, notes, revision):
+    require(actor,'core.schedule_financial_titles')
     require(actor,'core.operate_finance'); domain_lock()
     title = Title.objects.select_for_update().get(pk=pk)
     if title.status!='OPEN' or not title.remaining: raise ValidationError('Título encerrado.')
@@ -109,11 +113,12 @@ def schedule_title(*, actor, pk, due_date, account, notes, revision):
 @transaction.atomic
 def settle(*, actor, key, title_id, account_id, date, principal, interest, discount, actual, notes='', revision):
     require(actor,'core.operate_finance'); domain_lock()
+    title = Title.objects.select_for_update().get(pk=title_id)
+    require(actor, 'core.pay_titles' if title.direction=='PAY' else 'core.receive_titles')
     principal=number(principal,CENT)
     interest,discount,actual=[number(v,CENT,zero=True) for v in [interest,discount,actual]]
     key, fingerprint, existing = repeat(Operation,key,[actor.pk,title_id,account_id,date,principal,interest,discount,actual,notes,revision])
     if existing: return existing
-    title = Title.objects.select_for_update().get(pk=title_id)
     if title.revision != revision: raise ValidationError('Título já foi atualizado. Reabra antes de liquidar.')
     if title.status!='OPEN' or not title.remaining: raise ValidationError('Título encerrado.')
     validate_date(date)
@@ -136,6 +141,7 @@ def settle(*, actor, key, title_id, account_id, date, principal, interest, disco
 
 @transaction.atomic
 def transfer(*, actor, key, source_id, destination_id, date, amount, notes='', planned=False):
+    require(actor,'core.transfer_finance')
     require(actor,'core.operate_finance'); domain_lock()
     amount=number(amount,CENT)
     key,fingerprint,existing=repeat(Operation,key,[actor.pk,source_id,destination_id,date,amount,notes,planned])
@@ -153,6 +159,7 @@ def transfer(*, actor, key, source_id, destination_id, date, amount, notes='', p
 
 @transaction.atomic
 def post_transfer(*, actor, pk, date):
+    require(actor,'core.transfer_finance')
     require(actor,'core.operate_finance'); domain_lock()
     op=Operation.objects.select_for_update().get(pk=pk)
     if op.status=='POSTED': return op
@@ -167,6 +174,7 @@ def post_transfer(*, actor, pk, date):
 
 @transaction.atomic
 def reverse(*, actor, pk, date, reason):
+    require(actor,'core.reverse_finance')
     require(actor,'core.operate_finance'); domain_lock()
     if not reason.strip() or len(reason)>500: raise ValidationError('Informe motivo de até 500 caracteres.')
     op=Operation.objects.select_for_update().get(pk=pk)
@@ -191,6 +199,7 @@ def reverse(*, actor, pk, date, reason):
 
 @transaction.atomic
 def cancel_title(*, actor, pk, reason):
+    require(actor,'core.cancel_financial_titles')
     require(actor,'core.operate_finance'); domain_lock()
     title=Title.objects.select_for_update().get(pk=pk)
     if title.purchase_installment_id or title.sale_id or hasattr(title,'expense'): raise ValidationError('Cancele pela compra, venda ou despesa de origem, após estornar liquidações.')

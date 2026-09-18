@@ -11,9 +11,10 @@ from .forms import SaleForm, Items, CancelForm, ChannelForm, TaxForm, FilterForm
 from .services import save_draft, confirm, cancel, save_configuration, EDIT_FIELDS
 from .selectors import sales
 from .taxes import change_rate, effective_terms
+from apps.core.services import require
 
 def check_read(user):
-    if not user.has_perm('core.operate_sales') and not user.has_perm('core.view_costs'):raise PermissionDenied
+    if not user.has_perm('core.view_sales'):raise PermissionDenied
 
 @login_required
 def sale_list(request):
@@ -78,15 +79,17 @@ def sale_cancel(request,pk):
     return redirect('sale_detail',pk=pk)
 
 @login_required
-@permission_required('core.view_costs',raise_exception=True)
+@permission_required('core.view_margins',raise_exception=True)
 def sale_result(request,pk):
     sale=get_object_or_404(Sale,pk=pk)
     if sale.status=='DRAFT':return JsonResponse({'status':sale.status,'detail':'Custo calculado na confirmação.'})
-    return JsonResponse({'status':sale.status,'revenue':str(sale.revenue),'cmv':str(sale.cmv),'contribution':str(sale.contribution),'margin_percent':str(sale.margin_percent) if sale.margin_percent is not None else None})
+    result={'status':sale.status,'revenue':str(sale.revenue),'contribution':str(sale.contribution),'margin_percent':str(sale.margin_percent) if sale.margin_percent is not None else None}
+    if request.user.has_perm('core.view_costs'):result['cmv']=str(sale.cmv)
+    return JsonResponse(result)
 
 @login_required
-@permission_required('core.manage_configuration',raise_exception=True)
 def configuration(request,kind,pk=None):
+    require(request.user,'core.manage_channels' if kind == 'canais' else 'core.manage_taxes')
     choices={'canais':(SalesChannel,ChannelForm,'Canais de venda'),'impostos':(TaxRule,TaxForm,'Regras tributárias')}
     if kind not in choices:raise PermissionDenied
     model,form_class,title=choices[kind]
@@ -102,7 +105,7 @@ def configuration(request,kind,pk=None):
 
 
 @login_required
-@permission_required('core.manage_configuration',raise_exception=True)
+@permission_required('core.manage_taxes',raise_exception=True)
 def tax_change(request,pk):
     from django.utils import timezone
     rule=get_object_or_404(TaxRule,pk=pk)

@@ -1,3 +1,4 @@
+from .models import SalesChannel
 """Sales authorization and atomic transitions; stock shares the inventory mutex."""
 from decimal import Decimal, ROUND_HALF_UP
 from uuid import UUID
@@ -88,6 +89,7 @@ def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None):
 
 @transaction.atomic
 def confirm(*,actor,sale_id,revision):
+    require(actor,'core.confirm_sales')
     require(actor,'core.operate_sales')
     domain_lock()
     sale=Sale.objects.select_for_update().get(pk=sale_id)
@@ -133,6 +135,7 @@ def confirm(*,actor,sale_id,revision):
 
 @transaction.atomic
 def cancel(*,actor,sale_id,reason):
+    require(actor,'core.cancel_sales')
     require(actor,'core.operate_sales')
     if not reason.strip() or len(reason)>500: raise ValidationError('Informe o motivo do cancelamento (até 500 caracteres).')
     domain_lock()
@@ -155,7 +158,7 @@ def cancel(*,actor,sale_id,reason):
 
 @transaction.atomic
 def save_configuration(*,actor,model,data,pk=None):
-    require(actor,'core.manage_configuration');domain_lock()
+    require(actor,'core.manage_channels' if model is SalesChannel else 'core.manage_taxes');domain_lock()
     obj=model.objects.select_for_update().get(pk=pk) if pk else model()
     before={k:str(getattr(obj,k)) for k in data}
     if model is TaxRule and pk and any(k in data and data[k]!=getattr(obj,k) for k in ['rate','base','starts_on']):

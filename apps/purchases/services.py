@@ -47,6 +47,7 @@ def validate_schedule(purchase):
 
 @transaction.atomic
 def save_supplier(*,actor,data,pk=None):
+    require(actor,'core.manage_suppliers')
     require(actor,'core.operate_purchases');domain_lock()
     obj=Supplier.objects.select_for_update().get(pk=pk) if pk else Supplier()
     before={k:str(getattr(obj,k)) for k in data}
@@ -107,6 +108,7 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
 
 @transaction.atomic
 def confirm(*,actor,purchase_id,revision):
+    require(actor,'core.confirm_purchases')
     require(actor,'core.operate_purchases');domain_lock()
     p=Purchase.objects.select_for_update().get(pk=purchase_id)
     if p.status in {'ORDERED','RECEIVED'}:return p
@@ -122,6 +124,7 @@ def confirm(*,actor,purchase_id,revision):
 
 @transaction.atomic
 def receive(*,actor,purchase_id,date,revision):
+    require(actor,'core.receive_purchases')
     require(actor,'core.operate_purchases');domain_lock()
     p=Purchase.objects.select_for_update().get(pk=purchase_id)
     if p.status=='RECEIVED':return p
@@ -143,6 +146,7 @@ def receive(*,actor,purchase_id,date,revision):
 
 @transaction.atomic
 def cancel(*,actor,purchase_id,reason):
+    require(actor,'core.cancel_purchases')
     require(actor,'core.operate_purchases')
     if not reason.strip() or len(reason)>500:raise ValidationError('Informe motivo de até 500 caracteres.')
     domain_lock();p=Purchase.objects.select_for_update().get(pk=purchase_id)

@@ -1,0 +1,1 @@
+{% if allowed %}<div class="actions section" aria-label="Exportar relatório"><a href="{% url 'report_export' kind 'xlsx' %}?{{ request.GET.urlencode }}">Exportar Excel</a><a href="{% url 'report_export' kind 'pdf' %}?{{ request.GET.urlencode }}">Exportar PDF</a></div>{% endif %}

@@ -28,6 +28,8 @@ class OperationForm(forms.Form):
     reason=forms.CharField(label='Motivo / documento',max_length=500,widget=forms.Textarea(attrs={'rows':2}))
     def __init__(self,*args,actor,**kwargs):
         super().__init__(*args,**kwargs)
+        actions={'TRANSFER':'transfer_stock','SPLIT':'fraction_stock','REVALUE':'adjust_stock_cost','OPENING':'receive_stock','RECEIPT':'receive_stock'}
+        self.fields['kind'].choices=[x for x in self.fields['kind'].choices if actor.has_perm('core.'+actions.get(x[0],'adjust_stock'))]
         if not actor.has_perm('core.view_costs'):
             self.fields['kind'].choices=[x for x in self.fields['kind'].choices if x[0] not in {'OPENING','RECEIPT','ADJUST_IN','REVALUE'}]
             self.fields.pop('cost')

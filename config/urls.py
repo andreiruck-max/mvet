@@ -3,8 +3,10 @@ from django.contrib.auth import views as auth_views
 from django.urls import path, include
 from apps.core import views
 from apps.reporting import views as reports
+from apps.reporting.exports import export
 from apps.notifications import views as notifications
 from apps.accounts.views import AuditedPasswordChangeView
+from apps.accounts.access import users as user_access
 
 from apps.inventory.views import lookup
 from apps.sales.views import sale_result
@@ -13,6 +15,9 @@ from apps.finance.views import cash_api
 from apps.expenses.views import report_api as expense_report_api
 
 urlpatterns = [
+    path('relatorios/exportar/<str:kind>/<str:format>/', export, name='report_export'),
+    path('usuarios/', user_access, name='user_access_list'),
+    path('usuarios/<int:pk>/acessos/', user_access, name='user_access'),
     path('notificacoes/', include('apps.notifications.urls')),
     path('api/v1/notificacoes/', notifications.api, name='notifications_api'),
     path('despesas/',include('apps.expenses.urls')),

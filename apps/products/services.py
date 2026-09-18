@@ -7,6 +7,7 @@ from .models import Product, ProductComposition
 
 @transaction.atomic
 def save_product(*,actor,data,pk=None):
+    require(actor,'core.manage_products')
     require(actor,'core.operate_stock')
     domain_lock()
     obj=Product.objects.select_for_update().get(pk=pk) if pk else Product()
@@ -25,6 +26,7 @@ def save_product(*,actor,data,pk=None):
 
 @transaction.atomic
 def remove_product(*,actor,pk):
+    require(actor,'core.remove_products')
     require(actor,'core.operate_stock');domain_lock()
     obj=Product.objects.select_for_update().get(pk=pk)
     if obj.movements.exists() or obj.saleitem_set.exists() or obj.purchaseitem_set.exists() or obj.used_in.exists() or obj.components.exists() or obj.balances.exists():
@@ -33,6 +35,7 @@ def remove_product(*,actor,pk):
 
 @transaction.atomic
 def set_components(*,actor,kit_id,items):
+    require(actor,'core.manage_products')
     require(actor,'core.operate_stock');domain_lock()
     ids={kit_id}|{int(i[0]) for i in items}
     products={p.pk:p for p in Product.objects.select_for_update().filter(pk__in=ids).order_by('pk')}

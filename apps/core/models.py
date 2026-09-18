@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from apps.accounts.permissions import CAPABILITIES
 
 class Company(models.Model):
     name = models.CharField("Nome", max_length=180, default="Mercadovet Produtos Agroveterinários")
@@ -15,7 +16,7 @@ class Company(models.Model):
     class Meta:
         verbose_name = "Empresa"
         verbose_name_plural = "Empresa"
-        permissions = [
+        permissions = [(code, definition[0]) for code, definition in CAPABILITIES.items()] + [
             ("manage_configuration", "Gerenciar configurações da empresa"),
             ("view_dashboard", "Visualizar indicadores consolidados"),
             ("view_dre", "Visualizar DRE gerencial"),

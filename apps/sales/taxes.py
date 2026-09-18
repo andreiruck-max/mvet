@@ -30,7 +30,8 @@ def affected_sales(rule,effective_from):
 
 @transaction.atomic
 def change_rate(*,actor,rule_id,rate,effective_from,base,reason,revision):
-    require(actor,'core.manage_configuration');domain_lock()
+    if effective_from < timezone.localdate(): require(actor,'core.retroactive_taxes')
+    require(actor,'core.manage_taxes');domain_lock()
     rule=TaxRule.objects.select_for_update().get(pk=rule_id)
     latest=rule.changes.order_by('-pk').first()
     if revision!=(latest.pk if latest else 0):raise ValidationError('A regra mudou em outra sessão. Reabra a edição.')
