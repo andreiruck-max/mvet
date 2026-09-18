@@ -1,3 +1,7 @@
+# Especificação — integração Bling independente
+- Fila de conferência, deduções manuais e CMV exclusivo do MVet definidos no ADR 0015.
+- Cancelamentos independentes e reconsultas sem duplicação/reativação; integração ainda não implementada.
+
 # 0.8.0 — Notificações internas
 - Central paginada com severidade, links, leitura por usuário e filtros.
 - Estoque mínimo, margem e vencimentos com resolução e reativação sem duplicidade.
