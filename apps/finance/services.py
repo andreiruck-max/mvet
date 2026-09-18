@@ -224,7 +224,7 @@ def create_purchase_titles(purchase, actor):
 
 def create_sale_title(sale, actor):
     if sale.revenue>0:
-        Title.objects.get_or_create(sale=sale,defaults=dict(direction='RECEIVE',description=f'Venda NF {sale.invoice_number}/{sale.invoice_series}',date=sale.date,due_date=sale.date,amount=sale.revenue,actor=actor,source='sale',category='OPERATING'))
+        Title.objects.get_or_create(sale=sale,defaults=dict(direction='RECEIVE',description=sale.reference,date=sale.date,due_date=sale.date,amount=sale.revenue,actor=actor,source='sale',category='OPERATING'))
 
 
 def cancel_origin(actor, reason, **filters):

@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
+from django.utils import timezone
 from apps.products.models import NamedActive, Product
 from apps.inventory.models import StockLocation, StockOperation, StockMovement, Immutable
 
@@ -30,14 +31,16 @@ class Sale(models.Model):
     key = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     creation_fingerprint = models.CharField(max_length=64, editable=False)
     revision = models.PositiveIntegerField(default=0, editable=False)
-    date = models.DateField('Data da venda', db_index=True)
-    invoice_number = models.CharField('Número da NF', max_length=40)
+    date = models.DateField('Data da venda', db_index=True, default=timezone.localdate)
+    invoice_number = models.CharField('Número da NF', max_length=40, blank=True, default='')
     invoice_series = models.CharField('Série', max_length=20, blank=True, default='')
-    channel = models.ForeignKey(SalesChannel, on_delete=models.PROTECT, verbose_name='Canal')
-    location = models.ForeignKey(StockLocation, on_delete=models.PROTECT, verbose_name='Local de estoque')
+    channel = models.ForeignKey(SalesChannel, on_delete=models.PROTECT, verbose_name='Canal', null=True, blank=True)
+    location = models.ForeignKey(StockLocation, on_delete=models.PROTECT, verbose_name='Local de estoque', null=True, blank=True)
     products_amount = money('Valor dos produtos (R$)')
     discount = money('Desconto (R$)')
     shipping_received = money('Frete recebido (R$)')
+    revenue_adjustment = models.DecimalField('Ajuste gerencial da receita (R$)', max_digits=18, decimal_places=2, default=0)
+    revenue_adjustment_reason = models.CharField('Motivo do ajuste de receita', max_length=500, blank=True)
     shipping_paid = money('Frete pago (R$)')
     fees = money('Taxas (R$)')
     difal = money('DIFAL (R$)')
@@ -66,10 +69,14 @@ class Sale(models.Model):
     source = models.CharField(max_length=40, default='manual')
     class Meta:
         ordering = ['-date','-pk']
-        constraints = [models.UniqueConstraint(fields=['invoice_number','invoice_series'],name='sales_unique_invoice'), models.CheckConstraint(condition=models.Q(discount__lte=models.F('products_amount')),name='sales_valid_discount')]
+        constraints = [models.UniqueConstraint(fields=['invoice_number','invoice_series'],condition=~models.Q(invoice_number=''),name='sales_unique_invoice'), models.CheckConstraint(condition=models.Q(discount__lte=models.F('products_amount')),name='sales_valid_discount'),
+            models.CheckConstraint(condition=models.Q(products_amount__gte=models.F('discount')-models.F('shipping_received')-models.F('revenue_adjustment')), name='sales_nonnegative_revenue'),
+            models.CheckConstraint(condition=models.Q(status='DRAFT') | models.Q(status='CANCELLED') | models.Q(channel__isnull=False, location__isnull=False), name='sales_confirmed_context')]
         indexes = [models.Index(fields=['channel','date'])]
     @property
-    def revenue(self): return self.products_amount - self.discount + self.shipping_received
+    def revenue(self): return self.products_amount - self.discount + self.shipping_received + self.revenue_adjustment
+    @property
+    def reference(self): return f'NF {self.invoice_number}' if self.invoice_number else f'Venda #{self.pk} (sem NF)'
     @property
     def contribution(self): return self.revenue-self.cmv-self.shipping_paid-self.fees-self.tax_amount-self.difal-self.commission-self.other_costs-self.extra_costs_total
     @property

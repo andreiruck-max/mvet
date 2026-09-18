@@ -13,7 +13,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 
 NS='http://schemas.openxmlformats.org/spreadsheetml/2006/main'
 REL='http://schemas.openxmlformats.org/officeDocument/2006/relationships'
-METRICS={'count':'Vendas confirmadas','products_amount':'Valor dos produtos','discount':'Descontos','shipping_received':'Frete recebido','revenue':'Receita operacional','ticket':'Ticket médio','cmv':'CMV histórico','contribution':'Margem de contribuição','margin':'Margem (pontos percentuais)','shipping_paid':'Frete pago','fees':'Taxas','extra_costs_total':'Extras / MDR','tax_amount':'Imposto','difal':'DIFAL','commission':'Comissão','other_costs':'Outros custos'}
+METRICS={'count':'Vendas confirmadas','products_amount':'Valor dos produtos','discount':'Descontos','shipping_received':'Frete recebido','revenue_adjustment':'Ajuste gerencial da receita','revenue':'Receita operacional','ticket':'Ticket médio','cmv':'CMV histórico','contribution':'Margem de contribuição','margin':'Margem (pontos percentuais)','shipping_paid':'Frete pago','fees':'Taxas','extra_costs_total':'Extras / MDR','tax_amount':'Imposto','difal':'DIFAL','commission':'Comissão','other_costs':'Outros custos'}
 
 
 def column(index):
