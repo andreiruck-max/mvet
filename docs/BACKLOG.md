@@ -2,7 +2,7 @@
 
 ## Ampliação — acessos e arquivos
 
-[PR #18](https://github.com/andreiruck-max/mvet/pull/18): políticas individuais pelo master e exportações Excel/PDF nos módulos existentes. Aceite depende de PostgreSQL/Chromium no PR. Não adiar exportações para a Fase 9. Bling permanece avaliação documentada em BLING_INTEGRATION.md: importação assistida de NF/SKU e conciliação de movimentos, sem conexão ativa nem promessa de saldo bancário direto.
+[PR #18](https://github.com/andreiruck-max/mvet/pull/18): políticas individuais pelo master e exportações Excel/PDF nos módulos existentes. Entregue e integrado: 236 testes PostgreSQL e 9 Chromium aprovados. Não adiar exportações para a Fase 9. Bling permanece avaliação documentada em BLING_INTEGRATION.md: importação assistida de NF/SKU e conciliação de movimentos, sem conexão ativa nem promessa de saldo bancário direto. ADR 0015 define fila separada de conferência, custos de marketplace manuais, CMV exclusivo do MVet e cancelamentos independentes; implementar e testar sem sobrescrever escolhas locais nem reativar vendas canceladas.
 Atualização: 17/09/2026. Operação manual, com carga inicial restrita ao estoque autorizada pelo usuário.
 
 | Fase | Entrega / aceite | Estado |
