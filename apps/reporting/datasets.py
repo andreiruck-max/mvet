@@ -29,9 +29,10 @@ def bound(rows):
     return rows
 
 
-def sales_dataset(user, d):
+def sales_dataset(user, d, *, page_rows=None):
     require(user, 'core.view_sales_report')
-    rows = bound(selectors.sale_rows(d)).prefetch_related('items__product')
+    all_rows=selectors.sale_rows(d)
+    rows = (bound(all_rows) if page_rows is None else page_rows).prefetch_related('items__product')
     costs, margins = user.has_perm('core.view_costs'), user.has_perm('core.view_margins')
     headers = ['DATA','NF','VALOR','DESCONTO','FRETE RECEBIDO','TOTAL','FRETE PAGO','DIF FRETE']
     if costs: headers += ['CMV histórico']
@@ -51,7 +52,7 @@ def sales_dataset(user, d):
         row += [' + '.join(f'{i.quantity} × {i.name_snapshot or i.product.name}' for i in sale.items.all()),sale.invoice_series,str(sale.channel),str(sale.location),sale.get_status_display(),sale.extra_costs_total,sale.difal,sale.commission,sale.other_costs]
         if margins: row += [sale.margin_percent/100 if confirmed and sale.margin_percent is not None else None,sale.margin_label if confirmed else 'Fora do resultado']
         values.append(row)
-    return Dataset('Vendas', headers, values, 'CMV histórico preservado. Totais consideram somente vendas confirmadas. EBITDA/LUCRO da planilha foram substituídos por margens com definição correta.', metrics_for(user, selectors.sales_summary(rows)))
+    return Dataset('Vendas', headers, values, 'CMV histórico preservado. Totais consideram somente vendas confirmadas. EBITDA/LUCRO da planilha foram substituídos por margens com definição correta.', metrics_for(user, selectors.sales_summary(all_rows)))
 
 
 def build(kind, user, query):

@@ -118,3 +118,14 @@ class ExportTests(ReportingFixture, TestCase):
         with self.assertRaises(PermissionDenied):services.confirm(actor=fresh,sale_id=sale.pk,revision=sale.revision)
         self.client.force_login(fresh)
         self.assertEqual(self.client.post(reverse('sale_confirm',args=[sale.pk]),{'revision':sale.revision}).status_code,403)
+
+    def test_restricted_html_stays_paginated_without_export_limit(self):
+        from unittest.mock import patch
+        self.receive(self.product,D('100'),D('5'))
+        for i in range(31):self.confirmed(invoice_number=str(i))
+        self.operator.user_permissions.add(Permission.objects.get(codename='view_sales_report'))
+        self.client.force_login(self.operator)
+        with patch('apps.reporting.datasets.bound',side_effect=AssertionError('HTML must not build the full export')):
+            r=self.client.get(reverse('sales_sheet'),{**self.period,'page':2})
+        self.assertEqual(r.status_code,200);self.assertEqual(len(r.context['page']),1)
+        self.assertEqual(r.context['totals']['count'],31)

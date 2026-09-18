@@ -55,10 +55,11 @@ def sales_sheet(request):
         ctx.update(page=Paginator(rows,30).get_page(request.GET.get('page')),totals=selectors.sales_summary(rows))
     if d and not (request.user.has_perm('core.view_margins') and request.user.has_perm('core.view_costs')):
         from django.core.exceptions import ValidationError
-        try:dataset=sales_dataset(request.user,d)
+        try:dataset=sales_dataset(request.user,d,page_rows=ctx['page'].object_list)
         except ValidationError as error:
             form.add_error(None,error);return render(request,'reporting/restricted_sales.html',{'form':form},status=400)
-        ctx.update(dataset=dataset,page=Paginator(dataset.rows,30).get_page(request.GET.get('page')),totals=dataset.totals)
+        ctx['page'].object_list=dataset.rows
+        ctx.update(dataset=dataset,totals=dataset.totals)
         return render(request,'reporting/restricted_sales.html',ctx)
     return render(request,'reporting/sales.html',ctx,status=200 if d else 400)
 

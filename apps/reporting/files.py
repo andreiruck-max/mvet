@@ -7,7 +7,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from io import BytesIO
 import re
-from xml.etree.ElementTree import Element, SubElement, tostring
+from xml.etree.ElementTree import Element, SubElement, tostring, fromstring
 from xml.sax.saxutils import escape
 from zipfile import ZipFile, ZIP_DEFLATED
 
@@ -34,7 +34,7 @@ def cell(row, col, value, style=None):
     if value is None:return
     if isinstance(value,datetime):value=value.date()
     if isinstance(value,date):
-        node.set('s','3');SubElement(node,'v').text=str((value-date(1899,12,30)).days)
+        node.set('s','6' if style==1 else '3');SubElement(node,'v').text=str((value-date(1899,12,30)).days)
     elif isinstance(value,(int,Decimal)) and not isinstance(value,bool):
         if style is None:node.set('s','2')
         SubElement(node,'v').text=str(value)
@@ -54,6 +54,10 @@ def sheet_xml(dataset, company, *, horizontal=False):
     for i in range(1,count+1):
         label=dataset.headers[i-1] if not horizontal and i<=len(dataset.headers) else ''
         width=40 if any(x in label.upper() for x in ['PRODUTO','DESCRI','FORNECEDOR','CATEGORIA']) else 20
+        if dataset.title=='ESTOQUE MVET':width={'SKU':9.14,'PRODUTO':63,'QTD':11.425,'CUSTO':12.71,'VALOR TOTAL':12.71}.get(label,width)
+        elif dataset.title=='Compras':width={'DATA COMPRA':14.855,'NF':8.71,'FORNECEDOR':40.57,'VCTO':11.425,'VALOR':13.855,'PRODUTOS':141.71}.get(label,width)
+        elif dataset.title=='Vendas':width={'DATA':12,'NF':7.71,'VALOR':11.14,'DESCONTO':16.855,'FRETE RECEBIDO':16.855,'TOTAL':13.425,'FRETE PAGO':16.71,'DIF FRETE':15.57,'CMV histórico':12.285,'SIMPLES':15.71,'TAXAS':10.285}.get(label,width)
+        if horizontal and i==1:width=32
         SubElement(cols,'col',min=str(i),max=str(i),width=str(width),customWidth='1')
     data=SubElement(root,'sheetData');merges=[]
     if horizontal:
@@ -87,7 +91,8 @@ def sheet_xml(dataset, company, *, horizontal=False):
         end=header+len(dataset.rows)
         if dataset.rows:SubElement(root,'autoFilter',ref=f'A{header}:{column(count)}{end}')
         if header==2:
-            row=SubElement(data,'row',r=str(end+2));cell(row,1,dataset.notes)
+            row=SubElement(data,'row',r=str(end+2),ht='45',customHeight='1');cell(row,1,dataset.notes)
+            if count>1:merges.append(f'A{end+2}:{column(count)}{end+2}')
     if merges:
         node=SubElement(root,'mergeCells',count=str(len(merges)))
         for ref in merges:SubElement(node,'mergeCell',ref=ref)
@@ -120,7 +125,15 @@ def xlsx(dataset, company):
             SubElement(content,'Override',PartName=f'/xl/worksheets/sheet{i}.xml',ContentType='application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml')
             z.writestr(f'xl/worksheets/sheet{i}.xml',sheet_xml(ds,company,horizontal=horizontal))
         SubElement(rels,'Relationship',Id='styles',Type=REL+'/styles',Target='styles.xml')
-        z.writestr('xl/styles.xml',STYLES);z.writestr('xl/workbook.xml',tostring(workbook));z.writestr('xl/_rels/workbook.xml.rels',tostring(rels));z.writestr('[Content_Types].xml',tostring(content))
+        styles=fromstring(STYLES)
+        # Style 6 preserves the date format and visual day header together.
+        xfs=styles.find(f'{{{NS}}}cellXfs')
+        dated=fromstring(tostring(xfs[1]));dated.set('numFmtId','165');dated.set('applyNumberFormat','1')
+        xfs.append(dated);xfs.set('count',str(len(xfs)))
+        if dataset.title=='Vendas':
+            styles.find(f'{{{NS}}}fills')[2].find(f'{{{NS}}}patternFill/{{{NS}}}fgColor').set('rgb','FF00B0F0')
+            styles.find(f'{{{NS}}}fonts')[1].find(f'{{{NS}}}color').set('rgb','FF000000')
+        z.writestr('xl/styles.xml',tostring(styles));z.writestr('xl/workbook.xml',tostring(workbook));z.writestr('xl/_rels/workbook.xml.rels',tostring(rels));z.writestr('[Content_Types].xml',tostring(content))
         z.writestr('_rels/.rels',f'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="book" Type="{REL}/officeDocument" Target="xl/workbook.xml"/></Relationships>')
     return out.getvalue()
 
