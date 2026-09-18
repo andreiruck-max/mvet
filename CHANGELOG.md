@@ -1,3 +1,14 @@
+# Vendas manuais e flexibilidade do master
+- NF opcional com referência interna; master salva rascunhos incompletos.
+- Imposto zero e ajuste de receita auditados; recebível, DRE e exportações consistentes.
+- Confirmação mantém validação de estoque, quantidades e contexto; histórico não é sobrescrito.
+
+# Integração assistida Bling — homologação real pendente
+- Conexão OAuth pelo master com tokens criptografados e leitura paginada de NF.
+- Fila separada, SKU/unidade, deduções explícitas e taxas extras; confirmação atômica pelo CMV do MVet.
+- Cancelamentos independentes, snapshots de origem e referência protegida contra duplicação/reativação.
+- Permissões individuais, histórico de consultas e comando sync_bling. Financeiro externo ainda não implementado.
+
 # Especificação — integração Bling independente
 - Fila de conferência, deduções manuais e CMV exclusivo do MVet definidos no ADR 0015.
 - Cancelamentos independentes e reconsultas sem duplicação/reativação; integração ainda não implementada.

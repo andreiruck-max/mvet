@@ -11,12 +11,28 @@ from .services import EDIT_FIELDS, FINANCIAL_FIELDS
 class SaleForm(forms.ModelForm):
     key=forms.UUIDField(widget=forms.HiddenInput,initial=uuid.uuid4)
     revision=forms.IntegerField(widget=forms.HiddenInput,initial=0)
+    revenue_target=forms.DecimalField(label='Receita líquida operacional ajustada (R$)', required=False, max_digits=18, decimal_places=2, min_value=0,
+        help_text='Master: valor antes de CMV, impostos e custos variáveis. Não é o saldo recebido do marketplace. Regra tributária sobre receita inclui este ajuste na base.')
     class Meta:
         model=Sale
         fields=EDIT_FIELDS
         widgets={'date':forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d'),'notes':forms.Textarea(attrs={'rows':2})}
-    def __init__(self,*args,**kwargs):
+    def __init__(self,*args,actor=None,**kwargs):
+        self.actor=actor
         super().__init__(*args,**kwargs)
+        self.fields['revenue_adjustment'].widget=forms.HiddenInput()
+        self.fields['revenue_adjustment'].disabled=True
+        self.master_fields=[]
+        if actor and actor.is_superuser:
+            for name in EDIT_FIELDS:self.fields[name].required=False
+            self.master_fields=[self['revenue_target'],self['revenue_adjustment_reason']]
+            if self.instance.pk and self.instance.revenue_adjustment:self.initial['revenue_target']=self.instance.revenue
+        else:
+            self.fields.pop('revenue_target')
+            self.fields['revenue_adjustment_reason'].widget=forms.HiddenInput()
+            self.fields['revenue_adjustment_reason'].disabled=True
+            self.fields['channel'].required=True
+            self.fields['location'].required=True
         self.fields['date'].initial=timezone.localdate
         self.fields['channel'].queryset=SalesChannel.objects.filter(active=True)
         self.fields['location'].queryset=StockLocation.objects.filter(active=True)
@@ -40,6 +56,14 @@ class SaleForm(forms.ModelForm):
         data=super().clean()
         for name in FINANCIAL_FIELDS[1:]:
             if data.get(name) is None and name not in self.errors:data[name]=Decimal('0')
+        if self.actor and self.actor.is_superuser:
+            data['date']=data.get('date') or timezone.localdate()
+            if data.get('products_amount') is None and 'products_amount' not in self.errors:data['products_amount']=Decimal('0')
+            if data.get('tax_override') is None and not data.get('tax_rule'):data['tax_override']=Decimal('0')
+            if data.get('tax_override') is not None and not data.get('tax_reason'):data['tax_reason']='Imposto manual definido pelo master.'
+            if data.get('revenue_target') is not None and all(data.get(f) is not None for f in ['products_amount','discount','shipping_received']):
+                data['revenue_adjustment']=data['revenue_target']-(data['products_amount']-data['discount']+data['shipping_received'])
+                if data['revenue_adjustment'] and not data.get('revenue_adjustment_reason'):data['revenue_adjustment_reason']='Ajuste gerencial definido pelo master.'
         return data
 
 class ItemForm(forms.Form):
@@ -47,6 +71,18 @@ class ItemForm(forms.Form):
     quantity=forms.DecimalField(label='Quantidade',max_digits=18,decimal_places=4,min_value=Decimal('0.0001'),initial=1)
 
 Items=forms.formset_factory(ItemForm,extra=1,can_delete=True,max_num=100,validate_max=True)
+
+class MasterItemForm(ItemForm):
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.fields['product'].required=False
+        self.fields['quantity'].required=False
+    def clean(self):
+        data=super().clean()
+        if data.get('product') and data.get('quantity') is None and 'quantity' not in self.errors:data['quantity']=Decimal('1')
+        return data
+
+MasterItems=forms.formset_factory(MasterItemForm,extra=1,can_delete=True,max_num=100,validate_max=True)
 
 class CancelForm(forms.Form):
     reason=forms.CharField(label='Motivo do cancelamento',max_length=500)
@@ -79,6 +115,19 @@ class ExtraCostForm(forms.Form):
     amount=forms.DecimalField(label='Valor (R$)',max_digits=18,decimal_places=2,min_value=0)
 
 ExtraCosts=forms.formset_factory(ExtraCostForm,extra=0,can_delete=True,max_num=100,validate_max=True)
+
+class MasterExtraCostForm(ExtraCostForm):
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        for field in self.fields.values():field.required=False
+    def clean(self):
+        data=super().clean()
+        if data.get('name') or data.get('amount') is not None:
+            data['name']=data.get('name') or 'Taxa extra definida pelo master'
+            if data.get('amount') is None and 'amount' not in self.errors:data['amount']=Decimal('0')
+        return data
+
+MasterExtraCosts=forms.formset_factory(MasterExtraCostForm,extra=0,can_delete=True,max_num=100,validate_max=True)
 
 class FilterForm(forms.Form):
     q=forms.CharField(label='NF ou produto',required=False)

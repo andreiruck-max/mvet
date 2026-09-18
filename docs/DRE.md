@@ -33,3 +33,5 @@ Fase 6 entrega Expense ativo por competência e natureza histórica (OPERATING, 
 - Filtro por canal calcula apenas sua contribuição; despesas da empresa são mostradas separadas. EBITDA e resultado gerencial por canal não são calculados sem política de rateio.
 
 O relatório consulta a situação atual dos registros, não uma versão congelada no fechamento do mês. Correções/cancelamentos autorizados podem alterar períodos anteriores. Fechamento contábil, razão oficial e ajustes de competência por apropriação diária ainda não fazem parte do ERP gerencial.
+
+A receita inclui ajuste gerencial explícito definido pelo master (ADR 0016): produtos − desconto + frete recebido + ajuste. A DRE e suas exportações mostram o ajuste em linha própria; não é CMV, imposto ou taxa. Rascunhos incompletos e vendas canceladas não integram os totais.

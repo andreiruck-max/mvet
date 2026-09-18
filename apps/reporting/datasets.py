@@ -17,7 +17,7 @@ class Dataset:
 
 
 def metrics_for(user, metrics):
-    keys = ['name', 'id', 'count', 'products_amount', 'discount', 'shipping_received', 'revenue', 'ticket']
+    keys = ['name', 'id', 'count', 'products_amount', 'discount', 'shipping_received', 'revenue_adjustment', 'revenue', 'ticket']
     if user.has_perm('core.view_costs'): keys += ['cmv']
     if user.has_perm('core.view_margins'): keys += ['contribution', 'margin', 'shipping_paid', 'fees', 'extra_costs_total', 'tax_amount', 'difal', 'commission', 'other_costs']
     return {key: metrics[key] for key in keys if key in metrics}
@@ -39,17 +39,17 @@ def sales_dataset(user, d, *, page_rows=None):
     if margins: headers += ['Margem antes de tributos e taxas']
     headers += ['SIMPLES','TAXAS']
     if margins: headers += ['Margem de contribuição']
-    headers += ['PRODUTOS','SÉRIE','CANAL','ESTOQUE','SITUAÇÃO','EXTRAS / MDR','DIFAL','COMISSÃO','OUTROS CUSTOS']
+    headers += ['PRODUTOS','SÉRIE','CANAL','ESTOQUE','SITUAÇÃO','EXTRAS / MDR','DIFAL','COMISSÃO','OUTROS CUSTOS','AJUSTE GERENCIAL DA RECEITA']
     if margins: headers += ['Margem %','Alerta']
     values = []
     for sale in rows:
         confirmed = sale.status == 'CONFIRMED'
-        row = [sale.date,sale.invoice_number,sale.products_amount,sale.discount,sale.shipping_received,sale.revenue,sale.shipping_paid,sale.shipping_received-sale.shipping_paid]
+        row = [sale.date,sale.invoice_number or sale.reference,sale.products_amount,sale.discount,sale.shipping_received,sale.revenue,sale.shipping_paid,sale.shipping_received-sale.shipping_paid]
         if costs: row += [sale.cmv if sale.status != 'DRAFT' else None]
         if margins: row += [sale.revenue-sale.cmv-sale.shipping_paid if confirmed else None]
         row += [sale.tax_amount if sale.status != 'DRAFT' else None,sale.fees]
         if margins: row += [sale.contribution if confirmed else None]
-        row += [' + '.join(f'{i.quantity} × {i.name_snapshot or i.product.name}' for i in sale.items.all()),sale.invoice_series,str(sale.channel),str(sale.location),sale.get_status_display(),sale.extra_costs_total,sale.difal,sale.commission,sale.other_costs]
+        row += [' + '.join(f'{i.quantity} × {i.name_snapshot or i.product.name}' for i in sale.items.all()),sale.invoice_series,str(sale.channel),str(sale.location),sale.get_status_display(),sale.extra_costs_total,sale.difal,sale.commission,sale.other_costs,sale.revenue_adjustment]
         if margins: row += [sale.margin_percent/100 if confirmed and sale.margin_percent is not None else None,sale.margin_label if confirmed else 'Fora do resultado']
         values.append(row)
     return Dataset('Vendas', headers, values, 'CMV histórico preservado. Totais consideram somente vendas confirmadas. EBITDA/LUCRO da planilha foram substituídos por margens com definição correta.', metrics_for(user, selectors.sales_summary(all_rows)))
@@ -72,8 +72,8 @@ def build(kind, user, query):
     if kind == 'sales': result = sales_dataset(user,d)
     elif kind == 'dashboard':
         rows = [metrics_for(user,x) for x in selectors.channel_summary(d)]
-        keys = ['name','count','products_amount','discount','shipping_received','revenue','ticket']
-        headers = ['Canal','Vendas','Produtos','Desconto','Frete recebido','Receita operacional','Ticket médio']
+        keys = ['name','count','products_amount','discount','shipping_received','revenue_adjustment','revenue','ticket']
+        headers = ['Canal','Vendas','Produtos','Desconto','Frete recebido','Ajuste gerencial da receita','Receita operacional','Ticket médio']
         if user.has_perm('core.view_costs'): keys += ['cmv']; headers += ['CMV']
         if user.has_perm('core.view_margins'): keys += ['contribution','margin']; headers += ['Contribuição','Margem (pontos percentuais)']
         result = Dataset('Faturamento por canal',headers,[[r.get(k) for k in keys] for r in rows],totals=metrics_for(user,selectors.sales_summary(selectors.sale_rows(d))))
@@ -121,7 +121,7 @@ def build(kind, user, query):
             if len(result.rows)>10000: raise ValidationError('Reduza os filtros (máximo 10.000 linhas).')
     else:
         r=selectors.dre(d);s=r['sales']
-        data=[('Receita bruta',s['products_amount']),('Descontos',-s['discount']),('Frete recebido',s['shipping_received']),('Receita operacional',s['revenue']),('CMV',-s['cmv'])]
+        data=[('Receita bruta',s['products_amount']),('Descontos',-s['discount']),('Frete recebido',s['shipping_received']),('Ajuste gerencial da receita',s['revenue_adjustment']),('Receita operacional',s['revenue']),('CMV',-s['cmv'])]
         for k,label in [('shipping_paid','Frete pago'),('fees','Taxas'),('extra_costs_total','Extras / MDR'),('tax_amount','Imposto'),('difal','DIFAL'),('commission','Comissão'),('other_costs','Outros custos')]:data.append((label,-s[k]))
         data += [('Margem de contribuição',s['contribution'])]
         data += [('Despesa operacional · '+g['label'],-g['amount']) for g in r['groups'] if g['nature']=='OPERATING']

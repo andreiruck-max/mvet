@@ -15,6 +15,8 @@
 <aside class="sidebar">
   <a class="brand" href="{% url 'home' %}"><span class="brand-mark">M</span><span>Mercadovet<small>MVet 1.0</small></span></a>
   <nav aria-label="Navegação principal">
+    {% if perms.core.review_bling %}<a href="{% url 'bling_queue' %}">Notas do Bling</a>{% endif %}
+    {% if user.is_superuser %}<a href="{% url 'bling_connection' %}">Conexão Bling</a>{% endif %}
     {% if perms.core.operate_purchases or perms.core.view_purchase_reports %}<a href="{% url 'purchases' %}">Compras</a>{% endif %}
     {% if perms.core.view_sales %}<a href="{% url 'sales' %}">Vendas</a>{% endif %}
     {% if perms.core.view_stock %}<a href="{% url 'products' %}">Produtos e estoque</a>{% endif %}

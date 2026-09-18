@@ -1,0 +1,10 @@
+{% extends 'base.html' %}{% block title %}Conexão Bling{% endblock %}{% block content %}
+<h1>Conexão Bling</h1><section class="panel">
+<p>O Bling fornece notas para conferência. Estoque, custo médio e cancelamentos permanecem no MVet.</p>
+{% if problem %}<p class="notice">{{ problem }}</p>{% endif %}
+<p>Estado: {% if connection.tokens %}<strong>Autorizado</strong>{% else %}<strong>Desconectado</strong>{% endif %}</p>
+<p>O administrador do servidor deve configurar o aplicativo, CNPJ emitente, endereço de retorno e chave de proteção conforme o manual de integração. Não informe segredos nas notas ou observações.</p>
+<form method="post" action="{% url 'bling_connect' %}">{% csrf_token %}<button {% if problem %}disabled{% endif %}>Autorizar no Bling</button></form>
+{% if connection.tokens %}<form method="post" action="{% url 'bling_disconnect' %}">{% csrf_token %}<button class="quiet">Desconectar do MVet</button></form>{% endif %}
+<p class="muted">Desconectar preserva notas e vendas. A revogação do aplicativo é feita no próprio Bling.</p>
+<a href="{% url 'bling_queue' %}">Abrir notas para conferir</a></section>{% endblock %}

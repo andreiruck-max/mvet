@@ -2,8 +2,8 @@
 
 ## Ampliação — acessos e arquivos
 
-[PR #18](https://github.com/andreiruck-max/mvet/pull/18): políticas individuais pelo master e exportações Excel/PDF nos módulos existentes. Entregue e integrado: 236 testes PostgreSQL e 9 Chromium aprovados. Não adiar exportações para a Fase 9. Bling permanece avaliação documentada em BLING_INTEGRATION.md: importação assistida de NF/SKU e conciliação de movimentos, sem conexão ativa nem promessa de saldo bancário direto. ADR 0015 define fila separada de conferência, custos de marketplace manuais, CMV exclusivo do MVet e cancelamentos independentes; implementar e testar sem sobrescrever escolhas locais nem reativar vendas canceladas.
-Atualização: 17/09/2026. Operação manual, com carga inicial restrita ao estoque autorizada pelo usuário.
+[PR #18](https://github.com/andreiruck-max/mvet/pull/18): políticas individuais pelo master e exportações Excel/PDF nos módulos existentes. Entregue e integrado: 236 testes PostgreSQL e 9 Chromium aprovados. Não adiar exportações para a Fase 9. Bling: importação assistida de NF/SKU e OAuth implementados nesta etapa; validação PostgreSQL/Chromium registrada no [PR #20](https://github.com/andreiruck-max/mvet/pull/20), com homologação real ainda pendente. Conciliação financeira continua futura, sem promessa de saldo bancário direto. ADR 0015 define fila separada de conferência, custos de marketplace manuais, CMV exclusivo do MVet e cancelamentos independentes; implementação preserva escolhas locais e não reativa vendas canceladas. Ver BLING_SETUP.md para os limites concretos.
+Atualização: 18/09/2026. Operação manual, com carga inicial restrita ao estoque autorizada pelo usuário.
 
 | Fase | Entrega / aceite | Estado |
 |---|---|---|
@@ -16,7 +16,7 @@ Atualização: 17/09/2026. Operação manual, com carga inicial restrita ao esto
 | 6 | Despesas por competência, plano hierárquico, regras determinísticas e recorrência mensal | Concluído no PR #15; 187 testes PostgreSQL e 5 Chromium aprovados |
 | 7 | Dashboard próximo das planilhas, vendas tabulares, caixa por dia, compras a pagar, comparativo por canal e DRE | Concluído no PR #16; 206 testes PostgreSQL e 6 Chromium aprovados |
 | 8 | Notificações, preferências, comando agendado e evidências de backup | Concluído no PR #17; 219 testes PostgreSQL e 7 Chromium aprovados; agendamento no destino pendente |
-| 9 | Importações e integrações com preview, idempotência e rollback seguro | Evolução opcional |
+| 9 | Importações e integrações com preview, idempotência e rollback seguro | NF Bling assistida implementada no PR #20; homologação real e conciliação financeira pendentes |
 
 ## Não confundir com entrega
 ERD e documentação de contratos não significam módulos funcionando. Cada fase exige UI, migrations, autorização, testes aprovados e commits remotos.
@@ -41,3 +41,5 @@ A fundação foi publicada por plugin após indisponibilidade do ambiente local.
 
 ## Atualização autorizada — estoque inicial
 Usar somente o estoque de ERP Mvet(2).xlsx como base atual de desenvolvimento, com abertura em 15/09/2026. A Fase 2 inclui carga validada/idempotente e ajustes positivos, negativos e de custo auditados. Demais operações continuam manuais. Carga e interface implementadas na Fase 2. Ver docs/INVENTORY.md e ADR 0006.
+
+PR #20 também inclui vendas manuais sem NF, rascunho incompleto do master, imposto zero e ajuste explícito da receita (ADR 0016). Confirmação mantém integridade de estoque e os ajustes refletem recebível, DRE e exportações.

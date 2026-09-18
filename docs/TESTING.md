@@ -85,3 +85,9 @@ Evidência: [CI 35265975269](https://github.com/andreiruck-max/mvet/actions/runs
 
 ## Fase 8 — notificações
 Testes de idempotência, leitura por usuário/revisão, resolução/reativação, estoque mínimo, vencimentos/pagamento, margem/cancelamento, preferências, revogação e isolamento HTML/API, CSRF, paginação, falha independente da venda e evidência/ausência de backup. Concorrência real em PostgreSQL; Chromium cobre leitura, preferências, configuração e responsividade. [CI 35268131467](https://github.com/andreiruck-max/mvet/actions/runs/35268131467), commit `d3e261223c0262e65dff362e4e52d368a72a3f89`: 226 testes descobertos, 219 backend PostgreSQL e 7 Chromium executados separadamente, todos aprovados. Migrations/check/setup/collectstatic sem falhas. Estoque de desenvolvimento conciliado e processamento sem alertas fictícios. Commit posterior registra apenas documentação/evidência. Instalação, agendamento, cópia externa e restauração no destino permanecem pendentes.
+
+## Importação Bling
+
+Testes em apps.integrations cobrem fila sem efeitos, custo externo descartado, custo local na confirmação, estoque insuficiente com rollback, NF manual duplicada, reconsulta após cancelamento, divergência externa, aliases/unidades, revisão obsoleta, permissão e CSRF, OAuth state, criptografia/refresh e falhas de consulta. PostgreSQL verifica confirmação concorrente e proteção da identidade/snapshot; Chromium percorre vínculo de SKU, deduções, MDR e confirmação. Todos os dados são sintéticos, sem chamadas autenticadas ao Bling. Homologação real é requisito separado antes de operar.
+
+Vendas manuais do master: tests em test_manual_master verificam rascunho vazio, várias vendas sem NF, imposto zero, bloqueio de ajuste por operacional e consistência entre receita, recebível, margem e exportações. test_manual_master_browser percorre entrada sem NF, ajuste líquido, imposto zero e confirmação. Resultados PostgreSQL/Chromium registrados no PR #20.

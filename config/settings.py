@@ -10,6 +10,7 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "0") == "1"
 ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 CSRF_TRUSTED_ORIGINS = [v for v in os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "").split(",") if v]
 INSTALLED_APPS = [
+    "apps.integrations.apps.IntegrationsConfig",
     "apps.notifications.apps.NotificationsConfig",
     "apps.reporting.apps.ReportingConfig",
     "apps.expenses.apps.ExpensesConfig",
@@ -75,3 +76,10 @@ CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
 SECURE_SSL_REDIRECT = os.environ.get("DJANGO_SSL_REDIRECT", "0") == "1"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
+
+# Optional assisted Bling import; secrets never entered in source or browser forms.
+BLING_CLIENT_ID = os.environ.get('BLING_CLIENT_ID', '')
+BLING_CLIENT_SECRET = os.environ.get('BLING_CLIENT_SECRET', '')
+BLING_REDIRECT_URI = os.environ.get('BLING_REDIRECT_URI', '')
+BLING_ISSUER_CNPJ = os.environ.get('BLING_ISSUER_CNPJ', '')
+BLING_TOKEN_KEY = os.environ.get('BLING_TOKEN_KEY', '')

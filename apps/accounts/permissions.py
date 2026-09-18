@@ -1,5 +1,9 @@
 """Independent capabilities. Legacy aliases preserve existing roles until edited."""
 CAPABILITIES = {
+    'review_bling': ('Consultar notas do Bling para conferência', ()),
+    'fetch_bling': ('Buscar e atualizar notas do Bling', ()),
+    'map_bling_products': ('Vincular códigos externos a produtos MVet', ()),
+    'approve_bling': ('Aprovar, ignorar e reabrir notas do Bling', ()),
     'view_sales': ('Consultar vendas individuais', ('operate_sales', 'view_costs', 'view_margins')),
     'view_stock': ('Consultar produtos e quantidades', ('operate_stock', 'operate_sales', 'operate_purchases', 'view_purchase_reports', 'view_costs')),
     'view_margins': ('Consultar margens de vendas', ()),

@@ -5,6 +5,7 @@ Monólito Django 5.2 LTS, PostgreSQL, templates, CSS/JS locais. Código em ingl�
 ## Regras invioláveis
 - Decimal/NUMERIC: quantidade 4 casas, custo e valorização 6 casas, dinheiro 2 casas.
 - Bling é fonte de pré-preenchimento com conferência; não importar custo externo, sobrescrever escolhas locais ou propagar cancelamentos. Preservar vínculos para idempotência mesmo após cancelamento. Ver ADR 0015.
+- Venda manual independe de Bling/NF. Master pode salvar rascunhos incompletos e ajustar receita/imposto, mas confirmação preserva estoque e snapshots. Ajuste de receita deve refletir recebível, DRE e exportações. Ver ADR 0016.
 - CMV histórico é snapshot. Nunca recalcular venda antiga com custo atual.
 - Imposto admite recálculo retroativo autorizado com SaleTaxRevision imutável e auditoria; nunca atualizar imposto histórico diretamente. Ver ADR 0009.
 - Operações críticas são atômicas. Lock de produtos por ID crescente antes dos saldos por local.

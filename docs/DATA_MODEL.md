@@ -156,3 +156,21 @@ erDiagram
     User ||--o{ NotificationPreference : prefere
 ```
 Notification identifica condição única por tipo/entidade, conteúdo, severidade, revisão, resolução e timestamps. NotificationRead tem unique(notificação, usuário); revisão lida permite reabrir avisos atualizados. NotificationPreference tem unique(usuário, tipo). AlertConfiguration é singleton com habilitação global, antecedência, prazo de backup, início e última execução. BackupEvidence registra resultado, data, bytes e SHA-256; sucesso exige evidência não vazia. Relação polimórfica de Notification é resolvida pelo tipo e ID, com links fixos e autorização dinâmica, sem exclusão do histórico.
+
+## Importação assistida de notas Bling
+
+```mermaid
+erDiagram
+    BlingConnection ||--o{ InvoiceImport : consulta
+    BlingConnection ||--o{ ProductAlias : relaciona
+    Product ||--o{ ProductAlias : identifica
+    BlingConnection ||--o{ ImportRun : registra
+    User ||--o{ ImportRun : solicita
+    Sale o|--o| InvoiceImport : aprova
+```
+
+BlingConnection é singleton por emitente e mantém tokens criptografados, vencimento e instantes de consulta. InvoiceImport tem unicidade por conexão/ID externo e por chave não vazia, projeção comercial externa, fingerprint, revisão, situação externa, decisão local, divergência, erro e vínculo único de venda. approved_source preserva os dados usados na aprovação. PostgreSQL protege identidade, associação aprovada e snapshot contra alteração/exclusão. ProductAlias identifica código + unidade por conexão; não altera produtos ou custos. ImportRun registra período, situação, página, contagens, IDs com erro e término, sem payloads ou credenciais.
+
+## Venda manual flexível
+
+Sale.invoice_number admite vazio; unique condicional NF/série somente quando preenchido. Canal/local podem ser nulos em rascunhos/canceladas, mas uma constraint exige ambos na confirmação. revenue_adjustment é NUMERIC assinado, com receita final não negativa e motivo; snapshot histórico é protegido pelo trigger existente. Data vazia no formulário master recebe hoje; referência sem NF usa a PK, não um documento fiscal fictício. Ver ADR 0016.

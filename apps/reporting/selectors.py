@@ -7,7 +7,8 @@ from apps.finance.models import FinancialTitle as Title, FinancialOperation as O
 from apps.expenses.selectors import expense_report
 
 ZERO=Decimal('0')
-FIELDS=['products_amount','discount','shipping_received','cmv','shipping_paid','fees','extra_costs_total','tax_amount','difal','commission','other_costs']
+COST_FIELDS=['cmv','shipping_paid','fees','extra_costs_total','tax_amount','difal','commission','other_costs']
+FIELDS=['products_amount','discount','shipping_received','revenue_adjustment',*COST_FIELDS]
 
 def sale_rows(d):
     rows=Sale.objects.filter(date__range=(d['start'],d['end'])).select_related('channel','location')
@@ -20,8 +21,8 @@ def sale_rows(d):
 def metrics(values):
     result={f:values.get(f) or ZERO for f in FIELDS}
     result['count']=values.get('count',0)
-    result['revenue']=result['products_amount']-result['discount']+result['shipping_received']
-    result['contribution']=result['revenue']-sum((result[f] for f in FIELDS[3:]),ZERO)
+    result['revenue']=result['products_amount']-result['discount']+result['shipping_received']+result['revenue_adjustment']
+    result['contribution']=result['revenue']-sum((result[f] for f in COST_FIELDS),ZERO)
     result['margin']=result['contribution']/result['revenue']*100 if result['revenue'] else None
     result['ticket']=result['revenue']/result['count'] if result['count'] else ZERO
     return result

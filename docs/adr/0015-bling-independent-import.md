@@ -1,6 +1,6 @@
 # ADR 0015 — Bling como fonte de preenchimento independente
 
-Data: 18/09/2026. Status: aceito como especificação; implementação pendente.
+Data: 18/09/2026. Status: aceito; implementação da importação assistida de NF, com homologação real pendente.
 
 ## Contexto
 

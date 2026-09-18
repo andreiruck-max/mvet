@@ -13,7 +13,7 @@ from apps.inventory.services import domain_lock, number, QTY, _fingerprint, _app
 from .models import Sale, SaleItem, SaleConsumption, SalesChannel, TaxRule, SaleExtraCost
 
 FINANCIAL_FIELDS = ['products_amount','discount','shipping_received','shipping_paid','fees','difal','commission','other_costs']
-EDIT_FIELDS = ['date','invoice_number','invoice_series','channel','location',*FINANCIAL_FIELDS,'tax_rule','tax_override','tax_reason','notes']
+EDIT_FIELDS = ['date','invoice_number','invoice_series','channel','location',*FINANCIAL_FIELDS,'tax_rule','tax_override','tax_reason','notes','revenue_adjustment','revenue_adjustment_reason']
 CENT = Decimal('0.01')
 
 def snapshot(sale):
@@ -22,14 +22,16 @@ def snapshot(sale):
     result['extra_costs']=[{'name':e.name,'amount':str(e.amount)} for e in sale.extra_costs.all()]
     return result
 
-def validate(sale):
+def validate(sale, *, partial=False):
     company = Company.objects.get(pk=1)
     if not company.cutover_date <= sale.date <= timezone.localdate():
         raise ValidationError('Data comercial deve estar entre o corte e hoje.')
-    if not SalesChannel.objects.filter(pk=sale.channel_id,active=True).exists(): raise ValidationError('Canal inativo.')
-    if not StockLocation.objects.filter(pk=sale.location_id,active=True).exists(): raise ValidationError('Local inativo.')
+    if (sale.channel_id or not partial) and not SalesChannel.objects.filter(pk=sale.channel_id,active=True).exists(): raise ValidationError('Selecione um canal ativo antes de confirmar.')
+    if (sale.location_id or not partial) and not StockLocation.objects.filter(pk=sale.location_id,active=True).exists(): raise ValidationError('Selecione um estoque ativo antes de confirmar.')
     for field in FINANCIAL_FIELDS: number(getattr(sale,field),CENT,zero=True)
     if sale.discount > sale.products_amount: raise ValidationError('Desconto não pode exceder o valor dos produtos.')
+    number(abs(sale.revenue_adjustment), CENT, zero=True)
+    if sale.revenue < 0: raise ValidationError('Receita operacional não pode ser negativa.')
     if sale.tax_override is not None:
         number(sale.tax_override,CENT,zero=True)
         if not sale.tax_reason.strip(): raise ValidationError('Informe o motivo do imposto manual, inclusive para isenção ou valor zero.')
@@ -44,6 +46,16 @@ def validate(sale):
 def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None):
     require(actor,'core.operate_sales')
     domain_lock()
+    data = dict(data)
+    data.setdefault('revenue_adjustment', Decimal('0'))
+    data.setdefault('revenue_adjustment_reason', '')
+    if actor.is_superuser:
+        for field in FINANCIAL_FIELDS: data.setdefault(field, Decimal('0'))
+        for field in ['invoice_number', 'invoice_series', 'tax_reason', 'notes']: data.setdefault(field, '')
+        for field in ['channel', 'location', 'tax_rule', 'tax_override']: data.setdefault(field, None)
+        data['date'] = data.get('date') or timezone.localdate()
+        if data['tax_override'] is None and not data['tax_rule']: data['tax_override'] = Decimal('0')
+        if data['tax_override'] is not None and not data['tax_reason'].strip(): data['tax_reason'] = 'Imposto manual definido pelo master.'
     extra_costs=extra_costs or []
     if len(extra_costs)>100:raise ValidationError("Limite de 100 taxas extras por venda.")
     for name,amount in extra_costs:
@@ -63,7 +75,12 @@ def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None):
         if sale.status!='DRAFT': raise ValidationError('Somente rascunhos podem ser editados.')
         if sale.revision!=revision: raise ValidationError('A venda mudou em outra sessão. Reabra a edição.')
         before=snapshot(sale)
-    if not items or len(items)>100: raise ValidationError('Informe de 1 a 100 itens.')
+    if (not items and not actor.is_superuser) or len(items)>100: raise ValidationError('Informe de 1 a 100 itens.')
+    if (data['revenue_adjustment'] != sale.revenue_adjustment or data['revenue_adjustment_reason'] != sale.revenue_adjustment_reason) and not actor.is_superuser:
+        from django.core.exceptions import PermissionDenied
+        raise PermissionDenied
+    if data['revenue_adjustment'] and not data['revenue_adjustment_reason'].strip():
+        data['revenue_adjustment_reason'] = 'Ajuste gerencial definido pelo master.'
     products={p.pk:p for p in Product.objects.filter(pk__in=[i[0] for i in items],active=True)}
     for pid,quantity in items:
         number(quantity,QTY)
@@ -71,12 +88,13 @@ def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None):
     for field in EDIT_FIELDS: setattr(sale,field,data[field])
     sale.invoice_number=sale.invoice_number.strip().upper()
     sale.invoice_series=sale.invoice_series.strip().upper()
+    if not sale.invoice_number: sale.invoice_series = ''
     # Normalize numeric NF/series so leading zeroes do not bypass duplicate checks.
     for field in ['invoice_number','invoice_series']:
         value=getattr(sale,field)
         if value.isdecimal():setattr(sale,field,str(int(value)))
     sale.extra_costs_total=sum((amount for _,amount in extra_costs),Decimal("0"))
-    validate(sale)
+    validate(sale, partial=actor.is_superuser)
     sale.revision+=1
     sale.full_clean(exclude=['stock_operation','return_operation','confirmed_by','cancelled_by','confirmed_at','cancelled_at','tax_snapshot'])
     sale.save()
@@ -111,7 +129,7 @@ def confirm(*,actor,sale_id,revision):
     products={p.pk:p for p in Product.objects.select_for_update().filter(pk__in=ids).order_by('pk')}
     if any(not p.active or p.kind!='SIMPLE' for p in products.values()):raise ValidationError('Componente inativo ou kit aninhado.')
     today=timezone.localdate();_date(today,products.values())
-    operation=StockOperation.objects.create(kind='SALE_OUT',date=today,actor=actor,reason=f'Venda NF {sale.invoice_number}/{sale.invoice_series}',fingerprint=_fingerprint(['sale',sale.pk]))
+    operation=StockOperation.objects.create(kind='SALE_OUT',date=today,actor=actor,reason=sale.reference,fingerprint=_fingerprint(['sale',sale.pk]))
     cmv=Decimal('0')
     for item,parts in expanded:
         item.cmv=Decimal('0')

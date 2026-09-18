@@ -27,3 +27,7 @@ Nunca executar restore destrutivo sobre banco ativo sem cópia e revisão.
 
 ## Evidências na central
 O script registra bytes e SHA-256 após validar o dump. Falhas tentam registrar evento e preservam código de saída; banco/app indisponível exige consultar log do agendador. Ative Monitorar backup em Notificações → Configurar alertas e agende `refresh_notifications` a cada 15 minutos. Sucesso significa arquivo/catalogação validados, não cópia externa nem restauração. Ausência de registro por mais que o prazo configurado gera alerta. Ver NOTIFICATIONS.md.
+
+## Credenciais Bling
+
+Tokens ficam criptografados no banco; guardar BLING_TOKEN_KEY em backup seguro separado. Perder a chave exige reautorização. Restaurar dump antigo pode recuperar refresh token já invalidado: master deve reautorizar antes da próxima consulta. Ambiente de teste de restauração não deve executar sync_bling nem receber segredos de produção.
