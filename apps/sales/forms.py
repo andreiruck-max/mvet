@@ -12,7 +12,7 @@ class SaleForm(forms.ModelForm):
     key=forms.UUIDField(widget=forms.HiddenInput,initial=uuid.uuid4)
     revision=forms.IntegerField(widget=forms.HiddenInput,initial=0)
     revenue_target=forms.DecimalField(label='Receita líquida operacional ajustada (R$)', required=False, max_digits=18, decimal_places=2, min_value=0,
-        help_text='Master: valor antes de CMV, impostos e custos variáveis. Não é o saldo recebido do marketplace.')
+        help_text='Master: valor antes de CMV, impostos e custos variáveis. Não é o saldo recebido do marketplace. Regra tributária sobre receita inclui este ajuste na base.')
     class Meta:
         model=Sale
         fields=EDIT_FIELDS

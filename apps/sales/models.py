@@ -20,7 +20,7 @@ class TaxRule(models.Model):
     rate = models.DecimalField('Alíquota (%)', max_digits=7, decimal_places=4, validators=[MinValueValidator(0), MaxValueValidator(100)])
     starts_on = models.DateField('Início da vigência')
     ends_on = models.DateField('Fim da vigência', null=True, blank=True)
-    base = models.CharField('Base de cálculo', max_length=20, choices=[('REVENUE','Produtos − desconto + frete recebido'),('PRODUCTS','Produtos − desconto')])
+    base = models.CharField('Base de cálculo', max_length=20, choices=[('REVENUE','Receita operacional, incluindo ajuste gerencial'),('PRODUCTS','Produtos − desconto')])
     active = models.BooleanField('Ativa', default=True)
     class Meta:
         ordering = ['name', '-starts_on']

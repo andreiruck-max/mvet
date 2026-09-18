@@ -123,7 +123,9 @@ class NotificationTests(ReportingFixture, TestCase):
         self.assertEqual(self.client.post(reverse('notification_read', args=[n.pk]), {'revision': 999}).status_code, 404)
         csrf = Client(enforce_csrf_checks=True); csrf.force_login(self.actor)
         self.assertEqual(csrf.post(reverse('notification_refresh')).status_code, 403)
-        for pk in range(100, 135):
+        # PostgreSQL sequences are not rolled back between TestCase fixtures.
+        # Use a range relative to this fixture, never fixed production-like IDs.
+        for pk in range(n.entity_id + 1, n.entity_id + 36):
             Notification.objects.create(kind='STOCK', entity_id=pk, title='Teste', description='Teste', severity='WARNING', fingerprint='x')
         data = self.client.get(reverse('notifications_api')).json()
         self.assertEqual(len(data['results']), 30); self.assertEqual(data['count'], 36)
