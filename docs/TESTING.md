@@ -89,3 +89,5 @@ Testes de idempotência, leitura por usuário/revisão, resolução/reativação
 ## Importação Bling
 
 Testes em apps.integrations cobrem fila sem efeitos, custo externo descartado, custo local na confirmação, estoque insuficiente com rollback, NF manual duplicada, reconsulta após cancelamento, divergência externa, aliases/unidades, revisão obsoleta, permissão e CSRF, OAuth state, criptografia/refresh e falhas de consulta. PostgreSQL verifica confirmação concorrente e proteção da identidade/snapshot; Chromium percorre vínculo de SKU, deduções, MDR e confirmação. Todos os dados são sintéticos, sem chamadas autenticadas ao Bling. Homologação real é requisito separado antes de operar.
+
+Vendas manuais do master: tests em test_manual_master verificam rascunho vazio, várias vendas sem NF, imposto zero, bloqueio de ajuste por operacional e consistência entre receita, recebível, margem e exportações. test_manual_master_browser percorre entrada sem NF, ajuste líquido, imposto zero e confirmação. Resultados PostgreSQL/Chromium registrados no PR #20.

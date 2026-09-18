@@ -78,3 +78,5 @@ Qualquer usuário autenticado abre a central, mas recebe somente categorias auto
 ## Bling — capacidades individuais
 
 Consulta da fila (`review_bling`), busca externa (`fetch_bling`), vínculos de produtos (`map_bling_products`) e aprovação/ignorar/reabrir (`approve_bling`) são independentes, sem concessão automática a grupos existentes. Aprovação também exige operar e confirmar vendas. Busca de produto exige consultar estoque. Apenas master ativo autoriza/desconecta OAuth. A fila não exibe custo, CMV, margem ou saldos. Ver BLING_SETUP.md.
+
+Master (superusuário ativo) também pode salvar rascunhos de venda incompletos, definir imposto manual zero sem motivo digitado e ajustar receita com auditoria. A exceção não permite confirmar estoque inexistente ou sobrescrever snapshots. Usuários operacionais não podem atribuir ajustes de receita via POST/serviço. NF opcional não depende de ser master. Ver ADR 0016.
