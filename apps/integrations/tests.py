@@ -209,7 +209,7 @@ class AdapterTests(Fixture, TestCase):
 
 from concurrent.futures import ThreadPoolExecutor
 from unittest import skipUnless
-from django.db import connection as db_connection, transaction, DatabaseError, close_old_connections
+from django.db import connection as db_connection, connections, transaction, DatabaseError, close_old_connections
 from django.test import TransactionTestCase
 
 
@@ -227,7 +227,7 @@ class ImportPostgresTests(Fixture, TransactionTestCase):
             try:
                 actor = User.objects.get(pk=actor_id)
                 return approve(actor=actor, invoice_id=pk, revision=revision, data=data, extra_costs=[], reviewed=True).pk
-            finally: close_old_connections()
+            finally: connections.close_all()
         with ThreadPoolExecutor(max_workers=2) as pool:
             results = list(pool.map(lambda _: worker(), range(2)))
         self.assertEqual(results[0], results[1]); self.assertEqual(Sale.objects.count(), 1)
