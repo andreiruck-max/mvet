@@ -79,3 +79,7 @@ Alertas internos de estoque mínimo, margem, vencimentos e backup, com leitura e
 O master administra permissões individuais em **Usuários e acessos**, separando faturamento, custos, margens, DRE, caixa e ações operacionais. Exportações Excel/PDF disponíveis nos relatórios atuais, com filtros e autorização própria. [Guia de permissões](docs/PERMISSIONS.md) · [Exportações](docs/EXPORTS.md) · [Avaliação da API Bling](docs/BLING_INTEGRATION.md).
 
 A integração Bling ainda não está ativa. NF com SKU é viável para pré-preenchimento assistido; saldo bancário real não foi confirmado pela API. A documentação distingue consulta, conciliação e implantação.
+
+## Importação assistida Bling
+
+Fila em `/integracoes/bling/`, conexão exclusiva do master e revisão antes de confirmar qualquer venda. Custos e cancelamentos permanecem locais. Instalação, permissões e limites: [docs/BLING_SETUP.md](docs/BLING_SETUP.md). Credenciais e homologação da conta real são necessárias antes do uso operacional; integração financeira não faz parte desta entrega.

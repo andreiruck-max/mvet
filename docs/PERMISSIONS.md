@@ -74,3 +74,7 @@ Fase 4: `operate_purchases` permite fornecedores, compras, parcelas, recebimento
 
 ## Notificações
 Qualquer usuário autenticado abre a central, mas recebe somente categorias autorizadas. Estoque: operate_stock/operate_sales/view_costs; margem: view_costs; vencimentos: operate_finance/view_finance; backup/configuração/processamento manual: manage_configuration. Preferências e leitura pertencem ao usuário atual. HTML, API, contagens e POST aplicam o mesmo escopo; revogação de permissão oculta avisos já existentes. Ver NOTIFICATIONS.md.
+
+## Bling — capacidades individuais
+
+Consulta da fila (`review_bling`), busca externa (`fetch_bling`), vínculos de produtos (`map_bling_products`) e aprovação/ignorar/reabrir (`approve_bling`) são independentes, sem concessão automática a grupos existentes. Aprovação também exige operar e confirmar vendas. Busca de produto exige consultar estoque. Apenas master ativo autoriza/desconecta OAuth. A fila não exibe custo, CMV, margem ou saldos. Ver BLING_SETUP.md.

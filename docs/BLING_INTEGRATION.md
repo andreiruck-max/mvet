@@ -1,6 +1,6 @@
 # Bling — avaliação de integração
 
-Consulta pública em 18/09/2026. **Estudo, não integração ativada.** Não foram solicitadas credenciais nem realizadas chamadas autenticadas na conta da empresa. Contratos e exemplos foram examinados na [referência oficial interativa](https://developer.bling.com.br/referencia), que publica seu OpenAPI. Exemplos não garantem preenchimento dos campos na conta Mercadovet.
+Consulta pública em 18/09/2026. **Avaliação e escopo: importação assistida de NF implementada; conexão real ainda não ativada/homologada.** Não foram solicitadas credenciais nem realizadas chamadas autenticadas na conta da empresa. Contratos e exemplos foram examinados na [referência oficial interativa](https://developer.bling.com.br/referencia), que publica seu OpenAPI. Exemplos não garantem preenchimento dos campos na conta Mercadovet.
 
 ## Decisão de produto: importação assistida e independente
 
@@ -100,4 +100,4 @@ Na implementação, testes devem demonstrar:
 - Código externo sem vínculo inequívoco bloqueia a confirmação.
 - Operações manuais continuam disponíveis quando a integração estiver indisponível.
 
-Esses critérios especificam trabalho futuro; a fila, o adaptador e esses testes ainda não foram implementados.
+A fila de NF, adaptador de leitura, OAuth e testes sintéticos foram implementados. Consulte [BLING_SETUP.md](BLING_SETUP.md) para operação e limites concretos. Homologação com a conta real permanece pendente; conciliação financeira, webhooks e outras propostas deste estudo continuam futuras.

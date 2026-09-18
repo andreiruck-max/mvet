@@ -42,3 +42,11 @@ NF/série têm constraint única, incluindo canceladas. Espaços externos são r
 PostgreSQL bloqueia alteração/exclusão de consumos e snapshots históricos via triggers, com exceção explícita para recálculo tributário vinculado a SaleTaxRevision imutável. Não há editor transacional no admin. Auditoria cobre rascunho com itens, confirmação, cancelamento, canais e impostos.
 `operate_sales`: lançar, editar rascunho, confirmar, cancelar, consultar valores informados. Não exibe CMV, custo, margem ou agregados. `view_costs`: consulta de custo/margem individual; não concede lançamento. `manage_configuration`: canais/impostos. API de resultado exige `view_costs` (403 sem permissão). Relatórios consolidados seguem para Fase 7 com permissão própria.
 Listagem paginada em 30, pesquisa NF/SKU/nome, canal/estoque/status/datas/períodos e ordenação. Sem somatórios financeiros para perfil operacional.
+
+## Atualização — vendas sem NF e master (ADR 0016)
+
+Nova venda é independente do Bling. NF opcional; várias vendas sem NF recebem referência interna distinta. Unicidade por NF/série permanece para documentos preenchidos.
+
+Master salva rascunhos sem preencher campos comerciais. Data vazia usa hoje; valores vazios usam zero; sem regra tributária ou imposto informado registra override zero auditado. Produto selecionado com quantidade vazia usa 1. Canal, estoque e itens podem ficar pendentes apenas em rascunho; confirmação exige contexto completo, quantidade positiva e saldo. Outros usuários mantêm validações usuais.
+
+Campo do master Receita líquida operacional ajustada determina um ajuste separado, antes de CMV, impostos e demais custos. Valor é usado também no recebível, indicadores, DRE e Excel/PDF; não é o repasse líquido do marketplace. Motivos de imposto/ajuste podem ser omitidos pelo master, recebendo texto padrão na auditoria. Corrigir venda já confirmada continua exigindo fluxo rastreável, sem sobrescrever snapshots.
