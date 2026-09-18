@@ -4,6 +4,7 @@ Modelo alvo; implementação real identificada no BACKLOG. Não existem tabelas 
 ```mermaid
 erDiagram
     User }o--o{ Group : possui
+    User ||--o| AccessPolicy : personaliza
     Group }o--o{ Permission : concede
     User ||--o{ AuditLog : realiza
     Brand ||--o{ Product : marca
@@ -44,6 +45,7 @@ erDiagram
 ```
 
 ## Campos e restrições do modelo alvo
+- AccessPolicy (implementada): relação única com usuário; mapa JSON de capacidades permitidas/negadas, revisão e data. Negação explícita precede grupos. Alterações pelo serviço auditado do master; não é um segundo cadastro de senha/identidade.
 - Product: SKU único, status, tipo, marca, categoria, unidade, mínimo, quantidade/valorização global e custo médio.
 - StockBalance: unique(produto, local), quantidade não negativa.
 - StockMovement: quantidade/valor assinados, custo snapshot, ator, data efetiva, horário do registro, origem, referência e reversal_of.

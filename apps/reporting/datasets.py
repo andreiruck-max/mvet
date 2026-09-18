@@ -123,9 +123,14 @@ def build(kind, user, query):
         r=selectors.dre(d);s=r['sales']
         data=[('Receita bruta',s['products_amount']),('Descontos',-s['discount']),('Frete recebido',s['shipping_received']),('Receita operacional',s['revenue']),('CMV',-s['cmv'])]
         for k,label in [('shipping_paid','Frete pago'),('fees','Taxas'),('extra_costs_total','Extras / MDR'),('tax_amount','Imposto'),('difal','DIFAL'),('commission','Comissão'),('other_costs','Outros custos')]:data.append((label,-s[k]))
-        data += [('Margem de contribuição',s['contribution'])]+[(g['label'],-g['amount']) for g in r['groups']]
-        if not r['channel_only']: data += [('EBITDA gerencial',r['ebitda']),('Receitas financeiras adicionais',r['financial']['income']),('Despesas financeiras adicionais',-r['financial']['expense']),('Resultado gerencial',r['result'])]
-        result=Dataset('DRE gerencial',['Descrição','Valor'],data,'Regime de competência. Sem depreciação/amortização.'+(' Resultado PARCIAL: há pendências de classificação/abatimentos.' if r['provisional'] else '')+(' Canal: despesas corporativas sem rateio; resultado da empresa não calculado.' if r['channel_only'] else ''))
+        data += [('Margem de contribuição',s['contribution'])]
+        data += [('Despesa operacional · '+g['label'],-g['amount']) for g in r['groups'] if g['nature']=='OPERATING']
+        if not r['channel_only']:data += [('EBITDA gerencial',r['ebitda'])]
+        data += [('Despesa financeira · '+g['label'],-g['amount']) for g in r['groups'] if g['nature']=='FINANCIAL']
+        data += [('Receitas financeiras adicionais',r['financial']['income']),('Despesas financeiras adicionais',-r['financial']['expense'])]
+        if not r['channel_only']:data += [('Resultado gerencial',r['result'])]
+        pending=f" Resultado PARCIAL: despesas a classificar R$ {r['expenses']['NONE']:.2f}; títulos a conferir R$ {r['financial']['unresolved']:.2f}; abatimentos R$ {r['financial']['discounts']:.2f}. Não incluídos automaticamente no resultado."
+        result=Dataset('DRE gerencial',['Descrição','Valor'],data,'Regime de competência. Sem depreciação/amortização.'+(pending if r['provisional'] else '')+(' Canal: despesas corporativas sem rateio; resultado da empresa não calculado.' if r['channel_only'] else ''))
     if form_class:
         labels=[]
         for key,value in d.items():

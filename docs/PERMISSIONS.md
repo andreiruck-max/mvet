@@ -29,6 +29,8 @@ Migration preserva acesso gerencial antigo: detentores de `view_dashboard` receb
 
 Revogação vale na próxima requisição; requisição já em andamento e arquivos anteriormente baixados não podem ser recolhidos. Usuário desativado perde sessão válida de acesso na próxima consulta. A conta do serviço de uma futura integração não deve ser master.
 
+Escopo atual é funcional por usuário: não há limitação por carteira de clientes, canal, conta bancária específica ou depósito específico, nem autorização em dupla para pagamentos. Quem recebe leitura de um módulo pode consultar seu conjunto autorizado de dados da empresa. Essas restrições por registro exigiriam outra camada de autorização; não presumir que filtros de tela são controles de segurança.
+
 ## Histórico de implementação até a Fase 8 (substituído pela política acima)
 
 Os parágrafos abaixo descrevem concessões anteriores; não usar como matriz atual.

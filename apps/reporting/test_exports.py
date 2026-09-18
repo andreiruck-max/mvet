@@ -129,3 +129,12 @@ class ExportTests(ReportingFixture, TestCase):
             r=self.client.get(reverse('sales_sheet'),{**self.period,'page':2})
         self.assertEqual(r.status_code,200);self.assertEqual(len(r.context['page']),1)
         self.assertEqual(r.context['totals']['count'],31)
+
+    def test_export_dre_financial_expense_below_ebitda_and_unclassified_not_deducted(self):
+        self.confirmed();self.expense();self.expense(category=self.fin_category);self.expense(category=None)
+        ds=build('dre',self.actor,self.period);rows=dict(ds.rows)
+        self.assertEqual(rows['EBITDA gerencial'],D('53.25'))
+        self.assertEqual(rows['Resultado gerencial'],D('43.25'))
+        labels=[row[0] for row in ds.rows]
+        self.assertGreater(next(i for i,l in enumerate(labels) if l.startswith('Despesa financeira ·')),labels.index('EBITDA gerencial'))
+        self.assertIn('despesas a classificar R$ 10.00',ds.notes)

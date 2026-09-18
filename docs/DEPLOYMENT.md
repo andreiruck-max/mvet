@@ -27,6 +27,7 @@ Comandos Django não leem .env automaticamente fora do Compose/debugger.
 Crie/revise migrations localmente. CI exige que nenhuma migration esteja faltando.
 
 ## Rede interna
+Cada pessoa usa credencial própria. O superusuário master cria contas e revisa **Usuários e acessos**; começar sem margens, DRE, custos, auditoria e bancos para funcionários que precisam só de faturamento. Esta versão adiciona migrations de AccessPolicy/permissões e troca o backend de autenticação: aplicar migrations, reiniciar aplicação e entrar novamente nas sessões antigas. Instalar requirements.txt atualizado para geração de PDF. Exportações funcionam no servidor sem Microsoft Excel.
 Ajustar MVET_BIND para IP da interface interna, ALLOWED_HOSTS e CSRF_TRUSTED_ORIGINS para o endereço utilizado. Firewall limitado à rede da empresa. PostgreSQL permanece sem exposição.
 Uso compartilhado deve adotar HTTPS por proxy confiável e então DJANGO_SECURE_COOKIES=1, DJANGO_SSL_REDIRECT=1. Não ativar SSL_REDIRECT antes de configurar HTTPS. Não confiar em headers de proxy de origem pública indiscriminadamente.
 DEBUG=0 em operação. Secrets aleatórios separados. Conta de aplicação sem superusuário PostgreSQL em instalação endurecida; conta de migração com privilégios de DDL apenas durante atualização. Compose inicial usa o usuário criado pela imagem e deve ser endurecido antes de exposição além da máquina local.
