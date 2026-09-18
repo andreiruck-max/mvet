@@ -1,4 +1,4 @@
-{% extends 'base.html' %}{% block title %}Dashboard{% endblock %}{% block content %}
+{% extends 'base.html' %}{% block title %}Dashboard{% endblock %}{% block content %}{% include 'reporting/export_buttons.html' with kind='dashboard' allowed=perms.core.export_dashboard %}
 {% include 'reporting/nav.html' %}<h1>Dashboard gerencial</h1><p>Vendas confirmadas no período. Consulte as tabelas para conferir os lançamentos.</p>{% include 'reporting/filter.html' %}
 {% if totals %}<p>{{ range.start|date:'d/m/Y' }} a {{ range.end|date:'d/m/Y' }} · {{ channel|default:'Todos os canais' }}</p>
 <section class="grid"><article class="card"><h2>Receita operacional</h2><p class="large">R$ {{ totals.revenue|floatformat:2 }}</p><p>{{ totals.count }} vendas · ticket R$ {{ totals.ticket|floatformat:2 }}</p></article><article class="card"><h2>Margem de contribuição</h2><p class="large">R$ {{ totals.contribution|floatformat:2 }}</p><p>{% if totals.margin != None %}{{ totals.margin|floatformat:2 }}%{% else %}Sem receita para calcular percentual{% endif %}</p></article></section>

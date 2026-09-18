@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
-from apps.core.services import audit
+from apps.core.services import audit, require
 from apps.products.models import Product, Brand, ProductCategory
 from apps.products.services import save_product, remove_product, set_components
 from .models import StockLocation, StockOperation, StockMovement, StockBalance
@@ -17,7 +17,7 @@ from .selectors import catalog, kit_summary
 from .services import execute, reverse, domain_lock
 
 def can_read(user):
-    return user.is_active and any(user.has_perm(p) for p in ['core.operate_stock','core.operate_sales','core.view_costs','core.operate_purchases','core.view_purchase_reports'])
+    return user.is_active and user.has_perm('core.view_stock')
 
 def check_read(user):
     if not can_read(user):raise PermissionDenied
@@ -136,6 +136,7 @@ NAMED={'locais':(StockLocation,'Locais de estoque'),'marcas':(Brand,'Marcas'),'c
 @login_required
 @permission_required('core.operate_stock',raise_exception=True)
 def named(request,kind,pk=None):
+    require(request.user,'core.manage_stock_catalogs')
     if kind not in NAMED:raise PermissionDenied
     model,title=NAMED[kind];obj=get_object_or_404(model,pk=pk) if pk else None
     form=NamedForm(request.POST or None,initial={'name':obj.name,'active':obj.active} if obj else None)

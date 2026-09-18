@@ -1,4 +1,8 @@
 # Testes
+
+## Acessos individuais e exportações
+
+`apps.accounts.tests` verifica master, negação sobre grupos, ações específicas, revisão, auditoria, CSRF e revogação. `apps.reporting.test_exports` cobre todos os nove relatórios em Excel/PDF, projeções sem custo/margem, exportação sem leitura, filtros, tipos numéricos/datas, texto com fórmula, caixa horizontal, categorias históricas e PDF longo. `apps.reporting.test_exports_browser` verifica edição real dos acessos, downloads e faturamento restrito em tela móvel. Revisão visual de arquivos usa somente dados sintéticos.
 Executar contra PostgreSQL:
 ```sh
 python manage.py check

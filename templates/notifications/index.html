@@ -1,7 +1,7 @@
 {% extends 'base.html' %}{% block title %}Notificações{% endblock %}{% block content %}
 <h1>Central de notificações</h1>
 <p>Último processamento: {{ config.last_refresh|date:'d/m/Y H:i'|default:'ainda não executado' }}. Avisos refletem esse processamento.</p>
-<div class="actions"><a href="{% url 'notification_preferences' %}">Minhas preferências</a>{% if perms.core.manage_configuration %}<a href="{% url 'notification_configuration' %}">Configurar alertas</a><form method="post" action="{% url 'notification_refresh' %}">{% csrf_token %}<button>Atualizar alertas</button></form>{% endif %}</div>
+<div class="actions"><a href="{% url 'notification_preferences' %}">Minhas preferências</a>{% if perms.core.manage_alerts %}<a href="{% url 'notification_configuration' %}">Configurar alertas</a><form method="post" action="{% url 'notification_refresh' %}">{% csrf_token %}<button>Atualizar alertas</button></form>{% endif %}</div>
 <form method="get" class="panel filters">
 <label>Situação <select name="state"><option value="active">Ativas</option><option value="resolved" {% if request.GET.state == 'resolved' %}selected{% endif %}>Resolvidas</option><option value="all" {% if request.GET.state == 'all' %}selected{% endif %}>Todas</option></select></label>
 <label>Leitura <select name="read"><option value="">Todas</option><option value="no" {% if request.GET.read == 'no' %}selected{% endif %}>Não lidas</option><option value="yes" {% if request.GET.read == 'yes' %}selected{% endif %}>Lidas</option></select></label>

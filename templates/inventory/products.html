@@ -1,8 +1,8 @@
 {% extends 'base.html' %}{% block title %}Produtos e estoque{% endblock %}
-{% block content %}
+{% block content %}{% include 'reporting/export_buttons.html' with kind='stock' allowed=perms.core.export_stock %}
 <div class="eyebrow">CONTROLE DE ESTOQUE</div><div class="page-heading"><div><h1>Produtos e estoque</h1><p class="muted">Consulte produtos, quantidades e disponibilidade.</p></div>
-{% if perms.core.operate_stock %}<div class="actions"><a class="button" href="{% url 'product_new' %}">Novo produto</a><a class="button primary" href="{% url 'operation_new' %}">Movimentar estoque</a></div>{% endif %}</div>
-{% if perms.core.operate_stock %}<div class="tabs"><a href="{% url 'named' 'locais' %}">Locais</a><a href="{% url 'named' 'marcas' %}">Marcas</a><a href="{% url 'named' 'categorias' %}">Categorias</a></div>{% endif %}
+{% if perms.core.operate_stock %}<div class="actions">{% if perms.core.manage_products %}<a class="button" href="{% url 'product_new' %}">Novo produto</a>{% endif %}<a class="button primary" href="{% url 'operation_new' %}">Movimentar estoque</a></div>{% endif %}</div>
+{% if perms.core.operate_stock and perms.core.manage_stock_catalogs %}<div class="tabs"><a href="{% url 'named' 'locais' %}">Locais</a><a href="{% url 'named' 'marcas' %}">Marcas</a><a href="{% url 'named' 'categorias' %}">Categorias</a></div>{% endif %}
 <form method="get" class="filters card">
 <label>SKU ou nome<input name="q" value="{{ request.GET.q }}" placeholder="Pesquisar produto"></label>
 <label>Situação<select name="status"><option value="active">Ativos</option><option value="all" {% if request.GET.status == 'all' %}selected{% endif %}>Todos</option><option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inativos</option></select></label>

@@ -92,6 +92,8 @@ def execute(*, actor, key, kind, date, reason, product_id, location_id, quantity
             cost=None, target_location_id=None, target_product_id=None, target_quantity=None):
     require(actor,'core.operate_stock')
     if kind not in KINDS: raise ValidationError('Operação inválida.')
+    capability={'TRANSFER':'transfer_stock','SPLIT':'fraction_stock','REVALUE':'adjust_stock_cost','OPENING':'receive_stock','RECEIPT':'receive_stock'}.get(kind,'adjust_stock')
+    require(actor,'core.'+capability)
     if kind in COST_KINDS: require(actor,'core.view_costs')
     if not reason or not reason.strip() or len(reason)>500: raise ValidationError('Informe o motivo (até 500 caracteres).')
     try: key = uuid.UUID(str(key))
@@ -157,6 +159,7 @@ def execute(*, actor, key, kind, date, reason, product_id, location_id, quantity
 
 @transaction.atomic
 def reverse(*,actor,operation_id,key,date,reason):
+    require(actor,'core.reverse_stock')
     require(actor,'core.operate_stock')
     require(actor,'core.view_costs')
     if not reason.strip() or len(reason)>500: raise ValidationError('Informe o motivo do estorno.')

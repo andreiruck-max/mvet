@@ -110,6 +110,7 @@ def create_expense(*,actor,key,data,recurrence_of=None,recurrence_index=0):
 
 @transaction.atomic
 def reclassify(*,actor,pk,category,cost_center,reason,revision,automatic=False):
+    require(actor,'core.reclassify_expenses')
     require(actor,'core.operate_expenses');domain_lock()
     obj=Expense.objects.select_for_update().get(pk=pk)
     if obj.status!='ACTIVE':raise ValidationError('Despesa cancelada.')
@@ -129,6 +130,7 @@ def reclassify(*,actor,pk,category,cost_center,reason,revision,automatic=False):
 
 @transaction.atomic
 def cancel_expense(*,actor,pk,reason):
+    require(actor,'core.cancel_expenses')
     require(actor,'core.operate_expenses');domain_lock()
     obj=Expense.objects.select_for_update().get(pk=pk)
     if obj.status=='CANCELLED':return obj
@@ -162,6 +164,7 @@ def recurrence_preview(expense,months):
 
 @transaction.atomic
 def generate_recurrence(*,actor,pk,months,preview_hash):
+    require(actor,'core.manage_recurrence')
     require(actor,'core.operate_expenses');domain_lock()
     base=Expense.objects.select_for_update().get(pk=pk)
     rows,current_hash=recurrence_preview(base,months)
@@ -176,6 +179,7 @@ def generate_recurrence(*,actor,pk,months,preview_hash):
 
 @transaction.atomic
 def stop_recurrence(*,actor,pk):
+    require(actor,'core.manage_recurrence')
     require(actor,'core.operate_expenses');domain_lock()
     obj=Expense.objects.select_for_update().get(pk=pk)
     if obj.status!='ACTIVE':raise ValidationError('Despesa cancelada.')

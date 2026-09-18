@@ -7,10 +7,10 @@ def allowed_kinds(user):
     if not user.is_authenticated or not user.is_active:
         return []
     permissions = {
-        'STOCK': ('operate_stock', 'operate_sales', 'view_costs'),
-        'MARGIN': ('view_costs',),
+        'STOCK': ('view_stock',),
+        'MARGIN': ('view_margins',),
         'DUE': ('operate_finance', 'view_finance'),
-        'BACKUP': ('manage_configuration',),
+        'BACKUP': ('manage_alerts',),
     }
     return [kind for kind, perms in permissions.items() if any(user.has_perm('core.' + p) for p in perms)]
 

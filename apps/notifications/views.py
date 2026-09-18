@@ -78,7 +78,7 @@ def preferences(request):
 @login_required
 @require_http_methods(['GET', 'POST'])
 def configuration(request):
-    require(request.user, 'core.manage_configuration')
+    require(request.user, 'core.manage_alerts')
     config = AlertConfiguration.objects.filter(pk=1).first() or AlertConfiguration(pk=1)
     form = ConfigurationForm(request.POST if request.method == 'POST' else None, instance=config)
     if request.method == 'POST' and form.is_valid():
@@ -96,7 +96,7 @@ def configuration(request):
 @login_required
 @require_POST
 def refresh(request):
-    require(request.user, 'core.manage_configuration')
+    require(request.user, 'core.manage_alerts')
     services.refresh()
     messages.success(request, 'Alertas atualizados.')
     return redirect('notifications')
