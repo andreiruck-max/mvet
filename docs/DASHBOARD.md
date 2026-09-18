@@ -1,4 +1,5 @@
 # Dashboard e consultas — direção aprovada em 17/09/2026
+Atualização 18/09: faturamento, relatório de vendas, custos, margens, DRE e bancos agora têm controles independentes. Exportações Excel/PDF estão nos módulos; ver [PERMISSIONS.md](PERMISSIONS.md) e [EXPORTS.md](EXPORTS.md). Essas regras substituem as permissões agregadas descritas no histórico abaixo.
 Estado: Fase 7 implementada e validada em PostgreSQL/Chromium no PR #16. O usuário pediu visualização próxima das planilhas, mantendo as fontes transacionais normalizadas.
 
 ## Vendas como planilha

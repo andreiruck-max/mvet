@@ -64,3 +64,9 @@
 - Carga inicial validada/idempotente da aba ESTOQUE MVET e conferência do livro.
 - Interface Mercadovet e autorização de custos no backend.
 - Testes de domínio, HTTP, permissões, importação, concorrência PostgreSQL e fluxo visual com dados sintéticos.
+# 18/09/2026 — acessos e exportações
+
+- Políticas individuais permitidas/negadas pelo master com auditoria e controle de edição concorrente; separação de faturamento, custos, margens e relatório detalhado.
+- Controles específicos de confirmação, cancelamento, estoque, pagamentos/recebimentos, transferências, tributos e recorrência.
+- Excel/PDF nos relatórios existentes, projeções autorizadas, todos os registros do filtro, limites explícitos e proteção contra fórmulas em texto externo.
+- Estudo público da API Bling: pré-preenchimento de NF/SKU/canal e conciliação de movimentos; nenhuma conexão real ativada.

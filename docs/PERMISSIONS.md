@@ -1,4 +1,37 @@
-# Permissões
+# Permissões — política vigente desde 18/09/2026
+
+O master (superusuário ativo) administra `/usuarios/`: selecione uma conta, marque autorizações e salve. Desmarcar nega acesso mesmo se um grupo conceder. Revisão otimista evita sobrescrever edição de outra sessão; alteração tem auditoria. Contas master são protegidas; criação de usuário e promoção continuam no admin restrito ao master. Cada funcionário usa login próprio mesmo dentro da rede local.
+
+| Área | Controles independentes |
+|---|---|
+| Informação comercial | Faturamento consolidado (`view_dashboard`), vendas individuais (`view_sales`), relatório detalhado (`view_sales_report`) |
+| Informação sensível | Custos/CMV (`view_costs`), margens (`view_margins`), DRE/resultado acumulado (`view_dre`), saldos/caixa (`view_finance`) |
+| Vendas | Rascunhos (`operate_sales`), confirmar, cancelar |
+| Estoque | Consultar quantidades, operar, gerir produtos/kits, remover/inativar, gerir locais/marcas/categorias, receber/abrir, ajustar quantidade, transferir, fracionar, corrigir custo, estornar |
+| Compras | Operar compras, gerir fornecedor, confirmar, receber, cancelar, relatórios de compras/fornecedor |
+| Financeiro | Operar, gerir contas, criar títulos, alterar previsão, pagar, receber, transferir, estornar, cancelar títulos |
+| Despesas | Operar, reclassificar, cancelar, recorrência, plano/regras, relatórios |
+| Configurações | Empresa, canais, tributos, recálculo retroativo, alertas |
+| Auditoria | Consulta de log (sensível: pode revelar valores anteriores e novos) |
+| Arquivos | Exportar indicadores, vendas, estoque, compras, financeiro, despesas e DRE, separadamente |
+
+Catálogo executável com códigos e heranças: `apps/accounts/permissions.py`; permissões base em `Company.Meta.permissions`. Operações específicas exigem também `operate_<módulo>`; entradas/correções/estornos de estoque continuam exigindo custo quando necessário. Cadastro de conta exige operação e leitura financeira. Pagar não concede receber, nem transferir, quando a política individual é editada.
+
+**Perfil funcionário com faturamento:** permitir apenas leitura comercial necessária e `view_dashboard`; não marcar custo, margem, DRE, bancos, relatórios de despesas/compras ou auditoria ampla. Exportação e detalhe de vendas são decisões separadas. Para lançar vendas, liberar operar/consultar e confirmar se desejado; cancelamento pode ficar só com gestão.
+
+Não há garantia contra dedução matemática: faturamento + custos + todas as deduções permitem calcular margem. DRE necessariamente revela lucro/custos; auditoria ampla também pode revelar dados sensíveis. Operar compras/financeiro/despesas envolve valores individuais necessários ao trabalho, embora não autorize saldos globais. Não conceder essas combinações a quem deve ver somente faturamento.
+
+Política aplicada no backend, serviços, URLs/API, HTML e arquivos. Notificações de margem exigem `view_margins`; estoque exige `view_stock`; configuração de alertas exige `manage_alerts`. API de resultado individual exige margem e omite CMV sem custo.
+
+## Atualização de instalações existentes
+
+Migration preserva acesso gerencial antigo: detentores de `view_dashboard` recebem relatório detalhado, e detentores de `view_costs` recebem margem. Isso é compatibilidade, não recomendação de perfil para novos funcionários. Revisar concessões com o master antes de operar. Exports não são concedidos automaticamente a grupos existentes. Capacidades de operação herdam regras anteriores até edição individual explícita. Novo backend exige novo login das sessões anteriores.
+
+Revogação vale na próxima requisição; requisição já em andamento e arquivos anteriormente baixados não podem ser recolhidos. Usuário desativado perde sessão válida de acesso na próxima consulta. A conta do serviço de uma futura integração não deve ser master.
+
+## Histórico de implementação até a Fase 8 (substituído pela política acima)
+
+Os parágrafos abaixo descrevem concessões anteriores; não usar como matriz atual.
 Implementado com User, Group e Permission nativos do Django. Serviços e views verificam permissões, não nomes de grupos. Operacional não ganha indicadores pelo direito de lançar.
 
 | Perfil | Permissões iniciais |

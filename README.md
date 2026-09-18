@@ -74,3 +74,8 @@ Cadastre contas e saldos iniciais em **Financeiro → Contas financeiras**. Comp
 
 ## Central de notificações
 Alertas internos de estoque mínimo, margem, vencimentos e backup, com leitura e preferências por usuário. Acesse **Notificações** no menu. Processamento periódico: `python manage.py refresh_notifications`; ver [regras e operação](docs/NOTIFICATIONS.md). Agendamento, backup externo e restauração na empresa continuam pendentes.
+# Acessos individuais, arquivos e Bling
+
+O master administra permissões individuais em **Usuários e acessos**, separando faturamento, custos, margens, DRE, caixa e ações operacionais. Exportações Excel/PDF disponíveis nos relatórios atuais, com filtros e autorização própria. [Guia de permissões](docs/PERMISSIONS.md) · [Exportações](docs/EXPORTS.md) · [Avaliação da API Bling](docs/BLING_INTEGRATION.md).
+
+A integração Bling ainda não está ativa. NF com SKU é viável para pré-preenchimento assistido; saldo bancário real não foi confirmado pela API. A documentação distingue consulta, conciliação e implantação.
