@@ -43,3 +43,6 @@ A fundação foi publicada por plugin após indisponibilidade do ambiente local.
 Usar somente o estoque de ERP Mvet(2).xlsx como base atual de desenvolvimento, com abertura em 15/09/2026. A Fase 2 inclui carga validada/idempotente e ajustes positivos, negativos e de custo auditados. Demais operações continuam manuais. Carga e interface implementadas na Fase 2. Ver docs/INVENTORY.md e ADR 0006.
 
 PR #20 também inclui vendas manuais sem NF, rascunho incompleto do master, imposto zero e ajuste explícito da receita (ADR 0016). Confirmação mantém integridade de estoque e os ajustes refletem recebível, DRE e exportações.
+
+## Preparação da instalação — 19/09/2026
+PR #20 integrado à main. Adicionado comando check_installation e roteiro INSTALLATION_CHECKLIST.md para triagem e aceite no destino. Não substitui instalação presencial, HTTPS, restauração ou homologação real do Bling.

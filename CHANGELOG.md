@@ -1,3 +1,7 @@
+# Preparação da instalação
+- Checagem sem escrita de configuração, PostgreSQL, migrations e cadastros essenciais, com saída JSON.
+- Roteiro de implantação e aceite na rede interna, incluindo permissões, exportações e recuperação.
+
 # Vendas manuais e flexibilidade do master
 - NF opcional com referência interna; master salva rascunhos incompletos.
 - Imposto zero e ajuste de receita auditados; recebível, DRE e exportações consistentes.
