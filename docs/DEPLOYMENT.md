@@ -37,3 +37,6 @@ check, migrations, setup, collectstatic e testes PostgreSQL no CI. Testar backup
 
 ## Agendamento de notificações
 Após migrations, executar `docker compose exec -T web python manage.py refresh_notifications`. Configurar repetição a cada 15 minutos no agendador do servidor, com diretório do projeto e registro de saída/erros. Habilitar monitoramento de backup somente ao implantar a rotina. O repositório fornece comandos; não instala agendamentos na máquina da empresa.
+
+## Roteiro de aceite
+Consultar INSTALLATION_CHECKLIST.md para preparar o servidor, validar acessos na rede e registrar o aceite. `check_installation --network` é uma triagem sem escrita e não substitui o teste real de HTTPS ou restauração.

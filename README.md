@@ -26,7 +26,7 @@ docker compose up -d web
 ```
 5. Abra [localhost:8000](http://localhost:8000) e entre com o usuário criado.
 
-`setup_mvet` é idempotente e preserva personalizações de perfis existentes. Não cria usuários/senhas padrão. Configure usuários e grupos no admin. Apenas superusuário administra identidades e permissões; o grupo ADMINISTRADOR é um perfil operacional, não concede superusuário.
+`setup_mvet` é idempotente e preserva personalizações de perfis existentes. Não cria usuários/senhas padrão. Configure usuários e permissões em **Usuários e acessos**. Apenas superusuário administra identidades e permissões; o grupo ADMINISTRADOR é um perfil operacional, não concede superusuário.
 
 ## Principais comandos
 ```sh
@@ -83,3 +83,7 @@ A integração Bling ainda não está ativa. NF com SKU é viável para pré-pre
 ## Importação assistida Bling
 
 Fila em `/integracoes/bling/`, conexão exclusiva do master e revisão antes de confirmar qualquer venda. Custos e cancelamentos permanecem locais. Instalação, permissões e limites: [docs/BLING_SETUP.md](docs/BLING_SETUP.md). Credenciais e homologação da conta real são necessárias antes do uso operacional; integração financeira não faz parte desta entrega.
+
+## Preparação da implantação
+
+Siga o [roteiro de implantação e aceite](docs/INSTALLATION_CHECKLIST.md). `python manage.py check_installation --network` verifica configuração e banco sem escrever dados; verificações presenciais de rede, recuperação e permissões continuam necessárias.
