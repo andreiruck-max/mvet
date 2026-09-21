@@ -77,8 +77,8 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
             page.get_by_text('Busca concluída. 60 notas consultadas; 1 pendências. Nenhuma venda foi confirmada.', exact=True).wait_for()
             self.assertEqual(pages, list(range(1, 14)))
             self.assertTrue(page.get_by_role('link', name='Ver notas consultadas e pendências').is_visible())
-            self.assertFalse(Sale.objects.exists())
             browser.close()
+        self.assertFalse(Sale.objects.exists())
 
     def test_period_query_pause_and_error_resume_same_page(self):
         import json
