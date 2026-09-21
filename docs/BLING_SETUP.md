@@ -32,7 +32,7 @@ A confirmação é individual. Nesta versão, deduções parcialmente digitadas 
 
 ## Limites de aceitação
 
-Somente saída autorizada, finalidade normal, itens de produto com CFOP iniciado em 51, 61 ou 71 e unidades compatíveis. É uma triagem conservadora de venda de mercadoria, não um validador fiscal completo. O operador deve confirmar a natureza comercial. Outros CFOPs, remessas, transferências, devoluções, serviços e documentos incompletos ficam bloqueados; não ampliar a regra sem homologação e testes.
+Somente saída autorizada, finalidade normal informada ou conferida explicitamente quando ausente, itens de produto com CFOP iniciado em 51, 61 ou 71 e unidades compatíveis. É uma triagem conservadora de venda de mercadoria, não um validador fiscal completo. O operador deve confirmar a natureza comercial. Outros CFOPs, remessas, transferências, devoluções, serviços e documentos incompletos ficam bloqueados; não ampliar a regra sem homologação e testes.
 
 Venda retroativa mantém data comercial, mas a baixa ocorre hoje e usa o custo médio do MVet no momento da confirmação. Não existe reconstrução histórica de custo. Corte e regras locais continuam valendo.
 
@@ -70,3 +70,9 @@ Consultas locais são serializadas, com intervalo mínimo de 0,4 segundo; concor
 Fontes do contrato: [Referência](https://developer.bling.com.br/referencia), [Aplicativos/OAuth](https://developer.bling.com.br/aplicativos), [JWT](https://developer.bling.com.br/migracao-jwt). Contrato examinado em 18/09/2026; mudanças externas exigem revisão do adaptador e nova homologação.
 
 Vendas sem NF ou inexistentes no Bling são lançadas em **Vendas → Nova venda**, sem passar pela fila. Regras do master e ajuste líquido: ADR 0016 e SALES.md.
+
+## Finalidade ausente na API
+
+Na homologação de 21/09/2026, finalidade veio ausente e tipoNota vazio. O MVet mantém a finalidade desconhecida e sinaliza a pendência na fila. Abra o documento no Bling/DANFE e marque a declaração específica somente se for venda de finalidade normal. A confirmação exige essa declaração também do master e grava a decisão na auditoria. Finalidade conhecida não normal, canceladas, entradas e CFOPs fora da triagem permanecem bloqueados. Ver ADR 0017.
+
+Após atualizar, reconsulte a página ou a nota com erro antigo. Não apague registros; a mesma referência será reaproveitada. A consulta não movimenta estoque.

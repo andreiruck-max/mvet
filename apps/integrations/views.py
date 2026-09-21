@@ -51,7 +51,8 @@ def detail(request, pk):
             try:
                 costs = [(f.cleaned_data['name'], f.cleaned_data['amount']) for f in extras if f.cleaned_data and f.cleaned_data.get('name') and not f.cleaned_data.get('DELETE')]
                 services.approve(actor=request.user, invoice_id=pk, revision=form.cleaned_data['revision'],
-                    data={k: form.cleaned_data[k] for k in EDIT_FIELDS}, extra_costs=costs, reviewed=form.cleaned_data['reviewed'])
+                    data={k: form.cleaned_data[k] for k in EDIT_FIELDS}, extra_costs=costs, reviewed=form.cleaned_data['reviewed'],
+                    purpose_reviewed=form.cleaned_data['purpose_reviewed'])
                 messages.success(request, 'Venda confirmada no MVet. Nenhuma alteração foi enviada ao Bling.')
                 return redirect('bling_detail', pk=pk)
             except ValidationError as exc: form.add_error(None, exc)

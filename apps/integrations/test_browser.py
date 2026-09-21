@@ -15,7 +15,7 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
     def test_review_alias_deductions_and_local_confirmation(self):
         from playwright.sync_api import sync_playwright
         connection = BlingConnection.objects.create(pk=1, issuer=ISSUER)
-        data = payload(); data['itens'][0]['codigo'] = 'EXT-DEMO'
+        data = payload(); data.pop('finalidade'); data['tipoNota'] = ''; data['itens'][0]['codigo'] = 'EXT-DEMO'
         row = stage(actor=self.actor, connection=connection, payload=data)
         client = Client(); client.force_login(self.actor)
         with sync_playwright() as pw:
@@ -43,6 +43,8 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
             page.get_by_label('Taxa / descrição:', exact=True).fill('MDR')
             page.get_by_label('Valor (R$):', exact=True).fill('2')
             page.locator('#id_reviewed').check()
+            self.assertIsNotNone(page.locator('#id_purpose_reviewed').get_attribute('required'))
+            page.locator('#id_purpose_reviewed').check()
             page.get_by_role('button', name='Conferir e confirmar venda', exact=True).click()
             page.get_by_text('Venda confirmada no MVet. Nenhuma alteração foi enviada ao Bling.', exact=True).wait_for()
             page.get_by_role('heading', name='Venda MVet: Confirmada', exact=True).wait_for()

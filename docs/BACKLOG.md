@@ -46,3 +46,5 @@ PR #20 também inclui vendas manuais sem NF, rascunho incompleto do master, impo
 
 ## Preparação da instalação — 19/09/2026
 PR #20 integrado à main. Adicionado comando check_installation e roteiro INSTALLATION_CHECKLIST.md para triagem e aceite no destino. Não substitui instalação presencial, HTTPS, restauração ou homologação real do Bling.
+
+Correção da homologação Bling (21/09/2026): finalidade ausente passa à conferência humana explícita/auditada, preservando bloqueios conhecidos e snapshots externos (ADR 0017). Validação CI registrada no PR da correção.
