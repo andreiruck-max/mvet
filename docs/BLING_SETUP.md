@@ -20,7 +20,7 @@ A base aceita um emitente; trocar credenciais não permite misturar CNPJs. Cada 
 
 ## Operar a fila
 
-1. **Notas do Bling → Buscar notas**: selecionar período, situação e página. Cada página contém até cinco notas, com detalhes consultados no servidor. Consulte páginas seguintes quando houver indicação. A data/hora mostrada é a última página bem-sucedida, não uma declaração de sincronização completa do período.
+1. **Notas do Bling → Buscar notas do período**: selecionar datas e situação e iniciar uma vez. O navegador percorre os lotes automaticamente e mostra quantidade consultada/pendências. Mantenha a aba aberta. Ao terminar, use **Ver notas consultadas e pendências** para atualizar a lista. Lotes pequenos continuam internos, para respeitar limites e tempo de resposta.
 2. Buscar **Autorizadas** e também **Canceladas** para detectar divergências. A API omite canceladas na consulta padrão; o filtro é sempre explícito. Para notas antigas já importadas, usar **Consultar esta nota novamente** no detalhe.
 3. Abrir a NF. Ver número/série, data, valor fiscal, loja/pedido externos, itens, códigos, unidades e CFOP. Dados de clientes, XML, tokens e custos do Bling não são armazenados na fila.
 4. SKU exato e unidade compatível resolvem automaticamente. Se o código externo for diferente, usar **Vincular código externo a um produto**, buscar o produto MVet e confirmar. O vínculo vale para futuras notas. Não existe associação aproximada por nome nem conversão automática de unidade. Vínculo já utilizado com outro produto não pode ser sobrescrito pela tela.
@@ -76,3 +76,9 @@ Vendas sem NF ou inexistentes no Bling são lançadas em **Vendas → Nova venda
 Na homologação de 21/09/2026, finalidade veio ausente e tipoNota vazio. O MVet mantém a finalidade desconhecida e sinaliza a pendência na fila. Abra o documento no Bling/DANFE e marque a declaração específica somente se for venda de finalidade normal. A confirmação exige essa declaração também do master e grava a decisão na auditoria. Finalidade conhecida não normal, canceladas, entradas e CFOPs fora da triagem permanecem bloqueados. Ver ADR 0017.
 
 Após atualizar, reconsulte a página ou a nota com erro antigo. Não apague registros; a mesma referência será reaproveitada. A consulta não movimenta estoque.
+
+## Busca automática do período
+
+A tela consulta lotes sequenciais até a última página, sem cliques intermediários. Não confirma vendas. Documentos inválidos ficam registrados como pendência, mas não interrompem a leitura dos demais. Falhas técnicas, autenticação, limite da API ou consulta parcial interrompem na página corrente: **Retomar busca** repete essa página de forma idempotente. Interromper aguarda o lote em andamento; retomar na mesma aba continua do próximo lote concluído. Alterar período/situação ou recarregar a página inicia outra varredura desde o início, sem duplicar notas. Não há job persistente no servidor; fechar a aba interrompe a sequência.
+
+Histórico permanece por lote. A contagem indica notas consultadas, incluindo já existentes, não novas vendas. O resumo só indica conclusão após uma página final bem-sucedida. Alterações simultâneas no Bling podem deslocar páginas; uma nova consulta do período reconcilia os registros. Máximo técnico de 10.000 páginas; reduza o período ao atingir esse limite.

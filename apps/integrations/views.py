@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
 from django.db import IntegrityError
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.cache import never_cache
 from django.views.decorators.debug import sensitive_variables
@@ -67,13 +67,25 @@ def detail(request, pk):
 @require_POST
 def query(request):
     require(request.user, 'core.review_bling'); require(request.user, 'core.fetch_bling')
+    wants_json = request.headers.get('Accept') == 'application/json'
     form = QueryForm(request.POST)
     if form.is_valid():
         try:
             run = bling.sync_page(actor=request.user, **form.cleaned_data)
+            if wants_json:
+                # Invalid documents remain visible; transport/partial failures stop on this page.
+                blocked = bool(run.message) or (run.has_more and run.page >= 10000)
+                return JsonResponse({'page': run.page, 'processed': run.processed, 'errors': run.errors,
+                    'has_more': run.has_more, 'blocked': blocked,
+                    'next_page': run.page if blocked else (run.page + 1 if run.has_more else None),
+                    'message': run.message or ('Limite de páginas atingido. Reduza o período.' if blocked else '')})
             messages.info(request, f'Página {run.page}: {run.processed} notas consultadas; {run.errors} erros. ' + (run.message or ('Consulte a próxima página.' if run.has_more else 'Fim desta consulta.')))
-        except ValidationError as exc: messages.error(request, '; '.join(exc.messages))
-    else: messages.error(request, 'Informe período e página válidos.')
+        except ValidationError as exc:
+            if wants_json: return JsonResponse({'message': '; '.join(exc.messages)}, status=400)
+            messages.error(request, '; '.join(exc.messages))
+    else:
+        if wants_json: return JsonResponse({'message': 'Informe um período e situação válidos.', 'errors': form.errors.get_json_data()}, status=400)
+        messages.error(request, 'Informe período e página válidos.')
     return redirect('bling_queue')
 
 
