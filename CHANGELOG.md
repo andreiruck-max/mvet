@@ -1,3 +1,7 @@
+# Correção Bling — finalidade ausente
+- Notas sem finalidade informada entram na fila com aviso e exigem conferência explícita auditada.
+- Bloqueios de finalidade não normal, situação, tipo e CFOP preservados; reconsulta recupera erro anterior sem duplicar.
+
 # Preparação da instalação
 - Checagem sem escrita de configuração, PostgreSQL, migrations e cadastros essenciais, com saída JSON.
 - Roteiro de implantação e aceite na rede interna, incluindo permissões, exportações e recuperação.

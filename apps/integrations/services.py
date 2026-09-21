@@ -51,7 +51,8 @@ def stage(*, actor, connection, payload):
     obj.access_key = source['key']; obj.number = source['number']; obj.series = source['series']
     obj.issued_on = date.fromisoformat(source['date']); obj.source_status = source['status']
     obj.error = ''
-    try: eligibility(source)
+    # Missing purpose may enter the review queue, never an automatic sale.
+    try: eligibility(source, purpose_reviewed=True)
     except ValidationError as exc: obj.error = '; '.join(exc.messages)[:500]
     if obj.sale_id:
         obj.discrepancy = obj.discrepancy or changed
@@ -95,7 +96,7 @@ def map_product(*, actor, invoice_id, revision, code, unit, product):
 
 
 @transaction.atomic
-def approve(*, actor, invoice_id, revision, data, extra_costs, reviewed):
+def approve(*, actor, invoice_id, revision, data, extra_costs, reviewed, purpose_reviewed=False):
     require(actor, 'core.review_bling'); require(actor, 'core.approve_bling')
     require(actor, 'core.operate_sales'); require(actor, 'core.confirm_sales')
     domain_lock()
@@ -103,7 +104,7 @@ def approve(*, actor, invoice_id, revision, data, extra_costs, reviewed):
     if invoice.sale_id: return invoice.sale
     if invoice.revision != revision or invoice.status != 'PENDING' or not reviewed:
         raise ValidationError('Revise a nota atual e confirme os valores, inclusive os zeros.')
-    eligibility(invoice.source)
+    eligibility(invoice.source, purpose_reviewed=purpose_reviewed)
     items = []
     for row in invoice.source['items']:
         product = resolve(invoice.connection, row)
@@ -117,7 +118,9 @@ def approve(*, actor, invoice_id, revision, data, extra_costs, reviewed):
     sale = sales.confirm(actor=actor, sale_id=sale.pk, revision=sale.revision)
     invoice.sale = sale; invoice.approved_source = invoice.source
     invoice.status = 'IMPORTED'; invoice.revision += 1; invoice.save()
-    audit(actor, invoice, 'bling_approve', after={'sale': sale.pk, 'fingerprint': invoice.fingerprint})
+    audit(actor, invoice, 'bling_approve', after={'sale': sale.pk, 'fingerprint': invoice.fingerprint,
+        'purpose_missing': not bool(invoice.source.get('purpose')),
+        'purpose_reviewed': purpose_reviewed is True})
     return sale
 
 

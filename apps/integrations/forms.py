@@ -13,6 +13,7 @@ class QueryForm(forms.Form):
 
 
 class ReviewForm(SaleForm):
+    purpose_reviewed = forms.BooleanField(required=False, label="Conferi o documento no Bling/DANFE: é uma venda com finalidade normal, não devolução, complemento, ajuste ou remessa.")
     reviewed = forms.BooleanField(label='Conferi que esta nota é uma venda, os produtos, valores, deduções (inclusive zeros), canal e estoque.')
     def __init__(self, *args, invoice, **kwargs):
         super().__init__(*args, **kwargs)
@@ -20,6 +21,9 @@ class ReviewForm(SaleForm):
             self.fields[field].disabled = True
             self.initial[field] = value
         self.initial['revision'] = invoice.revision
+        self.fields['purpose_reviewed'].required = not bool(invoice.source.get('purpose'))
+        if invoice.source.get('purpose'):
+            self.fields['purpose_reviewed'].widget = forms.HiddenInput()
         # Unlike a manual draft, unknown deductions require an explicit value.
         for field in ['discount', 'shipping_paid', 'fees', 'difal', 'commission', 'other_costs']:
             self.fields[field].required = not bool(self.actor and self.actor.is_superuser)

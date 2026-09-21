@@ -94,3 +94,5 @@ Vendas manuais do master: tests em test_manual_master verificam rascunho vazio, 
 
 ## Preparação da instalação
 `apps.core.test_installation` cobre relatório sem escrita, banco real PostgreSQL, flags inseguras, credenciais ausentes na saída de falha, migrations pendentes sem consultar tabelas de aplicação e ausência de master/estoque padrão. Cinco testes; validação local em SQLite é preliminar, CI PostgreSQL é o aceite do código.
+
+Bling sem finalidade: seis regressões com payload sintético no formato observado (finalidade ausente, tipoNota vazio, naturezaOperacao com ID e CFOP 6108). Cobrem fila sem efeitos, confirmação explícita no serviço/master/UI, auditoria sem inventar dado externo, bloqueios conhecidos e recuperação de erro anterior. Chromium usa esse formato e confirma a declaração obrigatória antes da venda.

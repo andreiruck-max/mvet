@@ -64,9 +64,14 @@ def normalize(payload, issuer):
             'freight': decimal_text(payload.get('valorFrete', 0), 2), 'items': rows}
 
 
-def eligibility(source):
-    if source['status'] != '5' or source['type'] != '1' or source['purpose'] != '1':
-        raise ValidationError('Somente NF autorizada, de saída e finalidade normal pode gerar venda.')
+def eligibility(source, *, purpose_reviewed=False):
+    if source['status'] != '5' or source['type'] != '1':
+        raise ValidationError('Somente NF autorizada e de saída pode gerar venda.')
+    purpose = source.get('purpose', '')
+    if purpose not in ('', '1'):
+        raise ValidationError('Finalidade externa diferente de normal. Nota bloqueada.')
+    if not purpose and purpose_reviewed is not True:
+        raise ValidationError('O Bling não informou a finalidade. Confira o documento e confirme explicitamente que é uma venda de finalidade normal.')
     for row in source['items']:
         # Fail closed. Nature/CFOP still requires the operator's explicit review.
         cfop = row['cfop']
