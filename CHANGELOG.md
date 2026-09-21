@@ -1,3 +1,7 @@
+# Bling — busca automática do período
+- Um clique percorre os lotes com progresso, interrupção e retomada; nenhuma venda é confirmada na busca.
+- Pendências documentais não interrompem as demais notas; falhas técnicas param sem pular a página.
+
 # Correção Bling — finalidade ausente
 - Notas sem finalidade informada entram na fila com aviso e exigem conferência explícita auditada.
 - Bloqueios de finalidade não normal, situação, tipo e CFOP preservados; reconsulta recupera erro anterior sem duplicar.
