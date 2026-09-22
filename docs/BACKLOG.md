@@ -52,3 +52,5 @@ Correção da homologação Bling (21/09/2026): finalidade ausente passa à conf
 Produtividade Bling: busca de período com paginação automática sequencial, progresso, interrupção e retomada na aba; conferência individual separada. Não exige percorrer manualmente grupos de cinco notas.
 
 Posição inicial por depósito: comando `import_inventory_locations`, testes e ADR 0018. Execução e validação no banco da empresa permanecem necessárias. Sem nova tela de upload.
+
+MVet 1.5: navegação e valorização por depósito, busca SKU exata, ordenação numérica e paginação de 50 implementadas. Custo local nas operações e migração pelo livro conforme ADR 0019. Aceite PostgreSQL e navegador registrado no PR; implantação no computador da empresa é etapa separada.

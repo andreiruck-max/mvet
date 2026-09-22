@@ -5,7 +5,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction, IntegrityError
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from apps.core.services import audit, require
@@ -13,7 +13,7 @@ from apps.products.models import Product, Brand, ProductCategory
 from apps.products.services import save_product, remove_product, set_components
 from .models import StockLocation, StockOperation, StockMovement, StockBalance
 from .forms import ProductForm, OperationForm, NamedForm, ReversalForm, Components
-from .selectors import catalog, kit_summary
+from .selectors import catalog, kit_summary, selected_location, location_values, stock_totals, search_products
 from .services import execute, reverse, domain_lock
 
 def can_read(user):
@@ -25,15 +25,24 @@ def check_read(user):
 @login_required
 def products(request):
     check_read(request.user)
-    page=Paginator(catalog(request.GET),30).get_page(request.GET.get('page'))
-    return render(request,'inventory/products.html',{'page':page})
+    try:
+        location, locations = selected_location(request.GET)
+    except ValidationError as exc:
+        return HttpResponseBadRequest('; '.join(exc.messages))
+    page = Paginator(catalog(request.GET, location).prefetch_related('balances'), 50).get_page(request.GET.get('page'))
+    context = {'page': page, 'location': location, 'locations': locations}
+    if request.user.has_perm('core.view_costs'):
+        for product in page:
+            product.stock_value = location_values(product).get(location.pk if location else None, Decimal(0))
+        context['stock_totals'], context['stock_total'] = stock_totals(locations)
+    return render(request, 'inventory/products.html', context)
 
 @login_required
 def lookup(request):
     check_read(request.user)
     query=request.GET.get('q','').strip()
     if not query:return JsonResponse({'results':[]})
-    rows=Product.objects.filter(active=True).filter(Q(sku__icontains=query)|Q(name__icontains=query)).order_by('name')[:20]
+    rows=search_products(Product.objects.filter(active=True), query).order_by('name')[:20]
     location=request.GET.get('location')
     if location and not location.isdecimal():return JsonResponse({'results':[]},status=400)
     results=[]
@@ -47,7 +56,12 @@ def lookup(request):
                 parts=list(p.components.select_related('component'))
                 balances={b.product_id:b.quantity for b in StockBalance.objects.filter(location_id=location,product_id__in=[part.component_id for part in parts])}
                 item['quantity']=str(min((balances.get(part.component_id,Decimal('0'))//part.quantity for part in parts),default=0))
-            else:item['quantity']=str(p.balances.filter(location_id=location).values_list('quantity',flat=True).first() or 0)
+                local_costs = {b.product_id: b.average_cost for b in StockBalance.objects.filter(location_id=location, product_id__in=[part.component_id for part in parts])}
+                cost = sum((local_costs.get(part.component_id, Decimal(0)) * part.quantity for part in parts), Decimal(0))
+            else:
+                balance = p.balances.filter(location_id=location).first()
+                item['quantity'] = str(balance.quantity if balance else 0)
+                cost = balance.average_cost if balance else Decimal(0)
         if request.user.has_perm('core.view_costs'):item['cost']=str(cost)
         results.append(item)
     return JsonResponse({'results':results})

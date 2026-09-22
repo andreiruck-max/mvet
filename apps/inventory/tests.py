@@ -171,7 +171,7 @@ class InventoryTests(StockFixtures,TestCase):
     def test_search_and_pagination(self):
         Product.objects.bulk_create([Product(sku=f'X{i}',name=f'Outros {i}') for i in range(35)])
         self.client.force_login(self.actor)
-        response=self.client.get(url('products'));self.assertEqual(len(response.context['page']),30)
+        response=self.client.get(url('products'));self.assertEqual(len(response.context['page']),36)
         self.assertEqual(self.client.get(url('products'),{'q':'P1'}).context['page'].paginator.count,1)
         self.assertLessEqual(len(self.client.get(url('product_lookup'),{'q':'Outros'}).json()['results']),20)
 

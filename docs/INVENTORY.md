@@ -77,3 +77,6 @@ o produto recebe custo médio global ponderado. Não sobrescreve SKUs existentes
 A data da posição não retroage ao corte: ver ADR 0018. Não reconfirmar operações
 passadas já refletidas nessa posição. Após a carga, executar `check_inventory`.
 A repetição é ignorada inclusive após estorno; nova aplicação exige conciliação.
+
+## MVet 1.5 — regra vigente
+A partir da 1.5, custo médio e valor são independentes por depósito (ADR 0019), substituindo as referências históricas acima ao custo global. Product exibe apenas o consolidado. Lista: depósito padrão, botões de alternância, 50 itens/página, SKU numérico, busca numérica exata e totais sem filtros. Exportações seguem o depósito. Estoques inativos continuam compondo os totais. Correção de custo afeta somente o depósito informado.

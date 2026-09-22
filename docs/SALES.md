@@ -50,3 +50,6 @@ Nova venda é independente do Bling. NF opcional; várias vendas sem NF recebem 
 Master salva rascunhos sem preencher campos comerciais. Data vazia usa hoje; valores vazios usam zero; sem regra tributária ou imposto informado registra override zero auditado. Produto selecionado com quantidade vazia usa 1. Canal, estoque e itens podem ficar pendentes apenas em rascunho; confirmação exige contexto completo, quantidade positiva e saldo. Outros usuários mantêm validações usuais.
 
 Campo do master Receita líquida operacional ajustada determina um ajuste separado, antes de CMV, impostos e demais custos. Valor é usado também no recebível, indicadores, DRE e Excel/PDF; não é o repasse líquido do marketplace. Motivos de imposto/ajuste podem ser omitidos pelo master, recebendo texto padrão na auditoria. Corrigir venda já confirmada continua exigindo fluxo rastreável, sem sobrescrever snapshots.
+
+## MVet 1.5
+Confirmação consome quantidade e custo médio do depósito gravado na venda, inclusive componentes de kits. Canal Mercado Livre não identifica por si só Loja ou Full: conferir o depósito antes de confirmar. CMV já confirmado permanece imutável. Cancelamento devolve ao mesmo local pelo valor original.
