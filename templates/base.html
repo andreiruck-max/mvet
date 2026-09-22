@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>{% block title %}MVet 1.0{% endblock %} · Mercadovet</title>
+  <title>{% block title %}MVet 1.5{% endblock %} · Mercadovet</title>
   <link rel="stylesheet" href="{% static 'mvet.css' %}">
   <script src="{% static 'mvet.js' %}" defer></script>
 </head>
@@ -13,7 +13,7 @@
 <a class="skip" href="#content">Pular para o conteúdo</a>
 {% if user.is_authenticated %}
 <aside class="sidebar">
-  <a class="brand" href="{% url 'home' %}"><span class="brand-mark">M</span><span>Mercadovet<small>MVet 1.0</small></span></a>
+  <a class="brand" href="{% url 'home' %}"><span class="brand-mark">M</span><span>Mercadovet<small>MVet 1.5</small></span></a>
   <nav aria-label="Navegação principal">
     {% if perms.core.review_bling %}<a href="{% url 'bling_queue' %}">Notas do Bling</a>{% endif %}
     {% if user.is_superuser %}<a href="{% url 'bling_connection' %}">Conexão Bling</a>{% endif %}

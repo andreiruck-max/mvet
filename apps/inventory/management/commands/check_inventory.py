@@ -17,6 +17,10 @@ class Command(BaseCommand):
             if p.quantity and p.average_cost!=quant(p.value/p.quantity):errors.append(f'SKU {p.sku}: custo médio inconsistente.')
         for b in StockBalance.objects.all():
             qty=StockMovement.objects.filter(product_id=b.product_id,location_id=b.location_id).aggregate(total=Sum('quantity'))['total'] or 0
+            local_value=StockMovement.objects.filter(product_id=b.product_id,location_id=b.location_id).aggregate(total=Sum('value'))['total'] or 0
+            if local_value!=b.value:errors.append(f'Saldo {b.pk}: valor local diverge do livro.')
+            if b.quantity and b.average_cost!=quant(b.value/b.quantity):errors.append(f'Saldo {b.pk}: custo médio local inconsistente.')
+            if not b.quantity and b.value:errors.append(f'Saldo {b.pk}: valor residual sem quantidade.')
             if qty!=b.quantity:errors.append(f'Saldo {b.pk}: quantidade local diverge do livro.')
         if errors:raise CommandError('\n'.join(errors))
         self.stdout.write(self.style.SUCCESS('Estoque conciliado: quantidades, locais, valores e custo médio.'))

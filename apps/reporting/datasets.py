@@ -78,18 +78,20 @@ def build(kind, user, query):
         if user.has_perm('core.view_margins'): keys += ['contribution','margin']; headers += ['Contribuição','Margem (pontos percentuais)']
         result = Dataset('Faturamento por canal',headers,[[r.get(k) for k in keys] for r in rows],totals=metrics_for(user,selectors.sales_summary(selectors.sale_rows(d))))
     elif kind == 'stock':
-        from apps.inventory.selectors import catalog
+        from apps.inventory.selectors import catalog, selected_location, location_values
         result = Dataset('ESTOQUE MVET',['SKU','PRODUTO','QTD','UNIDADE'],[],'Posição atual. Kits virtuais: quantidade disponível pelos componentes, sem estoque próprio.')
         costs = user.has_perm('core.view_costs')
         if costs: result.headers = ['SKU','PRODUTO','QTD','CUSTO','VALOR TOTAL','UNIDADE']
-        rows = bound(catalog(query)).prefetch_related('balances__location','components__component')
+        location, _ = selected_location(query)
+        result.notes = 'Depósito: ' + (location.name if location else 'Nenhum') + '. Valor pelo custo médio do depósito. Kits sem estoque próprio.'
+        rows = bound(catalog(query, location)).prefetch_related('balances__location','components__component')
         for p in rows:
             if p.kind == 'KIT':
-                parts = list(p.components.all()); qty = min((i.component.quantity//i.quantity for i in parts),default=0); cost = sum((i.component.average_cost*i.quantity for i in parts),Decimal(0))
-            else: qty,cost=p.quantity,p.average_cost
-            result.rows.append([p.sku,p.name,qty]+([cost,p.value if p.kind != 'KIT' else None] if costs else [])+[p.unit])
+                qty, cost = None, None
+            else: qty,cost=p.stock_quantity,p.stock_cost
+            result.rows.append([p.sku,p.name,qty]+([cost,location_values(p).get(location.pk if location else None, Decimal(0)) if p.kind != 'KIT' else None] if costs else [])+[p.unit])
         # Local balances are a separate sheet; never infer Full from a global total.
-        result.locations = Dataset('Estoque por local',['SKU','PRODUTO','LOCAL','QTD'],[[p.sku,p.name,str(b.location),b.quantity] for p in rows for b in p.balances.all()])
+        result.locations = Dataset('Estoque por local',['SKU','PRODUTO','LOCAL','QTD'],[[p.sku,p.name,str(b.location),b.quantity] for p in rows for b in p.balances.all() if location and b.location_id == location.pk])
     elif kind == 'cash':
         from apps.finance.selectors import daily_cash
         rows,unallocated = daily_cash(d['start'],d['end'],d['account'].pk if d.get('account') else None)

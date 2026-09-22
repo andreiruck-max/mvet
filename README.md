@@ -1,4 +1,4 @@
-# MVet 1.0
+# MVet 1.5
 ERP gerencial interno da Mercadovet Produtos Agroveterinários.
 
 ## Estado atual

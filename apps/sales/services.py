@@ -134,7 +134,7 @@ def confirm(*,actor,sale_id,revision):
     for item,parts in expanded:
         item.cmv=Decimal('0')
         for pid,quantity in parts:
-            product=products[pid];value=_value_out(product,quantity)
+            product=products[pid];value=_value_out(product,quantity,sale.location)
             movement=_apply(operation,product,sale.location,-quantity,-value)
             SaleConsumption.objects.create(item=item,movement=movement)
             item.cmv+=value

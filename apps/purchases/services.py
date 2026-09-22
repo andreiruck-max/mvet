@@ -8,7 +8,7 @@ from apps.core.models import Company
 from apps.core.services import require, audit
 from apps.products.models import Product
 from apps.inventory.models import StockLocation, StockOperation
-from apps.inventory.services import domain_lock, number, QTY, MONEY, quant, _fingerprint, _date, _apply
+from apps.inventory.services import domain_lock, number, QTY, MONEY, quant, _fingerprint, _date, _apply, prior_local_average
 from .models import Supplier, Purchase, PurchaseItem, PurchaseInstallment
 
 CENT=Decimal('0.01')
@@ -162,7 +162,7 @@ def cancel(*,actor,purchase_id,reason):
             if latest.operation_id!=p.receipt_id:raise ValidationError('Há movimentos posteriores nos produtos. Não é seguro desfazer este recebimento. Regularize as operações posteriores antes do cancelamento.')
         today=timezone.localdate();_date(today,products.values())
         op=StockOperation.objects.create(kind='PUR_RETURN',date=today,actor=actor,reason=reason,fingerprint=_fingerprint(['cancel_purchase',p.pk]),reversal_of=p.receipt)
-        for move in moves:_apply(op,products[move.product_id],move.location,-move.quantity,-move.value,average_override=move.before_average,unit_cost=move.unit_cost)
+        for move in moves:_apply(op,products[move.product_id],move.location,-move.quantity,-move.value,average_override=move.before_average,unit_cost=move.unit_cost,local_average_override=prior_local_average(move))
         p.reversal=op
     # Payment services in Phase 5 must block/reverse settled installments first.
     p.installments.update(status='CANCELLED')

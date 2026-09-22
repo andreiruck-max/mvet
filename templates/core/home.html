@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="eyebrow">ÁREA DE TRABALHO</div>
-<h1>MVet 1.0</h1>
+<h1>MVet 1.5</h1>
 <p class="lead">{{ company.name|default:"Mercadovet Produtos Agroveterinários" }}</p>
 <section class="grid">
   <article class="card"><h2>Início da operação</h2><p class="large">{{ company.cutover_date|date:"d/m/Y"|default:"15/09/2026" }}</p><p class="muted">Data de abertura dos saldos iniciais. Novas operações seguem o histórico de movimentações.</p></article>

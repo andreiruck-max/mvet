@@ -31,7 +31,7 @@ class FoundationTests(TestCase):
         for name in ["dashboard", "dre", "finance", "configuration", "dashboard_api"]:
             with self.subTest(name=name):
                 self.assertEqual(self.client.get(reverse(name)).status_code, 403)
-        self.assertContains(self.client.get(reverse("home")), "MVet 1.0")
+        self.assertContains(self.client.get(reverse("home")), "MVet 1.5")
         self.assertNotContains(self.client.get(reverse("home")), 'href="/indicadores/"')
         self.assertNotContains(self.client.get(reverse("home")), 'href="/financeiro/"')
 

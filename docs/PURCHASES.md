@@ -38,3 +38,5 @@ Listagens paginadas, pesquisa documento/SKU/nome, fornecedor, estoque, estado, p
 `operate_purchases`: cadastros, compras, compromisso, recebimento, cancelamento; consulta de valores individuais necessários à operação. Não concede margem, DRE, bancos ou custo médio global. Transferência exige `operate_stock`.
 `view_purchase_reports`: totais, quantidade de compras, ticket médio, última compra, obrigações abertas e histórico de preços recebidos por fornecedor, sem escrita. API `/api/v1/fornecedores/<id>/resumo/` exige essa permissão.
 Perfis iniciais ADMINISTRADOR e FINANCEIRO recebem as duas permissões; GERENCIAL recebe relatórios. Migration adiciona somente essas novas permissões aos perfis existentes; demais concessões são preservadas. VENDAS_OPERACIONAL e ESTOQUE não ganham acesso a compras.
+
+MVet 1.5: recebimento pondera custo médio apenas do depósito recebedor; transferência conserva valor e pondera destino. Cancelamento preserva valor original e referência local de custo. Ver ADR 0019.

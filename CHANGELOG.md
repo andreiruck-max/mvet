@@ -1,3 +1,9 @@
+# MVet 1.5 — estoque e custo por depósito
+- Alternância de depósitos, 50 produtos por página, SKU numérico e pesquisa exata de códigos numéricos.
+- Totais permanentes por depósito e consolidado, com proteção de custos e exportação do local selecionado.
+- Custo médio independente por depósito; vendas, kits, transferências e fracionamento consomem o custo local.
+- Migração recupera valores pelo livro sem reescrever movimentos nem CMV histórico; inconsistências bloqueiam a atualização.
+
 # Posição inicial por depósito
 - Importador JSON privado com simulação, carga atômica e repetição sem duplicar.
 - Um cadastro por SKU, saldos por depósito, custo médio ponderado e data explícita da posição.
