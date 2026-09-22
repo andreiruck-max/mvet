@@ -1,0 +1,7 @@
+{% extends 'base.html' %}{% block title %}Contagem de estoque{% endblock %}
+{% block content %}<h1>Contagem de estoque</h1>
+<section class="card section"><h2>{{ product.sku }} · {{ product.name }}</h2><p>Depósito: <strong>{{ location.name }}</strong></p><p>Saldo no sistema: <strong>{{ balance.quantity|default:0|floatformat:4 }} {{ product.unit }}</strong></p>
+{% if perms.core.view_costs %}<p>Custo médio do depósito: R$ {{ balance.average_cost|default:0|floatformat:6 }}</p>{% endif %}
+<p>Informe a quantidade física encontrada. A diferença será registrada como ajuste neste depósito, na data de hoje, com seu usuário e motivo. Acréscimos usam o custo médio deste depósito e exigem permissão de custos.</p></section>
+<form method="post" class="card form-card" data-confirm="Confirmar a contagem e registrar eventual diferença no estoque?">{% csrf_token %}{% include 'inventory/form_fields.html' %}<button class="primary">Confirmar contagem</button><a class="button" href="{{ back_url }}">Cancelar</a></form>
+{% endblock %}

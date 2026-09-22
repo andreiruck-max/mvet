@@ -12,3 +12,5 @@ select,textarea{font:inherit;width:100%;padding:11px 12px;background:var(--bg);b
 
 /* MVet 1.5: stock location navigation and permanent totals. */
 .stock-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:20px 0}.stock-totals .card{padding:20px}.stock-totals strong{display:block;font-size:1.5rem;margin-top:8px}.stock-locations{flex-wrap:wrap;margin:20px 0}
+
+.page-back{margin-bottom:16px}.product-actions{display:flex;flex-wrap:wrap;gap:12px;margin:16px 0}.product-actions form{margin:0}

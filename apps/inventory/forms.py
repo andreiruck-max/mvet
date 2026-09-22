@@ -49,3 +49,9 @@ class ComponentForm(forms.Form):
     component=forms.ModelChoiceField(label='Componente',queryset=Product.objects.filter(active=True,kind='SIMPLE'),widget=forms.HiddenInput(attrs={'data-product-lookup':'true'}))
     quantity=forms.DecimalField(label='Quantidade por kit',max_digits=18,decimal_places=4,min_value=Decimal("0.0001"))
 Components=forms.formset_factory(ComponentForm,extra=1,can_delete=True,max_num=100,validate_max=True)
+
+
+class CountForm(forms.Form):
+    snapshot = forms.CharField(widget=forms.HiddenInput)
+    counted = forms.DecimalField(label='Quantidade contada', min_value=0, max_digits=18, decimal_places=4)
+    reason = forms.CharField(label='Motivo / observação da contagem', max_length=350, widget=forms.Textarea(attrs={'rows':3}))

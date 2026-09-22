@@ -1,4 +1,9 @@
 (() => {
+  document.querySelectorAll('form[data-confirm]').forEach(form => {
+    form.addEventListener('submit', event => {
+      if (!window.confirm(form.dataset.confirm)) event.preventDefault();
+    });
+  });
   const root = document.documentElement;
   let saved;
   try { saved = localStorage.getItem("mvet-theme"); } catch (_) {}

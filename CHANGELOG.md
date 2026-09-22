@@ -1,3 +1,9 @@
+# MVet 1.5 — contagem e navegação de estoque
+- Contagem física por produto/depósito com ajuste da diferença, motivo, auditoria e proteção contra movimentação concorrente e envio duplicado.
+- Filtro Com saldo do depósito selecionado, valores com ponto de milhar e botões Voltar com preservação de contexto.
+- Inativar e excluir visíveis no produto; histórico e saldos preservados.
+- Full inicial padronizado; cadastro legado duplicado removido somente quando sem vínculos.
+
 # MVet 1.5 — estoque e custo por depósito
 - Alternância de depósitos, 50 produtos por página, SKU numérico e pesquisa exata de códigos numéricos.
 - Totais permanentes por depósito e consolidado, com proteção de custos e exportação do local selecionado.

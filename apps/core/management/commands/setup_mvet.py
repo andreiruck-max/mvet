@@ -22,7 +22,7 @@ class Command(BaseCommand):
         # Initial editable catalog; existing warehouses/balances are never inferred.
         if not StockLocation.objects.exists():
             physical = StockLocation.objects.create(name="Estoque Mercadovet")
-            StockLocation.objects.create(name="Estoque Full")
+            StockLocation.objects.create(name="Full Mercado Livre")
             company.default_stock_location = physical
             company.save(update_fields=["default_stock_location"])
         for name, codenames in ROLE_PERMISSIONS.items():
