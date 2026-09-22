@@ -48,6 +48,7 @@
     </div>
   </header>
   <main id="content">
+    {% if user.is_authenticated and show_back %}<a class="button page-back" href="{{ back_url }}">← Voltar</a>{% endif %}
     {% for message in messages %}<div class="notice" role="status">{{ message }}</div>{% endfor %}
     {% block content %}{% endblock %}
   </main>

@@ -42,6 +42,7 @@ def catalog(params, location=None):
     rows = rows.annotate(stock_quantity=Coalesce(Subquery(balances.values('quantity')[:1]), Value(Decimal(0)), output_field=field))
     if params.get('status', 'active') == 'active': rows = rows.filter(active=True)
     if params.get('status') == 'inactive': rows = rows.filter(active=False)
+    if params.get('positive') == '1': rows = rows.filter(stock_quantity__gt=0)
     if params.get('low') == '1': rows = rows.filter(kind='SIMPLE', stock_quantity__lte=F('minimum'))
     order = params.get('sort', 'sku')
     if order not in {'name', 'sku', 'quantity', '-quantity'}: order = 'sku'

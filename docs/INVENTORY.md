@@ -80,3 +80,10 @@ A repetição é ignorada inclusive após estorno; nova aplicação exige concil
 
 ## MVet 1.5 — regra vigente
 A partir da 1.5, custo médio e valor são independentes por depósito (ADR 0019), substituindo as referências históricas acima ao custo global. Product exibe apenas o consolidado. Lista: depósito padrão, botões de alternância, 50 itens/página, SKU numérico, busca numérica exata e totais sem filtros. Exportações seguem o depósito. Estoques inativos continuam compondo os totais. Correção de custo afeta somente o depósito informado.
+
+## Contagem física e navegação
+Use Com saldo para listar apenas quantidades positivas do depósito atual; exportações obedecem ao mesmo filtro e os totais do topo permanecem completos. Os valores usam ponto de milhar e vírgula decimal.
+
+Contar / ajustar abre a contagem do produto no depósito selecionado. Informe quantidade física (inclusive zero) e motivo. Confirmação registra ADJUST_IN ou ADJUST_OUT pela diferença na data atual, com custo local. Acréscimos exigem view_costs e custo local de referência; sem referência, use ajuste de acréscimo com custo explícito. Quantidade igual registra conferência na auditoria sem movimento. Saldo não é editado diretamente. Token assinado expira em 24 horas; movimento no produto após abrir a tela bloqueia confirmação. Reenvio idêntico não duplica ajuste nem auditoria; dados diferentes no mesmo token são rejeitados.
+
+Inativar preserva saldo, custos e histórico; produtos inativos continuam compondo totais. Excluir remove somente produto sem qualquer uso; caso contrário, inativa. Reativação pelo cadastro. Ambos exigem remove_products no backend. Voltar em todas as telas autenticadas, com origem interna validada; lista → produto → edição preserva depósito/filtros/página.

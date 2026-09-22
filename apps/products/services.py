@@ -49,3 +49,16 @@ def set_components(*,actor,kit_id,items):
     kit.components.all().delete()
     for pk,qty in items: ProductComposition.objects.create(kit=kit,component_id=pk,quantity=qty)
     audit(actor,kit,'set_components',{'items':[(x['component_id'],str(x['quantity'])) for x in before]}, {'items':[(pk,str(qty)) for pk,qty in items]})
+
+
+@transaction.atomic
+def inactivate_product(*, actor, pk):
+    require(actor, 'core.remove_products')
+    require(actor, 'core.operate_stock')
+    domain_lock()
+    obj = Product.objects.select_for_update().get(pk=pk)
+    before = {'active': obj.active}
+    obj.active = False
+    obj.save(update_fields=['active'])
+    audit(actor, obj, 'inactivate_product', before, {'active': False})
+    return 'Produto inativado; saldos e histórico preservados.'

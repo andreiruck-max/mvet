@@ -1,0 +1,5 @@
+# ADR 0020 — Contagem física e cadastro Full inicial
+
+Contagem informa saldo físico absoluto, mas registra somente a diferença por movimentos existentes (ADJUST_IN/ADJUST_OUT). Mantém Decimal, custo local, permissões e lock transacional. Produto e depósito são fixados na URL e vinculados ao usuário por token assinado. A assinatura inclui UUID único e último movimento do produto. Novo movimento exige reabrir a contagem; nenhum saldo recente é sobrescrito silenciosamente. Auditoria stock_count registra saldo anterior, contado, diferença, motivo, data, usuário e operação. Mesmo saldo gera somente auditoria. Reenvio é identificado pelo UUID sob lock de domínio; outro conteúdo no mesmo envio é rejeitado.
+
+A instalação inicial passa a criar Full Mercado Livre, o nome usado pela carga. A migração renomeia Estoque Full quando único; se ambos existem, remove somente o cadastro antigo sem qualquer referência reversa. Saldo zero não é prova de ausência de histórico. Se o legado tiver vínculos, a migração o preserva e a conciliação depende de análise específica. Não transfere saldo nem reescreve movimentos ou vendas.
