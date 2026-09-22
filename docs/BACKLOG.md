@@ -50,3 +50,5 @@ PR #20 integrado à main. Adicionado comando check_installation e roteiro INSTAL
 Correção da homologação Bling (21/09/2026): finalidade ausente passa à conferência humana explícita/auditada, preservando bloqueios conhecidos e snapshots externos (ADR 0017). Validação CI registrada no PR da correção.
 
 Produtividade Bling: busca de período com paginação automática sequencial, progresso, interrupção e retomada na aba; conferência individual separada. Não exige percorrer manualmente grupos de cinco notas.
+
+Posição inicial por depósito: comando `import_inventory_locations`, testes e ADR 0018. Execução e validação no banco da empresa permanecem necessárias. Sem nova tela de upload.

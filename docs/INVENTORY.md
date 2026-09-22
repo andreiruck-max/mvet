@@ -63,3 +63,17 @@ SALE_OUT baixa os produtos/componentes na confirmação e SALE_RETURN devolve pe
 ## Compras e transferências (Fase 4)
 PUR_RECEIPT valoriza cada entrada pelo rateio exato de aquisição, no estoque selecionado. PUR_RETURN cancela o recebimento somente se não houver movimentos posteriores nos produtos. Não estornar essas operações pelo estorno genérico: usar a tela de compra. Produto utilizado em item de compra também é inativado, sem exclusão física ou troca de tipo/unidade.
 Transferência entre quaisquer estoques ativos continua disponível, inclusive após receber compras; conserva quantidade/valor global e média. Testes cobrem receber no Mercadovet, transferir parte ao Full, bloquear cancelamento indevido e reverter a transferência antes de cancelar a compra.
+
+## Posição inicial por depósito (JSON privado)
+
+`import_inventory_locations arquivo.json --username LOGIN` valida os dados e o banco
+sem gravar. Acrescentar `--commit` aplica todos os depósitos numa transação.
+Formato: `{"version":1,"date":"2026-09-21","products":[{"sku":"EXEMPLO","name":"Produto exemplo","unit":"UN","balances":[{"location":"Estoque Mercadovet","quantity":"2","cost":"3.50"}]}]}`.
+Decimais usam ponto, sem separador de milhar. `note` opcional em cada saldo documenta
+correções autorizadas. O arquivo real fica fora do Git.
+
+Um SKU compartilhado é cadastrado uma vez. Cada depósito mantém sua quantidade;
+o produto recebe custo médio global ponderado. Não sobrescreve SKUs existentes.
+A data da posição não retroage ao corte: ver ADR 0018. Não reconfirmar operações
+passadas já refletidas nessa posição. Após a carga, executar `check_inventory`.
+A repetição é ignorada inclusive após estorno; nova aplicação exige conciliação.
