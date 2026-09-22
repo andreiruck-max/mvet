@@ -1,3 +1,8 @@
+# Posição inicial por depósito
+- Importador JSON privado com simulação, carga atômica e repetição sem duplicar.
+- Um cadastro por SKU, saldos por depósito, custo médio ponderado e data explícita da posição.
+- Bloqueia SKUs existentes e saldos negativos; não sobrescreve movimentos nem gera resultado.
+
 # Bling — busca automática do período
 - Um clique percorre os lotes com progresso, interrupção e retomada; nenhuma venda é confirmada na busca.
 - Pendências documentais não interrompem as demais notas; falhas técnicas param sem pular a página.
