@@ -111,6 +111,43 @@ class ImportTests(Fixture, TestCase):
         map_product(actor=self.actor, invoice_id=row.pk, revision=row.revision, code='EXTERNAL-LISTING', unit='UN', product=self.product)
         row.refresh_from_db(); self.assertEqual(self.approve(row).cmv, D('10'))
 
+    def test_unit_abbreviation_exact_sku_preserves_source_and_quantity(self):
+        data = payload(); data['itens'][0]['unidade'] = 'UNID'
+        row = stage(actor=self.actor, connection=self.connection, payload=data)
+        original = deepcopy(row.source)
+        sale = self.approve(row)
+        self.assertEqual(sale.cmv, D('10'))
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.quantity, 8)
+        self.assertEqual(self.product.unit, 'UN')
+        row.refresh_from_db()
+        self.assertEqual(row.source, original)
+        self.assertEqual(row.approved_source, original)
+
+    def test_unit_abbreviation_manual_alias_and_next_invoice(self):
+        from .services import resolve
+        from .models import ProductAlias
+        data = payload(); data['itens'][0].update(codigo='EXT-UNIT', unidade='UNID')
+        row = stage(actor=self.actor, connection=self.connection, payload=data)
+        self.assertIsNone(resolve(self.connection, row.source['items'][0]))
+        map_product(actor=self.actor, invoice_id=row.pk, revision=row.revision,
+                    code='EXT-UNIT', unit='UNID', product=self.product)
+        self.assertEqual(ProductAlias.objects.get(code='EXT-UNIT').unit, 'UNID')
+        self.assertEqual(resolve(self.connection, row.source['items'][0]), self.product)
+        row.refresh_from_db()
+        self.assertEqual(self.approve(row).cmv, D('10'))
+        self.assertEqual(resolve(self.connection, {'code': 'EXT-UNIT', 'unit': 'UNID'}), self.product)
+
+    def test_unit_equivalence_is_symmetric_and_rejects_other_measures(self):
+        from .services import compatible_units, resolve
+        self.assertTrue(compatible_units(' unid ', 'un'))
+        self.assertTrue(compatible_units('KG', 'KG'))
+        for unit in ['KG', 'G', 'L', 'CX', 'PCT', '', 'UNIDADE']:
+            self.assertFalse(compatible_units('UN', unit))
+            self.assertIsNone(resolve(self.connection, {'code': self.product.sku, 'unit': unit}))
+        self.product.active = False; self.product.save()
+        self.assertIsNone(resolve(self.connection, {'code': self.product.sku, 'unit': 'UNID'}))
+
     def test_unit_mismatch_blocks_even_exact_sku(self):
         data = payload(); data['itens'][0]['unidade'] = 'KG'
         row = stage(actor=self.actor, connection=self.connection, payload=data)

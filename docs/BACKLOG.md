@@ -56,3 +56,5 @@ Posição inicial por depósito: comando `import_inventory_locations`, testes e 
 MVet 1.5: navegação e valorização por depósito, busca SKU exata, ordenação numérica e paginação de 50 implementadas. Custo local nas operações e migração pelo livro conforme ADR 0019. Aceite PostgreSQL e navegador registrado no PR; implantação no computador da empresa é etapa separada.
 
 MVet 1.5: contagem física individual por depósito, filtro positivo, formatação de milhares e retorno contextual implementados. Migração 0007 remove apenas Full legado sem vínculos; locais com saldo/histórico/padrão/referências são preservados para conciliação específica. Testes de aplicação e navegador registrados no PR.
+
+- Correção UN/UNID: abreviações equivalentes no SKU automático e vínculo manual, sem conversão de quantidade, alteração do documento recebido ou de históricos.

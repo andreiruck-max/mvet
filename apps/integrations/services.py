@@ -64,10 +64,16 @@ def stage(*, actor, connection, payload):
     return obj
 
 
+def compatible_units(local, external):
+    """Only spelling aliases; never convert quantities or packaging."""
+    local, external = local.strip().upper(), external.strip().upper()
+    return bool(local and external) and (local == external or {local, external} <= {'UN', 'UNID'})
+
+
 def resolve(connection, row):
     alias = ProductAlias.objects.select_related('product').filter(connection=connection, code=row['code'], unit=row['unit']).first()
     product = alias.product if alias else Product.objects.filter(sku=row['code']).first()
-    if not product or not product.active or product.unit.strip().upper() != row['unit']:
+    if not product or not product.active or not compatible_units(product.unit, row['unit']):
         return None
     return product
 
@@ -82,7 +88,7 @@ def map_product(*, actor, invoice_id, revision, code, unit, product):
     if not any(r['code'] == code and r['unit'] == unit for r in invoice.source.get('items', [])):
         raise ValidationError('Código não pertence à nota.')
     product = Product.objects.get(pk=product.pk)
-    if not code or not unit or not product.active or product.unit.strip().upper() != unit:
+    if not code or not unit or not product.active or not compatible_units(product.unit, unit):
         raise ValidationError('Produto inativo ou unidade incompatível. Conversão de unidade não é automática.')
     alias = ProductAlias.objects.filter(connection=invoice.connection, code=code, unit=unit).first()
     if alias and alias.product_id != product.pk:

@@ -101,3 +101,5 @@ Na implementação, testes devem demonstrar:
 - Operações manuais continuam disponíveis quando a integração estiver indisponível.
 
 A fila de NF, adaptador de leitura, OAuth e testes sintéticos foram implementados. Consulte [BLING_SETUP.md](BLING_SETUP.md) para operação e limites concretos. Homologação com a conta real permanece pendente; conciliação financeira, webhooks e outras propostas deste estudo continuam futuras.
+
+- Correção UN/UNID: abreviações equivalentes no SKU automático e vínculo manual, sem conversão de quantidade, alteração do documento recebido ou de históricos.
