@@ -1,3 +1,6 @@
+# Correção Bling — UN e UNID
+- Reconhecimento de UN/UNID no SKU e vínculo manual; unidades de peso, volume e embalagem continuam distintas. Sem migração de dados.
+
 # MVet 1.5 — contagem e navegação de estoque
 - Contagem física por produto/depósito com ajuste da diferença, motivo, auditoria e proteção contra movimentação concorrente e envio duplicado.
 - Filtro Com saldo do depósito selecionado, valores com ponto de milhar e botões Voltar com preservação de contexto.
