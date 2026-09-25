@@ -69,3 +69,14 @@ class ImportRun(models.Model):
     finished_at = models.DateTimeField(null=True)
     class Meta:
         ordering = ['-pk']
+
+
+class ReviewDefaults(models.Model):
+    full_store = models.CharField('Loja externa Full', max_length=40)
+    full_channel = models.ForeignKey('sales.SalesChannel', on_delete=models.PROTECT, related_name='+', verbose_name='Canal Full')
+    full_location = models.ForeignKey('inventory.StockLocation', on_delete=models.PROTECT, related_name='+', verbose_name='Estoque Full')
+    default_channel = models.ForeignKey('sales.SalesChannel', on_delete=models.PROTECT, related_name='+', verbose_name='Canal Mercadovet / demais lojas')
+    default_location = models.ForeignKey('inventory.StockLocation', on_delete=models.PROTECT, related_name='+', verbose_name='Estoque Mercadovet / demais lojas')
+
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(id=1), name='single_bling_review_defaults')]

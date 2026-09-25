@@ -14,11 +14,10 @@ from django.views.decorators.debug import sensitive_variables
 from django.views.decorators.http import require_POST
 from apps.accounts.access import master
 from apps.core.services import require
-from apps.sales.forms import ExtraCosts, MasterExtraCosts
 from apps.sales.services import EDIT_FIELDS
 from . import bling, services
-from .forms import QueryForm, ReviewForm, AliasForm, DecisionForm
-from .models import BlingConnection, InvoiceImport, ImportRun
+from .forms import QueryForm, ReviewForm, AliasForm, DecisionForm, ReviewDefaultsForm, ReviewExtraCosts, ReviewMasterExtraCosts
+from .models import BlingConnection, InvoiceImport, ImportRun, ReviewDefaults
 
 
 @login_required
@@ -41,7 +40,7 @@ def queue(request):
 def detail(request, pk):
     invoice = get_object_or_404(InvoiceImport.objects.select_related('sale', 'connection'), pk=pk)
     form = ReviewForm(request.POST if request.method == 'POST' else None, invoice=invoice, actor=request.user)
-    extra_class = MasterExtraCosts if request.user.is_superuser else ExtraCosts
+    extra_class = ReviewMasterExtraCosts if request.user.is_superuser else ReviewExtraCosts
     extras = extra_class(request.POST if request.method == 'POST' else None, prefix='extras')
     if request.method == 'POST':
         require(request.user, 'core.approve_bling')
@@ -51,7 +50,7 @@ def detail(request, pk):
             try:
                 costs = [(f.cleaned_data['name'], f.cleaned_data['amount']) for f in extras if f.cleaned_data and f.cleaned_data.get('name') and not f.cleaned_data.get('DELETE')]
                 services.approve(actor=request.user, invoice_id=pk, revision=form.cleaned_data['revision'],
-                    data={k: form.cleaned_data[k] for k in EDIT_FIELDS}, extra_costs=costs, reviewed=form.cleaned_data['reviewed'],
+                    data={k: form.cleaned_data[k] for k in EDIT_FIELDS}, extra_costs=costs, reviewed=True,
                     purpose_reviewed=form.cleaned_data['purpose_reviewed'])
                 messages.success(request, 'Venda confirmada no MVet. Nenhuma alteração foi enviada ao Bling.')
                 return redirect('bling_detail', pk=pk)
@@ -126,7 +125,13 @@ def connection(request):
     problem = ''
     try: bling.configured()
     except ValidationError as exc: problem = '; '.join(exc.messages)
-    return render(request, 'integrations/connection.html', {'connection': BlingConnection.objects.filter(pk=1).first(), 'problem': problem})
+    defaults = ReviewDefaults.objects.filter(pk=1).first() or ReviewDefaults(pk=1)
+    defaults_form = ReviewDefaultsForm(request.POST if request.method == 'POST' else None, instance=defaults)
+    if request.method == 'POST' and defaults_form.is_valid():
+        services.save_review_defaults(actor=request.user, data=defaults_form.cleaned_data)
+        messages.success(request, 'Sugestões de canal e estoque salvas.')
+        return redirect('bling_connection')
+    return render(request, 'integrations/connection.html', {'connection': BlingConnection.objects.filter(pk=1).first(), 'problem': problem, 'defaults_form': defaults_form})
 
 
 @login_required

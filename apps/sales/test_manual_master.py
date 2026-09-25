@@ -35,7 +35,7 @@ class ManualMasterTests(Fixture, TestCase):
             sale=confirm(actor=self.actor,sale_id=draft.pk,revision=draft.revision)
             self.assertEqual(sale.tax_amount,0);self.assertEqual(sale.cmv,5)
             self.assertIn('sem NF',sale.reference)
-        self.assertEqual(Sale.objects.count(),2);self.assertEqual(FinancialTitle.objects.count(),2)
+        self.assertEqual(Sale.objects.count(),2);self.assertEqual(FinancialTitle.objects.count(),0)
         self.assertNotEqual(*[s.reference for s in Sale.objects.all()])
 
     def test_nonmaster_cannot_inject_adjustment(self):
@@ -43,12 +43,12 @@ class ManualMasterTests(Fixture, TestCase):
             save_draft(actor=self.operator,key=uuid4(),data=self.data(revenue_adjustment=D('50')),items=[(self.product.pk,D('1'))])
         self.assertFalse(Sale.objects.exists())
 
-    def test_master_net_adjustment_matches_title_reports_and_exports(self):
+    def test_master_net_adjustment_matches_reports_without_receivable(self):
         data=self.data(invoice_number='',tax_rule=None,tax_override=D('0'),tax_reason='',revenue_adjustment=D('-15'))
         draft=save_draft(actor=self.actor,key=uuid4(),data=data,items=[(self.product.pk,D('2'))])
         sale=confirm(actor=self.actor,sale_id=draft.pk,revision=draft.revision)
         self.assertEqual(sale.revenue,80);self.assertEqual(sale.contribution,53)
-        self.assertEqual(FinancialTitle.objects.get(sale=sale).amount,80)
+        self.assertFalse(FinancialTitle.objects.filter(sale=sale).exists())
         metrics=sales_summary(Sale.objects.all());self.assertEqual(metrics['revenue'],80);self.assertEqual(metrics['contribution'],53)
         period={'start':sale.date,'end':sale.date,'status':'CONFIRMED'}
         export=sales_dataset(self.actor,period)
