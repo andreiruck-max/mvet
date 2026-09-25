@@ -1,3 +1,10 @@
+# Bling — conferência compacta e vendas sem contas a receber
+- Filtros compactos e atalho para relatório de vendas.
+- Sugestões configuráveis Full/demais lojas, com alteração manual por nota.
+- Frete da nota sugerido nos campos recebido e pago; deduções iniciam em 0,00.
+- Imposto manual e caixa genérica de conferência removidos dessa tela; finalidade ausente mantém declaração específica.
+- Novas vendas não geram recebíveis; histórico financeiro preservado.
+
 # Correção Bling — UN e UNID
 - Reconhecimento de UN/UNID no SKU e vínculo manual; unidades de peso, volume e embalagem continuam distintas. Sem migração de dados.
 

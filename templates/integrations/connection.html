@@ -7,4 +7,4 @@
 <form method="post" action="{% url 'bling_connect' %}">{% csrf_token %}<button {% if problem %}disabled{% endif %}>Autorizar no Bling</button></form>
 {% if connection.tokens %}<form method="post" action="{% url 'bling_disconnect' %}">{% csrf_token %}<button class="quiet">Desconectar do MVet</button></form>{% endif %}
 <p class="muted">Desconectar preserva notas e vendas. A revogação do aplicativo é feita no próprio Bling.</p>
-<a href="{% url 'bling_queue' %}">Abrir notas para conferir</a></section>{% endblock %}
+<a href="{% url 'bling_queue' %}">Abrir notas para conferir</a></section><section class="panel"><h2>Sugestões na conferência</h2><p>A loja Full usa o canal e estoque escolhidos abaixo. Qualquer outra referência, inclusive loja ausente, usa Mercadovet. Você pode mudar a seleção em cada nota.</p><form method="post">{% csrf_token %}{{ defaults_form.as_p }}<button>Salvar sugestões</button></form></section>{% endblock %}

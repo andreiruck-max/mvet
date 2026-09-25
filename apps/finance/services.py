@@ -222,10 +222,5 @@ def create_purchase_titles(purchase, actor):
         Title.objects.get_or_create(purchase_installment=installment,defaults=dict(direction='PAY',description=f'Compra {purchase.document} · parcela {installment.number}',counterparty=str(purchase.supplier),date=purchase.date,due_date=installment.due_date,amount=installment.amount,actor=actor,source='purchase',category='PRINCIPAL'))
 
 
-def create_sale_title(sale, actor):
-    if sale.revenue>0:
-        Title.objects.get_or_create(sale=sale,defaults=dict(direction='RECEIVE',description=sale.reference,date=sale.date,due_date=sale.date,amount=sale.revenue,actor=actor,source='sale',category='OPERATING'))
-
-
 def cancel_origin(actor, reason, **filters):
     _cancel_titles(actor,Title.objects.filter(**filters),reason)
