@@ -146,8 +146,6 @@ def confirm(*,actor,sale_id,revision):
     sale.cmv=cmv;sale.minimum_margin=company.minimum_margin
     sale.status='CONFIRMED';sale.stock_operation=operation;sale.confirmed_by=actor;sale.confirmed_at=timezone.now();sale.revision+=1
     sale.save()
-    from apps.finance.services import create_sale_title
-    create_sale_title(sale,actor)
     audit(actor,sale,'confirm_sale',{'status':'DRAFT'},{'status':sale.status,'cmv':str(cmv),'tax':sale.tax_snapshot,'tax_amount':str(sale.tax_amount),'stock_operation':operation.pk})
     return sale
 

@@ -54,7 +54,7 @@ class ImportTests(Fixture, TestCase):
         self.assertEqual(sale.source, 'bling'); self.assertEqual(sale.external_id, '1000')
         self.assertEqual(sale.extra_costs_total, D('2')); self.assertEqual(sale.location, self.location)
         self.product.refresh_from_db(); self.assertEqual(self.product.quantity, 18)
-        self.assertEqual(FinancialTitle.objects.count(), 1)
+        self.assertEqual(FinancialTitle.objects.count(), 0)
 
     def test_double_approval_and_cancel_repoll_never_reactivate(self):
         row = self.staged(); sale = self.approve(row)
@@ -183,13 +183,13 @@ class ImportTests(Fixture, TestCase):
         client = Client(enforce_csrf_checks=True); client.force_login(self.actor)
         self.assertEqual(client.post(reverse('bling_query'), {}).status_code, 403)
 
-    def test_missing_deductions_are_not_silently_zero(self):
+    def test_missing_deductions_use_authorized_zero_default(self):
         from .forms import ReviewForm
         row = self.staged()
         form = ReviewForm({}, invoice=row)
         self.assertFalse(form.is_valid())
         for field in ['discount', 'fees', 'difal', 'commission', 'shipping_paid', 'other_costs']:
-            self.assertIn(field, form.errors)
+            self.assertNotIn(field, form.errors)
 
 
 @override_settings(BLING_TOKEN_KEY=Fernet.generate_key().decode(), BLING_CLIENT_ID='synthetic-id', BLING_CLIENT_SECRET='synthetic-secret',
@@ -269,7 +269,7 @@ class ImportPostgresTests(Fixture, TransactionTestCase):
             results = list(pool.map(lambda _: worker(), range(2)))
         self.assertEqual(results[0], results[1]); self.assertEqual(Sale.objects.count(), 1)
         self.product.refresh_from_db(); self.assertEqual(self.product.quantity, 8)
-        self.assertEqual(FinancialTitle.objects.count(), 1)
+        self.assertEqual(FinancialTitle.objects.count(), 0)
 
     def test_import_identity_and_approved_snapshot_are_protected_in_database(self):
         approve(actor=self.actor, invoice_id=self.row.pk, revision=self.row.revision, data=self.data(), extra_costs=[], reviewed=True)

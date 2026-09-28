@@ -141,3 +141,22 @@ def set_ignored(*, actor, invoice_id, revision, ignored, reason):
     obj.status = 'IGNORED' if ignored else ('ERROR' if obj.error else 'PENDING')
     obj.revision += 1; obj.save()
     audit(actor, obj, 'bling_ignore' if ignored else 'bling_reopen', {'status': old}, {'status': obj.status, 'reason': reason[:500]})
+
+
+@transaction.atomic
+def save_review_defaults(*, actor, data):
+    from apps.accounts.access import master
+    from .models import ReviewDefaults
+    master(actor); domain_lock()
+    obj = ReviewDefaults.objects.select_for_update().filter(pk=1).first() or ReviewDefaults(pk=1)
+    fields = ['full_store', 'full_channel', 'full_location', 'default_channel', 'default_location']
+    before = {f: str(getattr(obj, f + '_id' if f != 'full_store' else f)) for f in fields}
+    for name in fields:
+        value = data[name]
+        if name != 'full_store':
+            value.refresh_from_db()
+            if not value.active: raise ValidationError('Canal ou estoque inativo. Reabra a configuração.')
+        setattr(obj, name, value)
+    obj.full_clean(); obj.save()
+    audit(actor, obj, 'bling_review_defaults', before, {f: str(getattr(obj, f + '_id' if f != 'full_store' else f)) for f in fields})
+    return obj

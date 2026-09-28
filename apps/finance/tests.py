@@ -192,7 +192,7 @@ class FinanceTests(Fixture,TestCase):
         self.purchase();t=Title.objects.get()
         with self.assertRaises(ValidationError):s.cancel_title(actor=self.operator,pk=t.pk,reason='Cancelar')
 
-    def test_sale_generates_receivable_and_blocks_cancel_after_receipt(self):
+    def test_sale_without_receivable_preserves_legacy_receipt_cancel_guard(self):
         from apps.sales import services as sales
         from apps.sales.models import SalesChannel, TaxRule
         p=self.purchase();purchases.receive(actor=self.admin,purchase_id=p.pk,date=self.today,revision=p.revision)
@@ -202,7 +202,9 @@ class FinanceTests(Fixture,TestCase):
         sale=sales.save_draft(actor=self.seller,key=uuid4(),data=data,items=[(product.pk,D('1'))])
         self.assertFalse(Title.objects.filter(sale=sale).exists())
         sale=sales.confirm(actor=self.seller,sale_id=sale.pk,revision=sale.revision)
-        title=Title.objects.get(sale=sale);self.assertEqual(title.amount,100)
+        self.assertFalse(Title.objects.filter(sale=sale).exists())
+        # Historical title from before automatic receivables were removed.
+        title=Title.objects.create(sale=sale,direction='RECEIVE',description=sale.reference,date=sale.date,due_date=sale.date,amount=sale.revenue,actor=self.admin,source='sale',category='OPERATING')
         op=self.settle(title)
         with self.assertRaises(ValidationError):sales.cancel(actor=self.seller,sale_id=sale.pk,reason='Cancelar')
         s.reverse(actor=self.operator,pk=op.pk,date=self.today,reason='Estorno')

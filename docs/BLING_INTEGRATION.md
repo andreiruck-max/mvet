@@ -103,3 +103,6 @@ Na implementação, testes devem demonstrar:
 A fila de NF, adaptador de leitura, OAuth e testes sintéticos foram implementados. Consulte [BLING_SETUP.md](BLING_SETUP.md) para operação e limites concretos. Homologação com a conta real permanece pendente; conciliação financeira, webhooks e outras propostas deste estudo continuam futuras.
 
 - Correção UN/UNID: abreviações equivalentes no SKU automático e vínculo manual, sem conversão de quantidade, alteração do documento recebido ou de históricos.
+
+## Atualização de 25/09/2026 — ADR 0022
+Novas vendas não geram contas a receber; títulos anteriores e liquidações são preservados. Compras/despesas continuam gerando contas a pagar. Bling: topo compacto, atalho ao relatório, sugestões Full/demais lojas configuradas em Conexão Bling, valores monetários com duas casas e zeros iniciais, frete recebido e pago sugeridos iguais ao valor da nota e editáveis. Desconto manual em zero quando não fornecido pelo contrato. Confirmação pelo botão, sem caixa genérica; finalidade ausente ainda exige declaração. Imposto pela regra tributária, sem campos manuais na conferência.
