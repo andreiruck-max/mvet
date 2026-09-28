@@ -47,3 +47,6 @@ Expense cria um FinancialTitle a pagar com source=expense, sem débito bancário
 
 ## Atualização de 25/09/2026 — ADR 0022
 Novas vendas não geram contas a receber; títulos anteriores e liquidações são preservados. Compras/despesas continuam gerando contas a pagar. Bling: topo compacto, atalho ao relatório, sugestões Full/demais lojas configuradas em Conexão Bling, valores monetários com duas casas e zeros iniciais, frete recebido e pago sugeridos iguais ao valor da nota e editáveis. Desconto manual em zero quando não fornecido pelo contrato. Confirmação pelo botão, sem caixa genérica; finalidade ausente ainda exige declaração. Imposto pela regra tributária, sem campos manuais na conferência.
+
+## Caixa e baixa antecipada — 28/09/2026
+Fluxo diário → Pagamentos pendentes e futuros → Baixar pagamento. Usar data efetiva (até hoje), inclusive antes do vencimento, com conta/valor efetivos. Pagamento parcial reduz somente o principal baixado; juros e descontos seguem explícitos. Reagendar altera previsão; estornar reabre pendência. Resumo do período independe da página: consolidado da empresa inclui títulos sem conta definida, mas quadros por banco não os distribuem arbitrariamente. Novas vendas não geram recebíveis (ADR 0022 prevalece sobre descrições históricas acima).

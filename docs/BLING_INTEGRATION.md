@@ -106,3 +106,6 @@ A fila de NF, adaptador de leitura, OAuth e testes sintéticos foram implementad
 
 ## Atualização de 25/09/2026 — ADR 0022
 Novas vendas não geram contas a receber; títulos anteriores e liquidações são preservados. Compras/despesas continuam gerando contas a pagar. Bling: topo compacto, atalho ao relatório, sugestões Full/demais lojas configuradas em Conexão Bling, valores monetários com duas casas e zeros iniciais, frete recebido e pago sugeridos iguais ao valor da nota e editáveis. Desconto manual em zero quando não fornecido pelo contrato. Confirmação pelo botão, sem caixa genérica; finalidade ausente ainda exige declaração. Imposto pela regra tributária, sem campos manuais na conferência.
+
+## Notas de compra — 28/09/2026
+Fila própria em Compras → Importar notas do Bling. Usa a conexão existente e somente leitura NF-e tipo=0, registradas/autorizadas; canceladas servem para divergência. Pré-preenche preço de aquisição, frete e parcelas documentados, sem custo médio externo. Conferência gera rascunho; confirmação, recebimento físico e pagamentos são ações locais separadas. Leia ADR 0023 para identidade, permissões e reconciliação.

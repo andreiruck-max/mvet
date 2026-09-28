@@ -51,16 +51,20 @@ def dashboard(request):
 def sales_sheet(request):
     domain_lock();form,d=bind(request,forms.SalesForm);ctx={'form':form}
     if d:
-        rows=selectors.sale_rows(d)
-        ctx.update(page=Paginator(rows,30).get_page(request.GET.get('page')),totals=selectors.sales_summary(rows))
-    if d and not (request.user.has_perm('core.view_margins') and request.user.has_perm('core.view_costs')):
-        from django.core.exceptions import ValidationError
-        try:dataset=sales_dataset(request.user,d,page_rows=ctx['page'].object_list)
-        except ValidationError as error:
-            form.add_error(None,error);return render(request,'reporting/restricted_sales.html',{'form':form},status=400)
-        ctx['page'].object_list=dataset.rows
-        ctx.update(dataset=dataset,totals=dataset.totals)
-        return render(request,'reporting/restricted_sales.html',ctx)
+        # Company cards describe the period, independently of the selected channel/NF.
+        company_data = {**d, 'channel': None, 'q': '', 'status': 'CONFIRMED'}
+        ctx['company_totals'] = metrics_for(request.user, selectors.sales_summary(selectors.sale_rows(company_data)))
+        ctx['channels'] = [metrics_for(request.user, row) for row in selectors.channel_summary(company_data)]
+        rows = selectors.sale_rows(d).order_by('channel__name', d.get('sort') or '-date', '-pk')
+        page = Paginator(rows, 50).get_page(request.GET.get('page'))
+        groups = []
+        for sale in page:
+            if not groups or groups[-1]['id'] != sale.channel_id:
+                channel_rows = rows.filter(channel_id=sale.channel_id)
+                groups.append({'id': sale.channel_id, 'name': str(sale.channel or 'Sem canal'), 'rows': [],
+                               'totals': metrics_for(request.user, selectors.sales_summary(channel_rows))})
+            groups[-1]['rows'].append(sale)
+        ctx.update(page=page, groups=groups, totals=metrics_for(request.user, selectors.sales_summary(rows)))
     return render(request,'reporting/sales.html',ctx,status=200 if d else 400)
 
 @login_required

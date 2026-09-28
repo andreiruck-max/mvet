@@ -139,17 +139,22 @@ def read(path):
     return result
 
 
-def sync_page(*, actor, start, end, page=1, source_status=5):
-    require(actor, 'core.fetch_bling'); require(actor, 'core.review_bling')
-    if start > end or (end - start).days > 366 or page < 1 or page > 10000 or source_status not in (2, 5):
+def sync_page(*, actor, start, end, page=1, source_status=5, kind="SALE"):
+    require(actor, 'core.fetch_bling')
+    require(actor, 'core.operate_purchases' if kind == 'PURCHASE' else 'core.review_bling')
+    if kind not in ('SALE', 'PURCHASE'): raise BlingError('Tipo de consulta inválido.')
+    if start > end or (end - start).days > 366 or page < 1 or page > 10000 or source_status not in ((2, 5, 7) if kind == "PURCHASE" else (2, 5)):
         raise BlingError('Período, situação ou página inválidos.')
     connection = BlingConnection.objects.filter(pk=1).first()
     if not connection or not connection.tokens: raise BlingError('Conecte o Bling antes de consultar.')
-    run = ImportRun.objects.create(connection=connection, actor=actor, start=start, end=end, page=page, source_status=source_status)
-    from .services import stage
+    run = ImportRun.objects.create(connection=connection, actor=actor, start=start, end=end, page=page, source_status=source_status, kind=kind)
+    if kind == "PURCHASE":
+        from .purchase_services import stage
+    else:
+        from .services import stage
     deadline = time.monotonic() + 40
     try:
-        result = read('/nfe?' + urlencode({'pagina': page, 'limite': PAGE_SIZE, 'tipo': 1, 'situacao': source_status,
+        result = read('/nfe?' + urlencode({'pagina': page, 'limite': PAGE_SIZE, 'tipo': 0 if kind == 'PURCHASE' else 1, 'situacao': source_status,
                     'dataEmissaoInicial': f'{start} 00:00:00', 'dataEmissaoFinal': f'{end} 23:59:59'}))
         rows = result.get('data')
         if not isinstance(rows, list) or len(rows) > PAGE_SIZE: raise BlingError('Página inválida recebida do Bling.')

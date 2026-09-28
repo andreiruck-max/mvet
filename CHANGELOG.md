@@ -124,3 +124,8 @@
 - Controles específicos de confirmação, cancelamento, estoque, pagamentos/recebimentos, transferências, tributos e recorrência.
 - Excel/PDF nos relatórios existentes, projeções autorizadas, todos os registros do filtro, limites explícitos e proteção contra fórmulas em texto externo.
 - Estudo público da API Bling: pré-preenchimento de NF/SKU/canal e conciliação de movimentos; nenhuma conexão real ativada.
+
+## 28/09/2026 — Relatório por canal, compras Bling e caixa
+- Vendas: filtros compactos, cartões por canal/empresa, subtotais completos e layout responsivo sem barra horizontal; composição detalhada expansível.
+- Compras: consulta NF-e de entrada no Bling, conferência de fornecedor/produtos/frete/parcelas e rascunho idempotente. Migração aditiva com proteção do vínculo.
+- Caixa: resumo do período inclui compromissos sem banco no consolidado e acesso à baixa de pagamentos futuros com data efetiva; regressões de pagamento parcial, estorno, reagendamento e retroatividade.

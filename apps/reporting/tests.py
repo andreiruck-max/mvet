@@ -104,12 +104,12 @@ class ReportingTests(ReportingFixture,TestCase):
         self.assertEqual(s.payables({**d,'status':'pending'}).count(),1)
         self.assertEqual(s.payables({**d,'purchase_start':self.today+timedelta(days=1)}).count(),0)
     def test_totals_cover_all_pages_and_filters_persist(self):
-        self.receive(self.product,D('100'),D('5'))
-        for i in range(31):self.confirmed(invoice_number=str(i))
+        self.receive(self.product,D('120'),D('5'))
+        for i in range(51):self.confirmed(invoice_number=str(i))
         self.client.force_login(self.actor)
         response=self.client.get(reverse('sales_sheet'),{**self.period,'page':2,'q':''})
         self.assertEqual(response.status_code,200);self.assertEqual(len(response.context['page']),1)
-        self.assertEqual(response.context['totals']['count'],31);self.assertContains(response,'start=')
+        self.assertEqual(response.context['totals']['count'],51);self.assertContains(response,'start=')
     def test_periods_leap_year_and_invalid_dates(self):
         f=PeriodForm({'start':'2024-01-01','end':'2024-12-31'});self.assertTrue(f.is_valid())
         for data in [{'start':'2024-01-01','end':'2025-01-01'},{'start':'x','end':'2024-12-31'},{'start':'2024-01-02','end':'2024-01-01'}]:self.assertFalse(PeriodForm(data).is_valid())
@@ -139,3 +139,26 @@ class ReportingTests(ReportingFixture,TestCase):
         for name in ['dashboard','sales_sheet','dre','purchase_payables']:
             self.assertEqual(self.client.get(reverse(name)).status_code,200)
         data=self.client.get(reverse('dre_api'),self.period).json();self.assertIsInstance(data['ebitda'],str);self.assertEqual(D(data['ebitda']),D('53.25'))
+
+
+class ChannelSheetTests(ReportingFixture, TestCase):
+    def test_company_cards_unaffected_by_channel_filter_and_group_totals(self):
+        first=self.confirmed();other=SalesChannel.objects.create(name='Outro canal')
+        second=self.confirmed(invoice_number='201',channel=other)
+        self.client.force_login(self.actor)
+        response=self.client.get(reverse('sales_sheet'),{**self.period,'channel':self.channel.pk})
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.context['company_totals']['revenue'],first.revenue+second.revenue)
+        self.assertEqual(len(response.context['groups']),1)
+        self.assertEqual(response.context['groups'][0]['totals']['revenue'],first.revenue)
+        self.assertEqual(len(response.context['channels']),2)
+        self.assertNotContains(response,'<th>Estoque</th>',html=True)
+        self.assertNotContains(response,'<th>Canal</th>',html=True)
+    def test_restricted_cards_do_not_disclose_cost_or_contribution(self):
+        self.confirmed();self.operator.user_permissions.add(Permission.objects.get(codename='view_sales_report'))
+        self.client.force_login(self.operator)
+        response=self.client.get(reverse('sales_sheet'),self.period)
+        self.assertEqual(response.status_code,200)
+        self.assertNotIn('cmv',response.context['company_totals'])
+        self.assertNotIn('contribution',response.context['channels'][0])
+        self.assertNotContains(response,'CMV histórico');self.assertNotContains(response,'Contribuição')

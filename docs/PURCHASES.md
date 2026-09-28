@@ -40,3 +40,6 @@ Listagens paginadas, pesquisa documento/SKU/nome, fornecedor, estoque, estado, p
 Perfis iniciais ADMINISTRADOR e FINANCEIRO recebem as duas permissões; GERENCIAL recebe relatórios. Migration adiciona somente essas novas permissões aos perfis existentes; demais concessões são preservadas. VENDAS_OPERACIONAL e ESTOQUE não ganham acesso a compras.
 
 MVet 1.5: recebimento pondera custo médio apenas do depósito recebedor; transferência conserva valor e pondera destino. Cancelamento preserva valor original e referência local de custo. Ver ADR 0019.
+
+## Integração Bling — 28/09/2026
+Compras → Importar notas do Bling. Consultar Registradas e Autorizadas conforme o cadastro no Bling. Na conferência, selecionar fornecedor com CPF/CNPJ correspondente, depósito, produtos e revisar composição/parcelas. Importar gera rascunho sem estoque nem caixa. Completar parcelas ausentes em Editar; confirmar compra, receber mercadoria e baixar pagamento permanecem etapas separadas. Reconsultar não duplica nem cancela compras locais. Ver ADR 0023 para campos suportados e validações.
