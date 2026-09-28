@@ -26,11 +26,12 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
             page.on('pageerror', lambda error: errors.append(str(error)))
             page.goto(self.live_server_url + '/integracoes/bling/')
             link = page.get_by_role('link', name='123 / 1', exact=True)
-            self.assertLess(link.bounding_box()['y'], 700)
             self.assertTrue(page.get_by_role('link', name='Relatório de vendas', exact=True).is_visible())
             from pathlib import Path
             captures = Path('artifacts'); captures.mkdir(exist_ok=True)
             page.screenshot(path=str(captures / 'bling-compact-desktop.png'), full_page=True)
+            print('BLING_LAYOUT', page.locator('.bling-page').evaluate('(el) => Array.from(el.children).map(c => [c.tagName, c.className, c.getBoundingClientRect().y, c.getBoundingClientRect().height])'))
+            self.assertLess(link.bounding_box()['y'], 700)
             link.click()
             self.assertEqual(page.locator('#id_discount').input_value(), '0,00')
             self.assertFalse(page.locator('#id_tax_override').is_visible())
