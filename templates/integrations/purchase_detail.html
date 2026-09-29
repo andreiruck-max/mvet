@@ -1,5 +1,5 @@
 {% extends 'base.html' %}{% block content %}<div class="compact-page"><header class="page-heading"><h1>Conferir compra {{ invoice.number }} / {{ invoice.series }}</h1><a href="{% url 'bling_purchase_queue' %}" class="button">Voltar às notas de compra</a></header>
-<p>Fornecedor externo: {{ invoice.source.supplier_name }} · {{ invoice.source.supplier_document }} · Total fiscal R$ {{ invoice.source.total }}.</p>
+<p>Fornecedor externo: {{ invoice.source.supplier_name }} · {{ invoice.source.supplier_document }} · Total fiscal R$ {{ invoice.source.total|floatformat:2 }}.</p>
 {% if invoice.error %}<p class="notice" role="alert">{{ invoice.error }}</p>{% endif %}{% if invoice.discrepancy %}<p class="notice">Dados externos divergentes. A compra local foi preservada.</p>{% endif %}
 {% if perms.core.fetch_bling %}<form method="post" action="{% url 'bling_purchase_refresh' invoice.pk %}">{% csrf_token %}<button>Atualizar dados do Bling</button></form>{% endif %}
 {% if invoice.purchase_id %}<p><a class="button" href="{% url 'purchase_detail' invoice.purchase_id %}">Abrir compra importada</a></p>{% else %}

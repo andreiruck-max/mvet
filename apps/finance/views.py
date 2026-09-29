@@ -4,7 +4,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
+from apps.inventory.services import domain_lock
 from django.db.models import F
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
@@ -140,7 +141,9 @@ def operation_action(request,pk,action):
 
 @login_required
 @permission_required('core.view_finance',raise_exception=True)
+@transaction.atomic
 def cash(request):
+    domain_lock()
     form=forms.CashForm(request.GET or {'start':timezone.localdate(),'end':timezone.localdate()+timedelta(days=30)})
     rows=[];unallocated={};days=[];page=None;summary=None;pending=[]
     if form.is_valid():
@@ -161,7 +164,9 @@ def cash(request):
 
 @login_required
 @permission_required('core.view_finance',raise_exception=True)
+@transaction.atomic
 def cash_api(request):
+    domain_lock()
     form=forms.CashForm(request.GET)
     if not form.is_valid(): return JsonResponse({'errors':form.errors.get_json_data()},status=400)
     d=form.cleaned_data;rows,unallocated=selectors.daily_cash(d['start'],d['end'],d['account'].pk if d['account'] else None)
