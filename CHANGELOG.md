@@ -132,3 +132,6 @@
 
 ## 29/09/2026 — Compras a pagar compactas
 Filtros compactos em compras; tabela por parcela com produtos, linhas alternadas e totalizações de saldo por mês/fornecedor. Padrão de hoje em diante, sem excluir histórico nem classificar datas passadas como vencidas nesta tabela. Sem mudanças de schema ou de lançamentos.
+
+## Compras Bling — unidade local e rejeição (29/09/2026)
+Unidade cadastrada no MVet prevalece; quantidade e preço da nota mantidos sem conversão. Rejeitar nota retira documentos sem compra vinculada das pendências; filtro Rejeitadas permite reabrir. Reconsulta preserva rejeição. Compras existentes seguem cancelamento próprio. Ver ADR 0024.
