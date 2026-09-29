@@ -66,7 +66,7 @@ def build(kind, user, query):
     else: require(user,'core.'+permissions[kind])
     d = {}
     if form_class:
-        form = form_class(query or {'period':'month'})
+        form = form_class(query or {'period':'future' if kind == 'payables' else 'month'})
         if not form.is_valid(): raise ValidationError('; '.join(f'{key}: {", ".join(errors)}' for key,errors in form.errors.items()))
         d = form.cleaned_data
     if kind == 'sales': result = sales_dataset(user,d)

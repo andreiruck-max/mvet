@@ -129,3 +129,6 @@
 - Vendas: filtros compactos, cartões por canal/empresa, subtotais completos e layout responsivo sem barra horizontal; composição detalhada expansível.
 - Compras: consulta NF-e de entrada no Bling, conferência de fornecedor/produtos/frete/parcelas e rascunho idempotente. Migração aditiva com proteção do vínculo.
 - Caixa: resumo do período inclui compromissos sem banco no consolidado e acesso à baixa de pagamentos futuros com data efetiva; regressões de pagamento parcial, estorno, reagendamento e retroatividade.
+
+## 29/09/2026 — Compras a pagar compactas
+Filtros compactos em compras; tabela por parcela com produtos, linhas alternadas e totalizações de saldo por mês/fornecedor. Padrão de hoje em diante, sem excluir histórico nem classificar datas passadas como vencidas nesta tabela. Sem mudanças de schema ou de lançamentos.

@@ -35,7 +35,9 @@ def channel_summary(d):
     return [{'name':r['channel__name'],'id':r['channel_id'],**metrics(r)} for r in rows.order_by('channel__name')]
 
 def payables(d):
-    rows=Title.objects.filter(purchase_installment__isnull=False,status='OPEN',due_date__range=(d['start'],d['end'])).select_related('account','purchase_installment__purchase__supplier')
+    rows=Title.objects.filter(purchase_installment__isnull=False,status='OPEN').select_related('account','purchase_installment__purchase__supplier')
+    if d.get('start'):rows=rows.filter(due_date__gte=d['start'])
+    if d.get('end'):rows=rows.filter(due_date__lte=d['end'])
     if d.get('supplier'):rows=rows.filter(purchase_installment__purchase__supplier=d['supplier'])
     if d.get('purchase_start'):rows=rows.filter(purchase_installment__purchase__date__gte=d['purchase_start'])
     if d.get('purchase_end'):rows=rows.filter(purchase_installment__purchase__date__lte=d['purchase_end'])
@@ -79,3 +81,11 @@ def dre(d):
     ebitda=None if d.get('channel') else sales['contribution']-expenses['OPERATING']
     result=None if ebitda is None else ebitda-expenses['FINANCIAL']+financial['income']-financial['expense']
     return dict(sales=sales,groups=groups,expenses=expenses,financial=financial,ebitda=ebitda,result=result,provisional=provisional,channel_only=bool(d.get('channel')))
+
+
+def payable_groups(rows):
+    from django.db.models.functions import TruncMonth
+    remaining=F('amount')-F('settled')
+    months=list(rows.order_by().annotate(month=TruncMonth('due_date')).values('month').annotate(pending=Sum(remaining)).order_by('month'))
+    suppliers=list(rows.order_by().values('purchase_installment__purchase__supplier_id','purchase_installment__purchase__supplier__legal_name').annotate(pending=Sum(remaining)).order_by('purchase_installment__purchase__supplier__legal_name'))
+    return months,[{'name':r['purchase_installment__purchase__supplier__legal_name'],'pending':r['pending']} for r in suppliers]

@@ -31,11 +31,18 @@ class SalesForm(PeriodForm):
 
 class PayablesForm(PeriodForm):
     channel=None
+    period=forms.ChoiceField(label='Vencimentos', required=False, choices=[('future','Hoje em diante'),('all','Todas as datas'),('', 'Personalizado'),('month','Este mês'),('previous_month','Mês anterior'),('year','Este ano')])
     supplier=forms.ModelChoiceField(label='Fornecedor',queryset=Supplier.objects.all(),required=False)
     purchase_start=forms.DateField(label='Compra de',widget=DateInput(),required=False)
     purchase_end=forms.DateField(label='Compra até',widget=DateInput(),required=False)
-    status=forms.ChoiceField(label='Situação',required=False,choices=[('pending','Pendentes'),('overdue','Vencidas'),('paid','Pagas'),('all','Todas não canceladas')])
+    status=forms.ChoiceField(label='Situação',required=False,choices=[('pending','Pendentes'),('paid','Pagas'),('all','Todas não canceladas')])
     def clean(self):
-        d=super().clean()
+        raw=forms.Form.clean(self)
+        period=raw.get('period')
+        if period in ('future','all') or (not period and not raw.get('start') and not raw.get('end') and not self.errors):
+            d=raw
+            d.update(start=timezone.localdate() if period != 'all' else None, end=None)
+        else:
+            d=super().clean()
         if d.get('purchase_start') and d.get('purchase_end') and d['purchase_start']>d['purchase_end']:raise forms.ValidationError('Intervalo da compra inválido.')
         return d
