@@ -55,12 +55,10 @@ class PurchaseImportTests(Fixture, TestCase):
         self.assertTrue(row.error)
         with self.assertRaises(ValidationError):self.draft(row)
         self.assertEqual(row.access_key,incoming()['chaveAcesso'])
-    def test_wrong_supplier_unit_total_and_stale_revision_roll_back(self):
+    def test_wrong_supplier_total_and_stale_revision_roll_back(self):
         row=self.stage();other=Supplier.objects.create(legal_name='Outro',document='11111111000191')
         for changes in [dict(supplier=other),dict(reviewed=False),dict(revision=99),dict(freight=D('1'),installments=[])]:
             with self.assertRaises(ValidationError):self.draft(row,**changes)
-        self.product.unit='CX';self.product.save()
-        with self.assertRaises(ValidationError):self.draft(row)
         self.assertFalse(Purchase.objects.exists())
     def test_transfer_return_and_output_are_blocked(self):
         for cfop in ['5152','5411','5910']:
@@ -98,3 +96,47 @@ class PurchaseImportTests(Fixture, TestCase):
         for changes in [{'purchase':None},{'approved_source':{}},{'external_id':'2000'}]:
             with self.assertRaises(DatabaseError),transaction.atomic():
                 PurchaseInvoiceImport.objects.filter(pk=row.pk).update(**changes)
+
+
+    def test_external_unit_preserves_local_unit_and_quantity(self):
+        self.product.unit='CX';self.product.save(update_fields=['unit'])
+        row=self.stage();p=self.draft(row)
+        p=purchases.confirm(actor=self.actor,purchase_id=p.pk,revision=p.revision)
+        purchases.receive(actor=self.actor,purchase_id=p.pk,date=timezone.localdate(),revision=p.revision)
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.unit,'CX')
+        self.assertEqual(self.product.quantity,12)
+        self.assertEqual(self.product.value,D('150'))
+
+    def test_rejection_survives_refresh_and_can_be_reopened(self):
+        row=self.stage();before=StockMovement.objects.count()
+        s.set_rejected(actor=self.actor,invoice_id=row.pk,revision=row.revision,rejected=True)
+        row=self.stage()
+        self.assertTrue(row.rejected)
+        with self.assertRaises(ValidationError): self.draft(row)
+        self.client.force_login(self.actor)
+        response=self.client.get(reverse('bling_purchase_queue'))
+        self.assertEqual(len(response.context['page']),0)
+        response=self.client.get(reverse('bling_purchase_queue'),{'status':'rejected'})
+        self.assertEqual(len(response.context['page']),1)
+        self.assertFalse(Purchase.objects.exists())
+        self.assertFalse(FinancialTitle.objects.exists())
+        self.assertEqual(StockMovement.objects.count(),before)
+        row=s.set_rejected(actor=self.actor,invoice_id=row.pk,revision=row.revision,rejected=False)
+        self.draft(row)
+        row.refresh_from_db()
+        with self.assertRaises(ValidationError):
+            s.set_rejected(actor=self.actor,invoice_id=row.pk,revision=row.revision,rejected=True)
+
+    def test_rejection_permissions_revision_and_post_only(self):
+        row=self.stage();url=reverse('bling_purchase_decision',args=[row.pk,'reject'])
+        self.client.force_login(self.operator)
+        self.assertEqual(self.client.post(url,{'revision':row.revision}).status_code,403)
+        with self.assertRaises(PermissionDenied):
+            s.set_rejected(actor=self.operator,invoice_id=row.pk,revision=row.revision,rejected=True)
+        self.client.force_login(self.actor)
+        self.assertEqual(self.client.get(url).status_code,405)
+        self.client.post(url,{'revision':99})
+        row.refresh_from_db();self.assertFalse(row.rejected)
+        self.assertEqual(self.client.post(url,{'revision':row.revision}).status_code,302)
+        row.refresh_from_db();self.assertTrue(row.rejected)

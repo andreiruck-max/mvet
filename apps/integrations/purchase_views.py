@@ -22,7 +22,8 @@ from . import bling, purchase_services as services
 def queue(request):
     rows = PurchaseInvoiceImport.objects.select_related('purchase')
     state = request.GET.get('status', 'pending')
-    if state == 'pending': rows = rows.filter(purchase__isnull=True)
+    if state == 'pending': rows = rows.filter(purchase__isnull=True, rejected=False)
+    elif state == 'rejected': rows = rows.filter(rejected=True)
     elif state == 'imported': rows = rows.filter(purchase__isnull=False)
     if request.GET.get('q'): rows = rows.filter(number__icontains=request.GET['q'][:30])
     return render(request, 'integrations/purchase_queue.html', dict(page=Paginator(rows, 30).get_page(request.GET.get('page')),
@@ -83,3 +84,23 @@ def refresh(request, pk):
         services.stage(actor=request.user, connection=invoice.connection, payload=payload)
     except ValidationError as exc: messages.error(request, '; '.join(exc.messages))
     return redirect('bling_purchase_detail', pk=pk)
+
+
+@login_required
+@permission_required('core.operate_purchases', raise_exception=True)
+@require_POST
+def decision(request, pk, action):
+    get_object_or_404(PurchaseInvoiceImport, pk=pk)
+    if action not in ('reject', 'reopen'):
+        return JsonResponse({'message': 'Ação inválida.'}, status=400)
+    try:
+        revision = int(request.POST.get('revision', ''))
+    except (TypeError, ValueError):
+        return JsonResponse({'message': 'Revisão inválida.'}, status=400)
+    try:
+        services.set_rejected(actor=request.user, invoice_id=pk, revision=revision, rejected=action == 'reject')
+        messages.success(request, 'Nota rejeitada e retirada das pendências.' if action == 'reject' else 'Nota reaberta.')
+    except ValidationError as exc:
+        messages.error(request, '; '.join(exc.messages))
+        return redirect('bling_purchase_detail', pk=pk)
+    return redirect('bling_purchase_queue' if action == 'reject' else 'bling_purchase_detail', **({} if action == 'reject' else {'pk': pk}))

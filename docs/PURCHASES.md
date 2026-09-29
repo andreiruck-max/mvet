@@ -46,3 +46,6 @@ Compras → Importar notas do Bling. Consultar Registradas e Autorizadas conform
 
 ## Compras a pagar — 29/09/2026
 Filtros compactos em Compras e Compras a pagar. Relatório por parcela com data da compra, NF, fornecedor, número/quantidade de parcelas, vencimento financeiro atualizado, saldo a pagar, produtos e acesso à baixa. Linhas alternam tonalidade. Padrão: pendentes de hoje em diante, sem limite final arbitrário; datas passadas ficam apenas no histórico, sem alerta ou classificação de atraso nesta tabela. Histórico acessível por Todas as datas/Personalizado e situação Pagas/Todas. Nada é excluído ao pagar. Total geral e agrupamentos por mês do vencimento e fornecedor usam o saldo restante de todas as páginas do filtro. Exportação usa o mesmo padrão.
+
+## Compras Bling — unidade local e rejeição (29/09/2026)
+Unidade cadastrada no MVet prevalece; quantidade e preço da nota mantidos sem conversão. Rejeitar nota retira documentos sem compra vinculada das pendências; filtro Rejeitadas permite reabrir. Reconsulta preserva rejeição. Compras existentes seguem cancelamento próprio. Ver ADR 0024.

@@ -17,10 +17,15 @@ class PurchaseReviewForm(forms.Form):
     discount = forms.DecimalField(label='Desconto (R$)', max_digits=18, decimal_places=2, min_value=0, initial=Decimal('0'), localize=True, widget=MoneyInput)
     freight = forms.DecimalField(label='Frete de aquisição (R$)', max_digits=18, decimal_places=2, min_value=0, initial=Decimal('0'), localize=True, widget=MoneyInput)
     other_costs = forms.DecimalField(label='Outros custos de aquisição (R$)', max_digits=18, decimal_places=2, min_value=0, initial=Decimal('0'), localize=True, widget=MoneyInput)
-    reviewed = forms.BooleanField(label='Conferi o documento: a Mercadovet é a destinatária, trata-se de compra normal de mercadorias, e as unidades e quantidades correspondem aos produtos selecionados.')
+    reviewed = forms.BooleanField(label='Conferi o documento: a Mercadovet é a destinatária, trata-se de compra normal de mercadorias, e os produtos e quantidades estão corretos.')
+
+
+class LocalProductChoice(forms.ModelChoiceField):
+    def label_from_instance(self, obj):
+        return f'{obj.sku} · {obj.name} ({obj.unit})'
 
 
 class PurchaseProductForm(forms.Form):
-    product = forms.ModelChoiceField(label='Produto MVet', queryset=Product.objects.filter(active=True, kind='SIMPLE').order_by('name'))
+    product = LocalProductChoice(label='Produto MVet', queryset=Product.objects.filter(active=True, kind='SIMPLE').order_by('name'))
 
 PurchaseProducts = forms.formset_factory(PurchaseProductForm, extra=0, min_num=1, validate_min=True, max_num=100, validate_max=True)

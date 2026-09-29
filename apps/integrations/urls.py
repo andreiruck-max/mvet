@@ -6,6 +6,7 @@ urlpatterns = [
     path('compras/consultar/', purchase_views.query, name='bling_purchase_query'),
     path('compras/<int:pk>/', purchase_views.detail, name='bling_purchase_detail'),
     path('compras/<int:pk>/atualizar/', purchase_views.refresh, name='bling_purchase_refresh'),
+    path('compras/<int:pk>/<str:action>/', purchase_views.decision, name='bling_purchase_decision'),
     path('', views.queue, name='bling_queue'),
     path('consultar/', views.query, name='bling_query'),
     path('conexao/', views.connection, name='bling_connection'),

@@ -70,3 +70,6 @@ Novas vendas não geram contas a receber; títulos anteriores e liquidações s�
 
 ### 29/09/2026
 Compras com filtros compactos; compras a pagar no formato de planilha, linhas alternadas, produtos, 50 parcelas/página, totais geral/mensal/fornecedor. Padrão de hoje em diante com histórico consultável, sem classificar datas passadas como vencidas.
+
+## Compras Bling — unidade local e rejeição (29/09/2026)
+Unidade cadastrada no MVet prevalece; quantidade e preço da nota mantidos sem conversão. Rejeitar nota retira documentos sem compra vinculada das pendências; filtro Rejeitadas permite reabrir. Reconsulta preserva rejeição. Compras existentes seguem cancelamento próprio. Ver ADR 0024.

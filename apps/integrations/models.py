@@ -96,6 +96,7 @@ class PurchaseInvoiceImport(models.Model):
     revision = models.PositiveIntegerField(default=1)
     error = models.CharField(max_length=500, blank=True)
     discrepancy = models.BooleanField(default=False)
+    rejected = models.BooleanField(default=False)
     purchase = models.OneToOneField('purchases.Purchase', null=True, blank=True, on_delete=models.PROTECT, related_name='bling_import')
     checked_at = models.DateTimeField(auto_now=True)
 

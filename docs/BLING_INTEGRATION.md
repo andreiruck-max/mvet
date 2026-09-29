@@ -109,3 +109,6 @@ Novas vendas não geram contas a receber; títulos anteriores e liquidações s�
 
 ## Notas de compra — 28/09/2026
 Fila própria em Compras → Importar notas do Bling. Usa a conexão existente e somente leitura NF-e tipo=0, registradas/autorizadas; canceladas servem para divergência. Pré-preenche preço de aquisição, frete e parcelas documentados, sem custo médio externo. Conferência gera rascunho; confirmação, recebimento físico e pagamentos são ações locais separadas. Leia ADR 0023 para identidade, permissões e reconciliação.
+
+## Compras Bling — unidade local e rejeição (29/09/2026)
+Unidade cadastrada no MVet prevalece; quantidade e preço da nota mantidos sem conversão. Rejeitar nota retira documentos sem compra vinculada das pendências; filtro Rejeitadas permite reabrir. Reconsulta preserva rejeição. Compras existentes seguem cancelamento próprio. Ver ADR 0024.

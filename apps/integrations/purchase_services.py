@@ -10,7 +10,6 @@ from apps.purchases import services as purchases
 from apps.products.models import Product
 from .models import PurchaseInvoiceImport
 from .normalization import normalize, text, decimal_text
-from .services import compatible_units
 
 
 def normalize_purchase(payload, issuer):
@@ -47,11 +46,11 @@ def eligible(source, *, reviewed=False):
     if source['purpose'] not in ('', '1'):
         raise ValidationError('Nota complementar, ajuste ou devolução não pode gerar nova compra.')
     if reviewed is not True:
-        raise ValidationError('Confira destinatário, finalidade de compra e unidades no documento.')
+        raise ValidationError('Confira destinatário, finalidade de compra e produtos no documento.')
     # Original supplier CFOP may be outgoing; do not convert it to incoming silently.
     for row in source['items']:
-        if row['type'] != 'P' or not row['code'] or not row['unit'] or Decimal(row['quantity']) <= 0:
-            raise ValidationError('Compra exige mercadorias com código, unidade e quantidade positiva.')
+        if row['type'] != 'P' or not row['code'] or Decimal(row['quantity']) <= 0:
+            raise ValidationError('Compra exige mercadorias com código e quantidade positiva.')
         if len(row['cfop']) != 4 or row['cfop'][0] not in '123567' or row['cfop'][1:] not in {'101','102','111','113','116','117','118','120','122','401','403','405'}:
             raise ValidationError('CFOP não identificado como aquisição/venda de mercadoria. Confira remessas, transferências e devoluções.')
 
@@ -94,6 +93,7 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
     require(actor, 'core.operate_purchases'); domain_lock()
     invoice = PurchaseInvoiceImport.objects.select_for_update().get(pk=invoice_id)
     if invoice.purchase_id: return invoice.purchase
+    if invoice.rejected: raise ValidationError('Nota rejeitada. Reabra antes de importar.')
     if invoice.revision != revision or invoice.error: raise ValidationError('Nota mudou ou possui erro. Reabra a conferência.')
     eligible(invoice.source, reviewed=reviewed)
     supplier.refresh_from_db()
@@ -104,7 +104,7 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
     items = []
     for product, row in zip(products, source_rows):
         product = Product.objects.get(pk=product.pk)
-        if not compatible_units(product.unit, row['unit']): raise ValidationError('Unidade incompatível; conversões de embalagem devem ser tratadas antes da importação.')
+        # Quantity and price are interpreted in the local product unit, without conversion.
         items.append((product.pk, Decimal(row['quantity']), Decimal(row['price'])))
     purchase = purchases.save_draft(actor=actor, key=uuid4(), data=dict(supplier=supplier, location=location,
         document=invoice.number, series=invoice.series, date=invoice.issued_on, discount=discount,
@@ -115,3 +115,20 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
     invoice.purchase = purchase; invoice.approved_source = invoice.source; invoice.revision += 1; invoice.save()
     audit(actor, invoice, 'bling_purchase_draft', after={'purchase': purchase.pk, 'reviewed': True})
     return purchase
+
+
+@transaction.atomic
+def set_rejected(*, actor, invoice_id, revision, rejected):
+    require(actor, 'core.operate_purchases'); domain_lock()
+    invoice = PurchaseInvoiceImport.objects.select_for_update().get(pk=invoice_id)
+    if invoice.purchase_id:
+        raise ValidationError('Esta nota já gerou uma compra. Use o cancelamento da compra.')
+    if invoice.revision != revision:
+        raise ValidationError('Nota mudou. Reabra a página antes de continuar.')
+    if invoice.rejected != rejected:
+        invoice.rejected = rejected
+        invoice.revision += 1
+        invoice.save(update_fields=['rejected', 'revision'])
+        audit(actor, invoice, 'bling_purchase_reject' if rejected else 'bling_purchase_reopen',
+              after={'rejected': rejected})
+    return invoice
