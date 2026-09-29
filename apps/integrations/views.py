@@ -31,7 +31,7 @@ def queue(request):
     return render(request, 'integrations/queue.html', {
         'page': Paginator(rows, 30).get_page(request.GET.get('page')), 'state': state,
         'states': InvoiceImport._meta.get_field('status').choices, 'query_form': QueryForm(),
-        'runs': ImportRun.objects.all()[:10], 'connection': BlingConnection.objects.filter(pk=1).first(),
+        'runs': ImportRun.objects.filter(kind='SALE')[:10], 'connection': BlingConnection.objects.filter(pk=1).first(),
     })
 
 

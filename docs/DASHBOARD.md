@@ -24,3 +24,6 @@ Dashboard mostra resultado de competência somente com `view_dre`, estoque com `
 
 ## Permissões e aceite
 Operacional não acessa totais, CMV, margens, DRE ou bancos apenas porque lança dados. Proteger as colunas e consultas no backend. Consolidado de vendas exige permissão de indicadores; bancos exigem consulta financeira; DRE exige sua permissão. Testar reconciliação dos totais com snapshots, filtros entre telas, paginação, dias sem movimentos, parcelas parcialmente pagas e bloqueio de URLs/API. Documentar limitações de intervalos grandes sem cortar dias silenciosamente.
+
+## Relatório de vendas compacto — 28/09/2026
+Vendas agrupadas por canal, 50 por página, composição detalhada expansível e apresentação móvel sem rolagem horizontal. Cartões do topo mostram confirmadas de todos os canais no período; canal/NF/situação filtram a listagem, não os cartões. Subtotais de canal consideram todas as páginas do filtro. Rascunhos/canceladas fora dos totais. Custos/margens seguem permissões; exportações completas preservadas (ADR 0023).

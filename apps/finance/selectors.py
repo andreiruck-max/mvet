@@ -63,3 +63,14 @@ def daily_cash(start,end,account_id=None):
             result.append(dict(account=account,date=date,initial=begin,credits=credit,debits=debit,final=balance,projected=projected,forecast=forecast[(account.pk,date)]))
             date+=timedelta(days=1)
     return result, {k:v or ZERO for k,v in unallocated.items()}
+
+
+def cash_summary(start, end, account_id=None):
+    """Period endpoint, independent of pagination; company includes unassigned debts."""
+    rows, unallocated = daily_cash(start, end, account_id)
+    final_rows = [row for row in rows if row['date'] == end]
+    actual = sum((row['final'] for row in final_rows), ZERO)
+    projected = sum((row['projected'] for row in final_rows), ZERO)
+    if not account_id and end >= timezone.localdate():
+        projected += unallocated['receive'] - unallocated['pay']
+    return {'actual': actual, 'projected': projected, 'unallocated': unallocated, 'end': end}

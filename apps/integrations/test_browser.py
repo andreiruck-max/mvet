@@ -132,3 +132,31 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
             page.get_by_text('Busca concluída. 8 notas consultadas; 0 pendências. Nenhuma venda foi confirmada.', exact=True).wait_for()
             self.assertEqual(pages, [1, 2, 2])
             browser.close()
+
+    def test_purchase_draft_import_and_no_side_effect_before_confirmation(self):
+        from playwright.sync_api import sync_playwright
+        from django.urls import reverse
+        from apps.purchases.models import Supplier, Purchase
+        from apps.finance.models import FinancialTitle
+        from .test_purchase_import import incoming, SUPPLIER
+        from .purchase_services import stage as stage_purchase
+        connection=BlingConnection.objects.create(pk=1,issuer=ISSUER)
+        Supplier.objects.create(legal_name='Fornecedor sintético',document=SUPPLIER)
+        invoice=stage_purchase(actor=self.actor,connection=connection,payload=incoming())
+        client=Client();client.force_login(self.actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1050},locale='pt-BR')
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page()
+            page.goto(self.live_server_url+reverse('purchases'))
+            page.get_by_role('link',name='Importar notas do Bling',exact=True).click()
+            page.get_by_role('link',name='123 / 1',exact=True).click()
+            page.locator('#id_location').select_option(str(self.location.pk))
+            self.assertEqual(page.locator('#id_products-0-product').input_value(),str(self.product.pk))
+            page.locator('#id_reviewed').check()
+            page.get_by_role('button',name='Importar rascunho de compra',exact=True).click()
+            page.wait_for_url('**/compras/*/')
+            browser.close()
+        self.assertEqual(Purchase.objects.get().status,'DRAFT')
+        self.assertFalse(FinancialTitle.objects.exists())
+        self.product.refresh_from_db();self.assertEqual(self.product.quantity,10)

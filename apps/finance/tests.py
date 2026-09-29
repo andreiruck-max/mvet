@@ -250,3 +250,37 @@ class PostgreSQLFinance(Fixture,TransactionTestCase):
         with self.assertRaises(DatabaseError),transaction.atomic():
             Operation.objects.create(kind='TRANSFER',date=self.today,actual=10,actor=self.admin,fingerprint='test')
         s.reverse(actor=self.operator,pk=op.pk,date=self.today,reason='Legítimo')
+
+
+class FuturePaymentRegression(Fixture, TestCase):
+    def test_early_partial_payment_reschedule_reverse_and_paginated_projection(self):
+        from .selectors import cash_summary
+        due = self.today + timedelta(days=30)
+        title = self.title(due_date=due)
+        op = self.settle(title, principal=D('40'), actual=D('40'))
+        now = cash_summary(self.today, self.today, self.a.pk)
+        future = cash_summary(self.today+timedelta(days=20), due, self.a.pk)
+        self.assertEqual(now['actual'], D('960'))
+        self.assertEqual(now['projected'], D('960'))
+        self.assertEqual(future['projected'], D('900'))
+        title.refresh_from_db()
+        s.schedule_title(actor=self.admin, pk=title.pk, due_date=due+timedelta(days=10), account=self.b, notes='Renegociação', revision=title.revision)
+        self.assertEqual(cash_summary(self.today, due)['projected'], D('960'))
+        self.assertEqual(cash_summary(self.today, due+timedelta(days=10))['projected'], D('900'))
+        s.reverse(actor=self.admin, pk=op.pk, date=self.today, reason='Pagamento não realizado')
+        self.assertEqual(cash_summary(self.today, self.today)['actual'], D('1000'))
+        self.assertEqual(cash_summary(self.today, due+timedelta(days=10))['projected'], D('900'))
+
+    def test_unassigned_title_is_in_company_forecast_only(self):
+        from .selectors import cash_summary
+        self.title(account=None, due_date=self.today+timedelta(days=10))
+        end=self.today+timedelta(days=20)
+        self.assertEqual(cash_summary(self.today,end)['projected'], D('900'))
+        self.assertEqual(cash_summary(self.today,end,self.a.pk)['projected'], D('1000'))
+
+    def test_backdated_payment_recalculates_present_and_future_without_double_count(self):
+        from .selectors import cash_summary
+        title=self.title(due_date=self.today+timedelta(days=20))
+        self.settle(title,date=self.today-timedelta(days=2))
+        self.assertEqual(cash_summary(self.today,self.today)['actual'], D('900'))
+        self.assertEqual(cash_summary(self.today,self.today+timedelta(days=30))['projected'], D('900'))

@@ -4,7 +4,9 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
+from apps.inventory.services import domain_lock
+from django.db.models import F
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.utils import timezone
@@ -40,7 +42,7 @@ def title_new(request):
             messages.success(request,'Título registrado. Ainda não houve movimento bancário.')
             return redirect('financial_title',pk=title.pk)
         except (ValidationError,IntegrityError) as exc: error(form,exc)
-    return render(request,'finance/form.html',{'form':form,'title':'Novo título / crédito ou débito previsto','button':'Registrar título','help':'Compras, vendas e despesas já geram títulos automaticamente. Não os cadastre novamente. Despesas operacionais devem ser registradas em Despesas. Para títulos financeiros manuais, Data de origem é a competência do rendimento/juros, mesmo se não pago. Empréstimos: principal patrimonial separado dos juros; não repita juros já lançados em Despesas. O pagamento movimenta somente o caixa.'})
+    return render(request,'finance/form.html',{'form':form,'title':'Novo título / crédito ou débito previsto','button':'Registrar título','help':'Compras e despesas já geram títulos automaticamente. Novas vendas não geram contas a receber. Não os cadastre novamente. Despesas operacionais devem ser registradas em Despesas. Para títulos financeiros manuais, Data de origem é a competência do rendimento/juros, mesmo se não pago. Empréstimos: principal patrimonial separado dos juros; não repita juros já lançados em Despesas. O pagamento movimenta somente o caixa.'})
 
 
 @login_required
@@ -139,23 +141,32 @@ def operation_action(request,pk,action):
 
 @login_required
 @permission_required('core.view_finance',raise_exception=True)
+@transaction.atomic
 def cash(request):
+    domain_lock()
     form=forms.CashForm(request.GET or {'start':timezone.localdate(),'end':timezone.localdate()+timedelta(days=30)})
-    rows=[];unallocated={};days=[];page=None
+    rows=[];unallocated={};days=[];page=None;summary=None;pending=[]
     if form.is_valid():
         data=form.cleaned_data
+        account_id=data['account'].pk if data['account'] else None
+        summary=selectors.cash_summary(data['start'],data['end'],account_id)
+        pending=Title.objects.filter(status='OPEN',settled__lt=F('amount'),direction='PAY',due_date__lte=data['end']).select_related('account').order_by('due_date','pk')
+        if account_id: pending=pending.filter(account_id=account_id)
+        pending=Paginator(pending,20).get_page(request.GET.get('payments_page'))
         dates=[data['start']+timedelta(days=i) for i in range((data['end']-data['start']).days+1)]
         page=Paginator(dates,14).get_page(request.GET.get('page'))
         rows,unallocated=selectors.daily_cash(page.object_list[0],page.object_list[-1],data['account'].pk if data['account'] else None)
         grouped=OrderedDict((date,[]) for date in page.object_list)
         for row in rows:grouped[row['date']].append(row)
         days=[{'date':date,'rows':values} for date,values in grouped.items()]
-    return render(request,'reporting/cash.html',{'form':form,'rows':rows,'days':days,'page':page,'unallocated':unallocated})
+    return render(request,'reporting/cash.html',{'form':form,'rows':rows,'days':days,'page':page,'unallocated':unallocated,'summary':summary,'pending':pending})
 
 
 @login_required
 @permission_required('core.view_finance',raise_exception=True)
+@transaction.atomic
 def cash_api(request):
+    domain_lock()
     form=forms.CashForm(request.GET)
     if not form.is_valid(): return JsonResponse({'errors':form.errors.get_json_data()},status=400)
     d=form.cleaned_data;rows,unallocated=selectors.daily_cash(d['start'],d['end'],d['account'].pk if d['account'] else None)

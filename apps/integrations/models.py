@@ -54,6 +54,7 @@ class ProductAlias(models.Model):
 
 
 class ImportRun(models.Model):
+    kind = models.CharField(max_length=8, default="SALE", choices=[("SALE", "Vendas"), ("PURCHASE", "Compras")])
     connection = models.ForeignKey(BlingConnection, on_delete=models.PROTECT)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     start = models.DateField()
@@ -80,3 +81,24 @@ class ReviewDefaults(models.Model):
 
     class Meta:
         constraints = [models.CheckConstraint(condition=models.Q(id=1), name='single_bling_review_defaults')]
+
+
+class PurchaseInvoiceImport(models.Model):
+    connection = models.ForeignKey(BlingConnection, on_delete=models.PROTECT)
+    external_id = models.CharField(max_length=40)
+    access_key = models.CharField(max_length=44, unique=True)
+    number = models.CharField(max_length=30)
+    series = models.CharField(max_length=10)
+    issued_on = models.DateField()
+    source = models.JSONField(default=dict)
+    approved_source = models.JSONField(default=dict, editable=False)
+    fingerprint = models.CharField(max_length=64)
+    revision = models.PositiveIntegerField(default=1)
+    error = models.CharField(max_length=500, blank=True)
+    discrepancy = models.BooleanField(default=False)
+    purchase = models.OneToOneField('purchases.Purchase', null=True, blank=True, on_delete=models.PROTECT, related_name='bling_import')
+    checked_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-issued_on', '-pk']
+        constraints = [models.UniqueConstraint(fields=['connection', 'external_id'], name='bling_unique_purchase_invoice')]
