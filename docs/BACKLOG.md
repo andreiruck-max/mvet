@@ -67,3 +67,6 @@ Novas vendas não geram contas a receber; títulos anteriores e liquidações s�
 - Importação assistida de NF-e de entrada do Bling para rascunho de compra, incluindo parcelas.
 - Acesso a baixa antecipada e previsão consolidada com pendências sem banco.
 - Não inclui descoberta SEFAZ, conversão de embalagem, recebimento parcial ou baixa bancária automática.
+
+### 29/09/2026
+Compras com filtros compactos; compras a pagar no formato de planilha, linhas alternadas, produtos, 50 parcelas/página, totais geral/mensal/fornecedor. Padrão de hoje em diante com alerta de vencidas e histórico consultável.

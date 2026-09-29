@@ -162,3 +162,41 @@ class ChannelSheetTests(ReportingFixture, TestCase):
         self.assertNotIn('cmv',response.context['company_totals'])
         self.assertNotIn('contribution',response.context['channels'][0])
         self.assertNotContains(response,'CMV histórico');self.assertNotContains(response,'Contribuição')
+
+
+class CompactPayablesTests(ReportingFixture, TestCase):
+    def test_future_default_no_upper_limit_history_and_group_totals(self):
+        from .forms import PayablesForm
+        p=self.purchase()
+        titles=list(Title.objects.filter(purchase_installment__purchase=p).order_by('due_date'))
+        finance.schedule_title(actor=self.actor,pk=titles[1].pk,due_date=self.today+timedelta(days=800),account=self.account,notes='',revision=titles[1].revision)
+        self.client.force_login(self.actor)
+        response=self.client.get(reverse('purchase_payables'))
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.context['totals']['pending'],50)
+        self.assertEqual(sum(x['pending'] for x in response.context['months']),50)
+        self.assertEqual(sum(x['pending'] for x in response.context['suppliers']),50)
+        self.assertContains(response,'1/2')
+        self.assertContains(response,'Produto teste')
+        self.pay(titles[0])
+        response=self.client.get(reverse('purchase_payables'))
+        self.assertEqual(response.context['totals']['pending'],25)
+        self.assertEqual(len(response.context['page']),1)
+        history=self.client.get(reverse('purchase_payables'),{'period':'all','status':'paid'})
+        self.assertEqual(len(history.context['page']),1)
+        form=PayablesForm({'period':'all'});self.assertTrue(form.is_valid());self.assertIsNone(form.cleaned_data['start'])
+        from .datasets import build
+        self.assertEqual(len(build('payables',self.actor,{}).rows),1)
+
+    def test_past_unpaid_hidden_from_default_but_warned_and_retrievable(self):
+        p=self.purchase();title=p.installments.first().financial_title
+        tomorrow=self.today+timedelta(days=1)
+        from unittest.mock import patch
+        self.client.force_login(self.actor)
+        with patch('django.utils.timezone.localdate',return_value=tomorrow):
+            response=self.client.get(reverse('purchase_payables'))
+            self.assertEqual(len(response.context['page']),1)
+            self.assertEqual(response.context['overdue']['pending'],25)
+            self.assertContains(response,'Ver vencidas')
+            history=self.client.get(reverse('purchase_payables'),{'period':'all','status':'overdue'})
+            self.assertEqual(history.context['page'][0].pk,title.pk)
