@@ -69,4 +69,4 @@ Novas vendas não geram contas a receber; títulos anteriores e liquidações s�
 - Não inclui descoberta SEFAZ, conversão de embalagem, recebimento parcial ou baixa bancária automática.
 
 ### 29/09/2026
-Compras com filtros compactos; compras a pagar no formato de planilha, linhas alternadas, produtos, 50 parcelas/página, totais geral/mensal/fornecedor. Padrão de hoje em diante com alerta de vencidas e histórico consultável.
+Compras com filtros compactos; compras a pagar no formato de planilha, linhas alternadas, produtos, 50 parcelas/página, totais geral/mensal/fornecedor. Padrão de hoje em diante com histórico consultável, sem classificar datas passadas como vencidas.

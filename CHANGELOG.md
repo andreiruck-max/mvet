@@ -131,4 +131,4 @@
 - Caixa: resumo do período inclui compromissos sem banco no consolidado e acesso à baixa de pagamentos futuros com data efetiva; regressões de pagamento parcial, estorno, reagendamento e retroatividade.
 
 ## 29/09/2026 — Compras a pagar compactas
-Filtros compactos em compras; tabela por parcela com produtos, linhas alternadas e totalizações de saldo por mês/fornecedor. Padrão de hoje em diante, sem excluir histórico e sem esconder silenciosamente parcelas vencidas pendentes. Sem mudanças de schema ou de lançamentos.
+Filtros compactos em compras; tabela por parcela com produtos, linhas alternadas e totalizações de saldo por mês/fornecedor. Padrão de hoje em diante, sem excluir histórico nem classificar datas passadas como vencidas nesta tabela. Sem mudanças de schema ou de lançamentos.

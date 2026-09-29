@@ -84,9 +84,8 @@ def purchase_payables(request):
     if d:
         rows=selectors.payables(d)
         months,suppliers=selectors.payable_groups(rows)
-        overdue=selectors.payable_totals(selectors.payables({**d,'start':None,'end':None,'status':'overdue'}))
         rows=rows.prefetch_related('purchase_installment__purchase__items','purchase_installment__purchase__installments')
-        ctx.update(page=Paginator(rows,50).get_page(request.GET.get('page')),totals=selectors.payable_totals(rows),months=months,suppliers=suppliers,overdue=overdue)
+        ctx.update(page=Paginator(rows,50).get_page(request.GET.get('page')),totals=selectors.payable_totals(rows),months=months,suppliers=suppliers)
     return render(request,'reporting/payables.html',ctx,status=200 if d else 400)
 
 @login_required

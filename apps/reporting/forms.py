@@ -35,7 +35,7 @@ class PayablesForm(PeriodForm):
     supplier=forms.ModelChoiceField(label='Fornecedor',queryset=Supplier.objects.all(),required=False)
     purchase_start=forms.DateField(label='Compra de',widget=DateInput(),required=False)
     purchase_end=forms.DateField(label='Compra até',widget=DateInput(),required=False)
-    status=forms.ChoiceField(label='Situação',required=False,choices=[('pending','Pendentes'),('overdue','Vencidas'),('paid','Pagas'),('all','Todas não canceladas')])
+    status=forms.ChoiceField(label='Situação',required=False,choices=[('pending','Pendentes'),('paid','Pagas'),('all','Todas não canceladas')])
     def clean(self):
         raw=forms.Form.clean(self)
         period=raw.get('period')

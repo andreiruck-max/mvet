@@ -188,7 +188,7 @@ class CompactPayablesTests(ReportingFixture, TestCase):
         from .datasets import build
         self.assertEqual(len(build('payables',self.actor,{}).rows),1)
 
-    def test_past_unpaid_hidden_from_default_but_warned_and_retrievable(self):
+    def test_past_dates_hidden_without_overdue_label_and_history_retrievable(self):
         p=self.purchase();title=p.installments.first().financial_title
         tomorrow=self.today+timedelta(days=1)
         from unittest.mock import patch
@@ -196,7 +196,7 @@ class CompactPayablesTests(ReportingFixture, TestCase):
         with patch('django.utils.timezone.localdate',return_value=tomorrow):
             response=self.client.get(reverse('purchase_payables'))
             self.assertEqual(len(response.context['page']),1)
-            self.assertEqual(response.context['overdue']['pending'],25)
-            self.assertContains(response,'Ver vencidas')
-            history=self.client.get(reverse('purchase_payables'),{'period':'all','status':'overdue'})
+            self.assertNotContains(response,'Vencidas')
+            self.assertNotContains(response,'vencidas')
+            history=self.client.get(reverse('purchase_payables'),{'period':'all','status':'pending'})
             self.assertEqual(history.context['page'][0].pk,title.pk)
