@@ -13,23 +13,26 @@
 <a class="skip" href="#content">Pular para o conteúdo</a>
 {% if user.is_authenticated %}
 <aside class="sidebar">
+  <button type="button" class="menu-toggle" aria-controls="main-navigation" aria-expanded="false">Menu</button>
   <a class="brand" href="{% url 'home' %}"><span class="brand-mark">M</span><span>Mercadovet<small>MVet 1.5</small></span></a>
-  <nav aria-label="Navegação principal">
-    {% if perms.core.review_bling %}<a href="{% url 'bling_queue' %}">Notas do Bling</a>{% endif %}
-    {% if user.is_superuser %}<a href="{% url 'bling_connection' %}">Conexão Bling</a>{% endif %}
-    {% if perms.core.operate_purchases or perms.core.view_purchase_reports %}<a href="{% url 'purchases' %}">Compras</a>{% endif %}
+  <nav id="main-navigation" aria-label="Navegação principal">
+    <span class="nav-group">Visão geral</span>
+    {% if perms.core.view_dashboard %}<a href="{% url 'dashboard' %}">Indicadores</a>{% else %}<a href="{% url 'home' %}">Início</a>{% endif %}
+    <a href="{% url 'notifications' %}">Notificações</a>
+    <span class="nav-group">Operação</span>
     {% if perms.core.view_sales %}<a href="{% url 'sales' %}">Vendas</a>{% endif %}
+    {% if perms.core.review_bling %}<a href="{% url 'bling_queue' %}">Notas do Bling</a>{% endif %}
+    {% if perms.core.operate_purchases or perms.core.view_purchase_reports %}<a href="{% url 'purchases' %}">Compras</a>{% endif %}
     {% if perms.core.view_stock %}<a href="{% url 'products' %}">Produtos e estoque</a>{% endif %}
     {% if perms.core.operate_stock %}<a href="{% url 'operations' %}">Movimentações</a>{% endif %}
-    <a href="{% url 'home' %}">Início</a>
-    <a href="{% url 'notifications' %}">Notificações</a>
-    {% if user.is_superuser %}<a href="{% url 'user_access_list' %}">Usuários e acessos</a>{% endif %}
-    {% if perms.core.operate_expenses or perms.core.view_expense_reports %}<a href="{% url 'expenses' %}">Despesas</a>{% endif %}
-    {% if perms.core.view_dashboard %}<a href="{% url 'dashboard' %}">Indicadores</a>{% endif %}
-    {% if perms.core.view_dre %}<a href="{% url 'dre' %}">DRE gerencial</a>{% endif %}
-    {% if perms.core.view_finance %}<a href="{% url 'finance' %}">Financeiro</a>{% endif %}
+    {% if perms.core.view_finance or perms.core.operate_finance or perms.core.view_dre or perms.core.operate_expenses or perms.core.view_expense_reports %}<span class="nav-group">Financeiro e resultados</span>{% endif %}
+    {% if perms.core.view_finance %}<a href="{% url 'finance' %}">Saldos e fluxo de caixa</a>{% endif %}
     {% if perms.core.operate_finance and not perms.core.view_finance %}<a href="{% url 'financial_titles' %}">Pagar e receber</a>{% endif %}
+    {% if perms.core.operate_expenses or perms.core.view_expense_reports %}<a href="{% url 'expenses' %}">Despesas</a>{% endif %}
+    {% if perms.core.view_dre %}<a href="{% url 'dre' %}">DRE gerencial</a>{% endif %}
+    {% if perms.core.manage_configuration or user.is_staff or user.is_superuser %}<span class="nav-group">Configuração</span>{% endif %}
     {% if perms.core.manage_configuration %}<a href="{% url 'configuration' %}">Configurações</a>{% endif %}
+    {% if user.is_superuser %}<a href="{% url 'bling_connection' %}">Conexão Bling</a><a href="{% url 'user_access_list' %}">Usuários e acessos</a>{% endif %}
     {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administração</a>{% endif %}
   </nav>
   <div class="sidebar-foot">Gestão interna<br>Mercadovet Produtos Agroveterinários</div>
@@ -47,7 +50,7 @@
       {% endif %}
     </div>
   </header>
-  <main id="content">
+  <main id="content" class="workspace">
     {% if user.is_authenticated and show_back %}<a class="button page-back" href="{{ back_url }}">← Voltar</a>{% endif %}
     {% for message in messages %}<div class="notice" role="status">{{ message }}</div>{% endfor %}
     {% block content %}{% endblock %}

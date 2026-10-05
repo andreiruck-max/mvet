@@ -31,4 +31,4 @@ def navigation(request):
     fallback = reverse('products') if request.path.startswith('/estoque/') else reverse('home')
     back = safe_return(request, request.POST.get('next') or request.GET.get('next'))
     back = back or safe_return(request, request.META.get('HTTP_REFERER')) or fallback
-    return {'back_url': back, 'inventory_return_url': return_url(request), 'show_back': request.path != reverse('home')}
+    return {'back_url': back, 'inventory_return_url': return_url(request), 'show_back': request.path not in (reverse('home'), reverse('dashboard'))}

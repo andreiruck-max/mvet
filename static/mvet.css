@@ -30,3 +30,88 @@ select,textarea{font:inherit;width:100%;padding:11px 12px;background:var(--bg);b
 @media(max-width:850px){.compact-page .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sales-report .sales-sheet thead{display:none}.sales-report .sales-sheet,.sales-report .sales-sheet tbody,.sales-report .sales-sheet tr,.sales-report .sales-sheet td{display:block;width:100%}.sales-report .sales-sheet tr{border:1px solid var(--border);margin:8px 0;padding:8px}.sales-report .sales-sheet td{display:grid;grid-template-columns:40% 60%;text-align:left;box-sizing:border-box}.sales-report .sales-sheet td:before{content:attr(data-label);font-weight:bold}.sales-report .sales-sheet td details{min-width:0}}
 .purchase-page .page-heading{margin-bottom:6px}.purchase-page>p{margin:6px 0}.purchase-page .form-grid,.payables-page .form-grid{grid-template-columns:repeat(4,minmax(0,1fr));padding:10px;gap:6px 10px}.payables-sheet{width:100%;font-size:12px}.payables-sheet th,.payables-sheet td{padding:7px 6px;white-space:normal;vertical-align:top}.payables-sheet td small{display:block;font-size:11px}.payables-sheet tbody tr:nth-child(odd){background:var(--surface)}.payables-sheet tbody tr:nth-child(even){background:rgba(100,116,139,.13)}.payables-sheet .purchase-products{min-width:220px;max-width:480px;overflow-wrap:anywhere}.payable-summaries{display:flex;gap:20px;margin:8px 0}.payable-summaries details{flex:1;min-width:0}.payable-summaries summary{cursor:pointer;font-weight:bold}.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:4px 12px}.summary-grid p{margin:4px 0;font-size:13px}
 @media(max-width:850px){.purchase-page .form-grid,.payables-page .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.payable-summaries{flex-direction:column;gap:8px}}
+
+/* Shared workspace density and navigation, desktop and touch layouts. */
+body{font-size:14px;line-height:1.45}
+.sidebar{width:218px;padding:16px 12px;overflow-y:auto}
+.sidebar .brand{font-size:18px;gap:10px;padding:0 4px}
+.sidebar nav{margin-top:16px;gap:2px}
+.sidebar nav a{padding:7px 10px;font-size:13px}
+.nav-group{padding:12px 10px 3px;color:#afb4dc;font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+.sidebar-foot{padding:18px 10px 0}
+.shell{margin-left:218px;min-width:0}
+.topbar{height:48px;padding:0 22px}
+main.workspace{max-width:1920px;padding:16px 22px;min-width:0}
+.workspace h1{font-size:25px;margin:0 0 6px}
+.workspace h2{margin-bottom:9px}
+.workspace .page-heading{margin-bottom:12px;gap:12px}
+.workspace p{margin:6px 0 12px}
+.workspace .lead{font-size:14px;margin-bottom:14px}
+.workspace .panel,.workspace .card{padding:14px;margin-bottom:14px}
+.workspace .table-wrap{padding:0;max-width:100%}
+.workspace .grid{gap:14px}
+.workspace .field{margin-bottom:12px}
+.workspace .field label{margin-bottom:4px}
+.workspace input:not([type=hidden]):not([type=checkbox]):not([type=radio]),.workspace select{padding:7px 9px;min-height:36px}
+.workspace button,.workspace .button{padding:7px 12px;min-height:36px}
+.workspace th,.workspace td{padding:9px 10px}
+.workspace .pagination{padding:8px;margin:3px 0;gap:14px}
+.workspace .page-back{margin-bottom:8px;padding:4px 9px;min-height:30px;font-size:12px}
+.workspace .tabs{gap:8px;flex-wrap:wrap;margin:10px 0}
+.workspace .tabs a,.report-nav a,.workspace .actions[aria-label="Exportar relatório"] a{padding:6px 10px;border:1px solid var(--border);border-radius:6px;text-decoration:none;background:var(--surface);font-size:12px}
+.workspace .report-nav{gap:6px;margin:6px 0 12px}
+.workspace .section{margin-top:12px}
+.workspace .actions{flex-wrap:wrap;gap:8px}
+.workspace .notice{padding:10px 12px;margin-bottom:12px}
+.workspace form[method="get"],.filter-bar{display:flex;flex-wrap:wrap;align-items:end;gap:8px 10px;padding:10px;margin:8px 0 12px}
+.workspace form[method="get"]>p,.filter-bar>p{flex:1 1 140px;min-width:0;margin:0;max-width:260px}
+.workspace form[method="get"] label{display:block;font-size:12px;margin-bottom:3px}
+.workspace form[method="get"] .actions{align-self:end}
+.workspace .form-grid p{min-width:0}
+.workspace .stock-totals{gap:10px;margin:12px 0}
+.workspace .stock-totals .card{margin:0}
+.workspace .stock-locations{margin:12px 0;gap:8px}
+.workspace .metric-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.workspace .metric{margin:0;padding:13px 14px;border-top:3px solid var(--focus)}
+.metric h2{font-size:12px;color:var(--muted);font-weight:600}
+.metric strong{display:block;font-size:clamp(18px,1.65vw,26px);font-variant-numeric:tabular-nums;line-height:1.3;margin-bottom:5px}
+.metric small{display:block;color:var(--muted);font-size:11px}
+.quick-links{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.quick-links a{display:flex;align-items:center;gap:15px;justify-content:space-between;padding:9px 12px;border:1px solid var(--border);border-radius:7px;background:var(--surface);text-decoration:none;font-size:12px}
+.quick-links a:hover,.report-nav a:hover{border-color:var(--focus)}
+.dashboard-page .page-heading .section{margin:0}
+.workspace .report-cards .panel{margin:0;padding:10px 12px}
+.workspace .report-cards b{font-size:21px;margin:3px 0}
+.workspace .report-caption{font-size:12px;margin:6px 0 10px}
+.cash-matrix-wrap{max-height:65vh}
+.cash-matrix{width:max-content;min-width:100%;font-size:12px}
+.workspace .cash-matrix td,.workspace .cash-matrix th{padding:6px 8px;min-width:90px}
+.cash-matrix thead th{text-align:center}
+.cash-matrix th:first-child{position:sticky;left:0;z-index:2;min-width:140px;max-width:180px;white-space:normal;background:var(--surface);box-shadow:1px 0 0 var(--border)}
+.cash-matrix thead{position:sticky;top:0;z-index:3}
+.cash-matrix tbody tr:nth-child(even){background:color-mix(in srgb,var(--muted) 9%,var(--surface))}
+.cash-matrix tbody tr:nth-child(even) th{background:color-mix(in srgb,var(--muted) 9%,var(--surface))}
+.cash-matrix .day-end,.cash-matrix .cash-date{border-right:2px solid var(--border)}
+.cash-matrix tfoot{font-weight:700;background:var(--bg)}
+.cash-matrix a{text-decoration:none}
+.cash-matrix a:hover{text-decoration:underline}
+.menu-toggle{display:none}
+@media(max-width:1100px){.workspace .metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:850px){
+.sidebar{position:relative;width:auto;padding:10px 14px;overflow:visible}
+.sidebar .brand{font-size:16px}.sidebar .brand-mark{font-size:19px}.sidebar .brand small{font-size:10px}
+.menu-toggle{display:block;position:absolute;right:14px;top:13px;background:transparent;color:#fff;padding:6px 12px}
+.sidebar nav{display:none;margin-top:8px}.sidebar.menu-open nav{display:grid;grid-template-columns:1fr 1fr;gap:3px}.nav-group{grid-column:1/-1}
+.shell{margin-left:0}.topbar{padding:6px 14px;min-height:40px;height:auto}
+main.workspace{padding:12px 14px}
+.workspace .metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.workspace .page-heading{flex-wrap:wrap}.workspace .panel,.workspace .card{padding:12px}.workspace .table-wrap{padding:0}
+.workspace form[method="get"]>p{max-width:none;flex-basis:140px}
+}
+@media(max-width:480px){
+.workspace h1{font-size:22px}.metric strong{font-size:19px}
+.quick-links{display:grid;grid-template-columns:1fr}
+.workspace .dashboard-channels{font-size:12px}
+.workspace .dashboard-channels th,.workspace .dashboard-channels td{padding:6px}
+.topbar>span{display:none}.topbar{justify-content:flex-end}
+}

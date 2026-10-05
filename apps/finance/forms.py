@@ -77,6 +77,7 @@ class FilterForm(forms.Form):
 
 
 class CashForm(forms.Form):
+    mode=forms.ChoiceField(label='Visão', required=False, choices=[('projected','Realizado + previsto'),('actual','Somente realizado')])
     period=forms.ChoiceField(label='Período',required=False,choices=[('','Personalizado'),('today','Hoje'),('yesterday','Ontem'),('last7','Últimos 7 dias'),('week','Semana'),('month','Mês'),('previous_month','Mês anterior'),('year','Ano')])
     start=forms.DateField(label='De',widget=DateInput(),initial=timezone.localdate,required=False)
     end=forms.DateField(label='Até',widget=DateInput(),initial=lambda:timezone.localdate()+timedelta(days=30),required=False)

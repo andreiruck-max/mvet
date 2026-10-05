@@ -38,7 +38,7 @@ class ExportBrowser(ReportingFixture,StaticLiveServerTestCase):
             browser=pw.chromium.launch();context=browser.new_context(viewport={'width':390,'height':844})
             context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
             page=context.new_page();page.goto(self.live_server_url+reverse('dashboard'))
-            page.get_by_role('heading',name='Faturamento',exact=True).wait_for()
+            page.get_by_role('heading',name='Dashboard gerencial',exact=True).wait_for()
             self.assertEqual(page.get_by_role('link',name='Exportar Excel',exact=True).count(),0)
             self.assertNotIn('CMV',page.locator('main').inner_text())
             self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390)

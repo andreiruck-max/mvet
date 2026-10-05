@@ -27,3 +27,15 @@
     if (new URL(link.href).pathname === window.location.pathname) link.setAttribute("aria-current", "page");
   });
 })();
+
+document.querySelector('.menu-toggle')?.addEventListener('click', function () {
+  const open = document.querySelector('.sidebar').classList.toggle('menu-open');
+  this.setAttribute('aria-expanded', String(open));
+});
+document.querySelectorAll('form[method="get"]').forEach(form => {
+  const period = form.querySelector('[name="period"]');
+  if (!period) return;
+  form.querySelectorAll('[name="start"],[name="end"]').forEach(input => {
+    input.addEventListener('change', () => { period.value = ''; });
+  });
+});
