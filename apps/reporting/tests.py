@@ -200,3 +200,41 @@ class CompactPayablesTests(ReportingFixture, TestCase):
             self.assertNotContains(response,'vencidas')
             history=self.client.get(reverse('purchase_payables'),{'period':'all','status':'pending'})
             self.assertEqual(history.context['page'][0].pk,title.pk)
+
+
+class DashboardLayoutTests(ReportingFixture, TestCase):
+    def test_home_redirect_month_boundaries_and_cards(self):
+        import calendar
+        self.confirmed();self.expense();self.purchase()
+        self.client.force_login(self.actor)
+        self.assertRedirects(self.client.get(reverse('home')), reverse('dashboard'))
+        r=self.client.get(reverse('dashboard'))
+        self.assertEqual(r.context['range']['start'],self.today.replace(day=1))
+        self.assertEqual(r.context['range']['end'].day,calendar.monthrange(self.today.year,self.today.month)[1])
+        self.assertEqual(r.context['purchases']['amount'],D('50'))
+        self.assertEqual(r.context['dre']['result'],s.dre(r.context['range'])['result'])
+        self.assertEqual(r.context['form']['start'].value(),self.today.replace(day=1).isoformat())
+
+    def test_channel_does_not_filter_company_result_and_projection_includes_unassigned(self):
+        self.confirmed();self.expense()
+        self.title(account=None,amount=D('30'))
+        channel=SalesChannel.objects.create(name='Sem vendas')
+        self.client.force_login(self.actor)
+        r=self.client.get(reverse('dashboard'),{**self.period,'channel':channel.pk})
+        self.assertEqual(r.context['totals']['count'],0)
+        self.assertEqual(r.context['dre']['result'],D('53.25'))
+        self.assertEqual(r.context['cash_today'],D('1000'))
+        self.assertEqual(r.context['cash_projected'],D('960'))
+
+    def test_cash_matrix_forecast_and_actual_reconcile(self):
+        from apps.finance.selectors import daily_cash,cash_matrix
+        self.title(amount=D('20'))
+        self.title(direction='RECEIVE',amount=D('7'))
+        rows,_=daily_cash(self.today,self.today)
+        matrix,totals=cash_matrix(rows,[self.today])
+        self.assertEqual(matrix[0]['cells'][0]['credits'],D('7'))
+        self.assertEqual(matrix[0]['cells'][0]['debits'],D('20'))
+        self.assertEqual(totals[0]['balance'],D('987'))
+        actual,_=cash_matrix(rows,[self.today],'actual')
+        self.assertEqual(actual[0]['cells'][0]['balance'],D('1000'))
+        self.assertEqual(actual[0]['cells'][0]['debits'],D('0'))

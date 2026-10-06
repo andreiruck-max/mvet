@@ -38,15 +38,23 @@ def daily_cash(start,end,account_id=None):
     for row in posted.filter(operation__date__gte=start).values('account_id','operation__date').annotate(credit=Sum('amount',filter=Q(amount__gt=0)),debit=Sum('amount',filter=Q(amount__lt=0))):
         movements[(row['account_id'],row['operation__date'])]=[row['credit'] or ZERO,-(row['debit'] or ZERO)]
     forecast=defaultdict(lambda:ZERO)
+    forecast_credits=defaultdict(lambda:ZERO)
+    forecast_debits=defaultdict(lambda:ZERO)
     opening_dates={a.pk:a.opening_date for a in accounts}
     # Overdue forecasts roll forward to today; history is only actual cash.
-    for row in Entry.objects.filter(account_id__in=ids,operation__status='PLANNED',operation__date__lte=end).values('account_id','operation__date').annotate(total=Sum('amount')):
+    for row in Entry.objects.filter(account_id__in=ids,operation__status='PLANNED',operation__date__lte=end).values('account_id','operation__date').annotate(total=Sum('amount'),credit=Sum('amount',filter=Q(amount__gt=0)),debit=Sum('amount',filter=Q(amount__lt=0))):
         date=max(row['operation__date'],today)
-        if date<=end: forecast[(row['account_id'],date)]+=row['total']
+        if date<=end:
+            forecast[(row['account_id'],date)]+=row['total']
+            forecast_credits[(row['account_id'],date)]+=row['credit'] or ZERO
+            forecast_debits[(row['account_id'],date)]-=row['debit'] or ZERO
     pending=Title.objects.filter(status='OPEN',settled__lt=F('amount'),due_date__lte=end)
     for row in pending.filter(account_id__in=ids).values('account_id','due_date').annotate(total=Sum(F('amount')-F('settled'),filter=Q(direction='RECEIVE')),pay=Sum(F('amount')-F('settled'),filter=Q(direction='PAY'))):
         date=max(row['due_date'],today,opening_dates[row['account_id']])
-        if date<=end: forecast[(row['account_id'],date)]+=(row['total'] or ZERO)-(row['pay'] or ZERO)
+        if date<=end:
+            forecast[(row['account_id'],date)]+=(row['total'] or ZERO)-(row['pay'] or ZERO)
+            forecast_credits[(row['account_id'],date)]+=row['total'] or ZERO
+            forecast_debits[(row['account_id'],date)]+=row['pay'] or ZERO
     unallocated=pending.filter(account__isnull=True).aggregate(pay=Sum(F('amount')-F('settled'),filter=Q(direction='PAY')),receive=Sum(F('amount')-F('settled'),filter=Q(direction='RECEIVE')))
     result=[]
     for account in accounts:
@@ -60,7 +68,7 @@ def daily_cash(start,end,account_id=None):
             credit,debit=movements[(account.pk,date)]
             begin=balance; balance+=credit-debit
             projected+=credit-debit+forecast[(account.pk,date)]
-            result.append(dict(account=account,date=date,initial=begin,credits=credit,debits=debit,final=balance,projected=projected,forecast=forecast[(account.pk,date)]))
+            result.append(dict(account=account,date=date,initial=begin,credits=credit,debits=debit,final=balance,projected=projected,projected_credits=credit+forecast_credits[(account.pk,date)],projected_debits=debit+forecast_debits[(account.pk,date)],forecast=forecast[(account.pk,date)]))
             date+=timedelta(days=1)
     return result, {k:v or ZERO for k,v in unallocated.items()}
 
@@ -74,3 +82,21 @@ def cash_summary(start, end, account_id=None):
     if not account_id and end >= timezone.localdate():
         projected += unallocated['receive'] - unallocated['pay']
     return {'actual': actual, 'projected': projected, 'unallocated': unallocated, 'end': end}
+
+
+def cash_matrix(rows, dates, mode='projected'):
+    # Transpose daily balances, leaving blanks before account opening.
+    accounts = {}
+    totals = {day: {'credits': ZERO, 'debits': ZERO, 'balance': ZERO} for day in dates}
+    for row in rows:
+        account = row['account']
+        group = accounts.setdefault(account.pk, {'account': account, 'by_date': {}})
+        cell = {'date': row['date'],
+                'credits': row['credits'] if mode == 'actual' else row['projected_credits'],
+                'debits': row['debits'] if mode == 'actual' else row['projected_debits'],
+                'balance': row['final'] if mode == 'actual' else row['projected']}
+        group['by_date'][row['date']] = cell
+        for key in ('credits','debits','balance'):
+            totals[row['date']][key] += cell[key]
+    return ([{'account': group['account'], 'cells': [group['by_date'].get(day) for day in dates]}
+             for group in accounts.values()], [totals[day] for day in dates])

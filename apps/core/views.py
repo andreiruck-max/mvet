@@ -11,6 +11,8 @@ from .services import update_company
 @login_required
 @require_GET
 def home(request):
+    if request.user.has_perm("core.view_dashboard"):
+        return redirect("dashboard")
     return render(request, "core/home.html", {"company": get_company()})
 
 @login_required

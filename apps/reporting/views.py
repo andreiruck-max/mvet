@@ -2,7 +2,7 @@ from urllib.parse import urlencode
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Count
 from datetime import timedelta
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -10,14 +10,20 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET
 from apps.inventory.services import domain_lock
 from apps.products.models import Product
-from apps.finance.selectors import daily_cash
+from apps.finance.selectors import cash_summary
 from apps.finance.models import FinancialTitle
+from apps.purchases.models import Purchase
 from . import forms, selectors
 from .datasets import metrics_for, sales_dataset
 
 def bind(request,cls):
     form=cls(request.GET or {'period':'month'})
     valid=form.is_valid()
+    if valid:
+        data = form.data.copy()
+        for field in ('start', 'end'):
+            if form.cleaned_data.get(field): data[field] = form.cleaned_data[field].isoformat()
+        form.data = data
     return form,form.cleaned_data if valid else None
 
 def links(d):
@@ -32,16 +38,19 @@ def dashboard(request):
     domain_lock();form,d=bind(request,forms.PeriodForm);ctx={'form':form}
     if d:
         ctx.update(totals=metrics_for(request.user,selectors.sales_summary(selectors.sale_rows(d))),channels=[metrics_for(request.user,r) for r in selectors.channel_summary(d)],dates=links(d),channel=d.get('channel'),range=d)
-        if request.user.has_perm('core.view_dre'):ctx['dre']=selectors.dre(d)
+        if request.user.has_perm('core.view_dre'):ctx['dre']=selectors.dre({**d, 'channel': None})
+        if request.user.has_perm('core.view_purchase_reports'):
+            ctx['purchases'] = Purchase.objects.filter(date__range=(d['start'],d['end']),status__in=['ORDERED','RECEIVED']).aggregate(amount=Sum('total'),count=Count('pk'))
         if request.user.has_perm('core.view_costs'):ctx['stock']=Product.objects.aggregate(value=Sum('value'))['value'] or 0
         if request.user.has_perm('core.view_finance'):
-            today=timezone.localdate();horizon=today+timedelta(days=30);rows,unallocated=daily_cash(today,horizon)
-            ctx['cash_today']=sum((r['final'] for r in rows if r['date']==today),selectors.ZERO)
-            ctx['cash_projected']=sum((r['projected'] for r in rows if r['date']==horizon),selectors.ZERO)
-            ctx['unallocated']=unallocated
+            today=timezone.localdate();horizon=today+timedelta(days=30)
+            ctx['cash_today']=cash_summary(today,today)['actual']
+            projection=cash_summary(today,horizon)
+            ctx['cash_projected']=projection['projected']
+            ctx['unallocated']=projection['unallocated']
             ctx['overdue']=FinancialTitle.objects.filter(direction='PAY',status='OPEN',due_date__lt=today).aggregate(value=Sum(F('amount')-F('settled')))['value'] or selectors.ZERO
             ctx['payables']=selectors.payable_totals(selectors.payables({**d,'status':'pending'}))
-    template='reporting/dashboard.html' if request.user.has_perm('core.view_margins') and request.user.has_perm('core.view_costs') else 'reporting/revenue.html'
+    template='reporting/dashboard.html'
     return render(request,template,ctx,status=200 if d else 400)
 
 @login_required

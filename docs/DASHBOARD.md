@@ -27,3 +27,13 @@ Operacional não acessa totais, CMV, margens, DRE ou bancos apenas porque lança
 
 ## Relatório de vendas compacto — 28/09/2026
 Vendas agrupadas por canal, 50 por página, composição detalhada expansível e apresentação móvel sem rolagem horizontal. Cartões do topo mostram confirmadas de todos os canais no período; canal/NF/situação filtram a listagem, não os cartões. Subtotais de canal consideram todas as páginas do filtro. Rascunhos/canceladas fora dos totais. Custos/margens seguem permissões; exportações completas preservadas (ADR 0023).
+
+
+## Revisão de navegação e densidade — 05/10/2026
+A raiz redireciona usuários com view_dashboard para Indicadores; demais usuários mantêm início operacional, sem ganhar permissões. Período padrão é mês atual completo; datas calculadas aparecem nos campos. Editar datas troca o período para Personalizado.
+
+Menu organizado em visão geral, operação, financeiro/resultados e configuração. Conexão Bling fica em configuração. Área principal aproveita a largura disponível; filtros GET, cabeçalhos, tabelas, botões e espaçamentos adotam densidade compacta em todos os módulos. Menu móvel recolhido, expansível por botão acessível.
+
+Dashboard: receita e contribuição por filtro; resultado da empresa e despesas por competência de todos os canais; compras confirmadas/recebidas pela data da compra (uma soma por compra), condicionadas a view_purchase_reports. Saldo bancário atual e projeção em 30 dias exigem view_finance; estoque exige view_costs. Resultado exige view_dre. Projeção consolidada inclui obrigações sem conta definida, como a tela financeira. Resultado é antes de depreciação/amortização e sinaliza pendências de classificação; não é lucro líquido contábil.
+
+Caixa substitui cartões por matriz: contas nas linhas, datas nas colunas, entradas/saídas/saldo, rodapé total. Escolha Somente realizado ou Realizado + previsto. Movimentos previstos são separados por direção antes da soma, evitando ocultar entrada e saída simultâneas. Saldo mantém todas as fontes e continuidade entre páginas; células antes da abertura ficam vazias. Cabeçalho e banco fixos, rolagem própria e linhas alternadas. Cartões usam período inteiro; tabela usa 14 dias por página. Compromissos sem conta ficam fora das linhas por banco e explícitos no aviso. Nenhuma mudança em lançamentos, snapshots ou migrations.

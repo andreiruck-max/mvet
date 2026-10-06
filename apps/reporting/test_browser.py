@@ -11,6 +11,10 @@ class ReportingBrowser(ReportingFixture,StaticLiveServerTestCase):
     def test_dashboard_sheets_dre_payables_and_daily_cash(self):
         from playwright.sync_api import sync_playwright
         self.confirmed();self.expense();self.purchase()
+        from apps.finance import services as finance
+        from decimal import Decimal
+        for index in range(1, 6):
+            finance.save_account(actor=self.actor,data=dict(name=f'Conta exemplo {index}',kind='BANK',opening_date=self.today,opening_balance=Decimal(index * 1000)))
         client=Client();client.force_login(self.actor)
         with sync_playwright() as pw:
             browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1050},locale='pt-BR')
@@ -18,7 +22,13 @@ class ReportingBrowser(ReportingFixture,StaticLiveServerTestCase):
             page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
             page.goto(self.live_server_url+reverse('dashboard'))
             page.get_by_role('heading',name='Dashboard gerencial',exact=True).wait_for()
-            page.get_by_role('link',name='Conferir vendas e deduções em tabela',exact=True).click()
+            self.assertTrue(page.locator('#id_start').input_value())
+            self.assertTrue(page.locator('#id_end').input_value())
+            from pathlib import Path
+            Path('artifacts').mkdir(exist_ok=True)
+            self.assertLess(page.locator('.dashboard-channels').bounding_box()['y'],750)
+            page.screenshot(path='artifacts/dashboard-desktop.png',full_page=True)
+            page.get_by_role('link',name='Conferir vendas e deduções em tabela',exact=False).click()
             page.get_by_role('heading',name='Vendas em tabela',exact=True).wait_for()
             self.assertEqual(page.locator('.sales-sheet tbody tr').count(),1)
             page.get_by_role('columnheader',name='CMV histórico',exact=True).wait_for()
@@ -49,13 +59,20 @@ class ReportingBrowser(ReportingFixture,StaticLiveServerTestCase):
             page.get_by_role('link',name='Fluxo diário',exact=True).click()
             page.get_by_label('Período:',exact=True).select_option('month')
             page.get_by_role('button',name='Consultar',exact=True).click()
-            self.assertEqual(page.locator('.cash-day').count(),14)
+            self.assertEqual(page.locator('.cash-date').count(),14)
+            self.assertLess(page.locator('.cash-matrix tbody tr').first.bounding_box()['y'],600)
+            page.screenshot(path='artifacts/cash-matrix-desktop.png',full_page=True)
             page.get_by_role('link',name='Próxima',exact=True).first.click()
             self.assertIn('page=2',page.url)
-            for name in ['dashboard','sales_sheet','dre','purchase_payables','finance']:
-                page.goto(self.live_server_url+reverse(name));page.set_viewport_size({'width':390,'height':844})
+            for name in ['dashboard','sales_sheet','dre','purchase_payables','finance','products','purchases','sales','expenses','financial_titles','notifications','configuration','bling_queue','bling_purchase_queue']:
+                page.set_viewport_size({'width':1440,'height':1050})
+                page.goto(self.live_server_url+reverse(name))
+                self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),1440,name)
+                page.screenshot(path=f'artifacts/layout-{name}-desktop.png',full_page=True)
+                page.set_viewport_size({'width':390,'height':844})
                 self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390,name)
                 self.assertGreater(page.locator('h1').inner_text().__len__(),0)
+                page.screenshot(path=f'artifacts/layout-{name}-mobile.png',full_page=True)
             page.locator('#theme-toggle').click()
             self.assertEqual(page.locator('html').get_attribute('data-theme'),'dark')
             self.assertEqual(errors,[]);browser.close()
