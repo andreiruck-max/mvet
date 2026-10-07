@@ -218,8 +218,13 @@ def _cancel_titles(actor, rows, reason):
 
 
 def create_purchase_titles(purchase, actor):
+    classifications=set()
+    for item in purchase.items.all():
+        nature=item.category_snapshot.get('nature') if not item.moves_stock else 'ASSET'
+        classifications.add(nature if nature in {'OPERATING','FINANCIAL'} else 'PRINCIPAL' if nature in {'ASSET','LIABILITY','EQUITY'} else 'OTHER')
+    category=next(iter(classifications)) if len(classifications)==1 else 'OTHER'
     for installment in purchase.installments.all():
-        Title.objects.get_or_create(purchase_installment=installment,defaults=dict(direction='PAY',description=f'Compra {purchase.document} · parcela {installment.number}',counterparty=str(purchase.supplier),date=purchase.date,due_date=installment.due_date,amount=installment.amount,actor=actor,source='purchase',category='PRINCIPAL'))
+        Title.objects.get_or_create(purchase_installment=installment,defaults=dict(direction='PAY',description=f'Compra {purchase.document} · parcela {installment.number}',counterparty=str(purchase.supplier),date=purchase.date,due_date=installment.due_date,amount=installment.amount,actor=actor,source='purchase',category=category))
 
 
 def cancel_origin(actor, reason, **filters):

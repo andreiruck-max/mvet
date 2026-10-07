@@ -63,6 +63,7 @@ class FlexiblePurchaseTests(Fixture, TestCase):
         p=self.posted(p)
         self.assertIsNone(p.receipt_id);self.assertEqual(StockMovement.objects.count(),before)
         self.assertEqual(FinancialTitle.objects.count(),1);self.assertEqual(self.report()['expenses']['OPERATING'],100)
+        self.assertEqual(FinancialTitle.objects.get().category,'OPERATING')
         cat.name='Outro nome';cat.save()
         self.assertIn('Embalagens',self.report()['groups'][0]['label'])
         purchases.cancel(actor=self.actor,purchase_id=p.pk,reason='Desfazer')
