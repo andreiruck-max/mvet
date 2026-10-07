@@ -12,7 +12,7 @@ from apps.inventory.services import domain_lock, number, QTY, MONEY, quant, _fin
 from .models import Supplier, Purchase, PurchaseItem, PurchaseInstallment
 
 CENT=Decimal('0.01')
-FIELDS=['supplier','document','series','date','location','discount','freight','other_costs','notes']
+FIELDS=['acquisition_kind','supplier','document','series','date','location','discount','freight','other_costs','notes']
 
 def normalized_document(value):
     value=value.strip().upper()
@@ -33,7 +33,7 @@ def allocation(subtotals,total):
     return [value*CENT for value in whole]
 
 def snapshot(purchase):
-    return {**{field:str(getattr(purchase,field)) for field in FIELDS},'status':purchase.status,'total':str(purchase.total),'revision':purchase.revision,'items':list(purchase.items.values('product_id','sku_snapshot','name_snapshot')),'quantities_costs':[(str(i.quantity),str(i.unit_cost),str(i.allocated_total)) for i in purchase.items.all()],'installments':[(i.number,str(i.due_date),str(i.amount),i.notes) for i in purchase.installments.all()]}
+    return {**{field:str(getattr(purchase,field)) for field in FIELDS},'status':purchase.status,'total':str(purchase.total),'revision':purchase.revision,'items':list(purchase.items.values('product_id','sku_snapshot','name_snapshot','moves_stock','category_snapshot')),'quantities_costs':[(str(i.quantity),str(i.unit_cost),str(i.allocated_total),str(i.nonstock_total)) for i in purchase.items.all()],'installments':[(i.number,str(i.due_date),str(i.amount),i.notes) for i in purchase.installments.all()]}
 
 def validate_active(purchase):
     if not Supplier.objects.filter(pk=purchase.supplier_id,active=True).exists():raise ValidationError('Fornecedor inativo.')
@@ -77,19 +77,41 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
         if purchase.revision!=revision:raise ValidationError('A compra mudou em outra sessão. Reabra a edição.')
         before=snapshot(purchase)
     if not items or len(items)>100 or len(installments)>120:raise ValidationError('Informe de 1 a 100 itens e no máximo 120 parcelas.')
-    for field in FIELDS:setattr(purchase,field,data[field])
+    for field in FIELDS:setattr(purchase,field,data.get(field,'NORMAL') if field=='acquisition_kind' else data[field])
+    if purchase.acquisition_kind not in ('NORMAL','BONUS'):raise ValidationError('Tipo de entrada inválido.')
     purchase.document=normalized_document(purchase.document);purchase.series=normalized_document(purchase.series)
     validate_active(purchase)
     for field in ['discount','freight','other_costs']:number(getattr(purchase,field),CENT,zero=True)
-    products={p.pk:p for p in Product.objects.filter(pk__in=[i[0] for i in items],active=True,kind='SIMPLE')}
+    # Legacy callers retain stock movement by default. Extended rows carry explicit treatment.
+    items=[dict(product_id=i[0],quantity=i[1],unit_cost=i[2],moves_stock=True) if not isinstance(i,dict) else dict(i) for i in items]
+    products={p.pk:p for p in Product.objects.filter(pk__in=[i.get('product_id') for i in items],active=True,kind='SIMPLE')}
     subtotals=[]
-    for pid,qty,cost in items:
+    from apps.expenses.models import ChartOfAccount
+    from apps.expenses.services import category_path
+    for item in items:
+        pid,qty,cost=item.get('product_id'),item['quantity'],item['unit_cost']
+        stock=item.get('moves_stock',True)
+        if not isinstance(stock,bool):raise ValidationError('Tratamento de estoque inválido.')
+        item['moves_stock']=stock
+        item['category_snapshot']={}
+        if stock and item.get('category_id'):raise ValidationError('Categoria de despesa é apenas para itens sem estoque.')
+        if not stock:
+            require(actor,'core.operate_expenses')
+            if not str(item.get('name') or (products[pid].name if pid in products else '')).strip():raise ValidationError('Informe a descrição do item sem estoque.')
+            if item.get('category_id'):
+                category=ChartOfAccount.objects.filter(pk=item['category_id'],postable=True).exclude(nature='REVENUE').first()
+                if not category:raise ValidationError('Categoria inválida para item sem estoque.')
+                item['category_snapshot']=category_path(category,expense=False)
         number(qty,QTY);number(cost,MONEY,zero=True)
-        if pid not in products:raise ValidationError('Compra exige produtos simples ativos. Kits virtuais não são recebidos.')
+        if (stock or pid is not None) and pid not in products:raise ValidationError('Compra exige produtos simples ativos. Kits virtuais não são recebidos.')
         subtotals.append((qty*cost).quantize(CENT,rounding=ROUND_HALF_UP))
     purchase.products_total=sum(subtotals,Decimal('0'))
     if purchase.discount>purchase.products_total:raise ValidationError('Desconto não pode exceder o total dos produtos.')
     purchase.total=purchase.products_total-purchase.discount+purchase.freight+purchase.other_costs
+    if purchase.acquisition_kind=='BONUS':
+        if purchase.discount or purchase.freight or purchase.other_costs or installments:raise ValidationError('Bonificação não gera parcelas nem custos pagos. Registre custos cobrados separadamente.')
+        if any(not i['moves_stock'] for i in items):raise ValidationError('Bonificação exige itens destinados ao estoque.')
+        purchase.total=Decimal('0.00')
     allocated=allocation(subtotals,purchase.total)
     for due,amount,notes in installments:
         number(amount,CENT)
@@ -100,9 +122,13 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
     purchase.revision+=1
     purchase.full_clean(exclude=['received_date','receipt','reversal','confirmed_by','received_by','cancelled_by','confirmed_at','received_at','cancelled_at'])
     purchase.save();purchase.items.all().delete();purchase.installments.all().delete()
-    for (pid,qty,cost),subtotal,value in zip(items,subtotals,allocated):
-        p=products[pid]
-        PurchaseItem.objects.create(purchase=purchase,product=p,quantity=qty,unit_cost=cost,subtotal=subtotal,allocated_total=value,landed_unit_cost=quant(value/qty),sku_snapshot=p.sku,name_snapshot=p.name)
+    for item,subtotal,value in zip(items,subtotals,allocated):
+        p=products.get(item.get('product_id'));stock=item['moves_stock'];qty=item['quantity']
+        obj=PurchaseItem(purchase=purchase,product=p,quantity=qty,unit_cost=item['unit_cost'],subtotal=subtotal,
+            moves_stock=stock,allocated_total=value if stock else Decimal('0'),nonstock_total=Decimal('0') if stock else value,
+            category_id=item.get('category_id'),category_snapshot=item['category_snapshot'],
+            landed_unit_cost=quant(value/qty) if stock else Decimal('0'),sku_snapshot=p.sku if p else '',name_snapshot=p.name if p else item['name'])
+        obj.full_clean(exclude=['movement']);obj.save()
     for index,(due,amount,notes) in enumerate(installments,1):PurchaseInstallment.objects.create(purchase=purchase,number=index,due_date=due,amount=amount,notes=notes)
     audit(actor,purchase,'save_purchase_draft',before,snapshot(purchase));return purchase
 
@@ -116,7 +142,8 @@ def confirm(*,actor,purchase_id,revision):
     if p.revision!=revision:raise ValidationError('A compra mudou. Revise antes de confirmar.')
     validate_active(p);validate_schedule(p)
     if not p.items.exists():raise ValidationError('Compra sem itens.')
-    if p.items.filter(product__active=False).exists():raise ValidationError('Produto inativo.')
+    if p.items.filter(moves_stock=True,product__active=False).exists():raise ValidationError('Produto inativo.')
+    if p.items.filter(moves_stock=False).exists():require(actor,'core.operate_expenses')
     p.status='ORDERED';p.confirmed_by=actor;p.confirmed_at=timezone.now();p.revision+=1;p.save()
     from apps.finance.services import create_purchase_titles
     create_purchase_titles(p,actor)
@@ -132,16 +159,16 @@ def receive(*,actor,purchase_id,date,revision):
     if p.revision!=revision:raise ValidationError('A compra mudou. Revise antes de receber.')
     validate_active(p);validate_schedule(p)
     if date<p.date:raise ValidationError('Recebimento não pode ser anterior à compra.')
-    items=list(p.items.order_by('product_id','pk'))
+    items=list(p.items.filter(moves_stock=True).order_by('product_id','pk'))
     products={product.pk:product for product in Product.objects.select_for_update().filter(pk__in=[i.product_id for i in items]).order_by('pk')}
-    if not items or any(not product.active or product.kind!='SIMPLE' for product in products.values()):raise ValidationError('Itens inválidos ou inativos.')
+    if not p.items.exists() or any(not product.active or product.kind!='SIMPLE' for product in products.values()):raise ValidationError('Itens inválidos ou inativos.')
     _date(date,products.values())
-    op=StockOperation.objects.create(kind='PUR_RECEIPT',date=date,actor=actor,reason=f'Compra {p.document}/{p.series}',fingerprint=_fingerprint(['purchase',p.pk]))
+    op=StockOperation.objects.create(kind='PUR_RECEIPT',date=date,actor=actor,reason=f'Compra {p.document}/{p.series}',fingerprint=_fingerprint(['purchase',p.pk])) if items else None
     for item in items:
         item.movement=_apply(op,products[item.product_id],p.location,item.quantity,item.allocated_total,unit_cost=item.landed_unit_cost)
         item.save(update_fields=['movement'])
     p.status='RECEIVED';p.receipt=op;p.received_by=actor;p.received_at=timezone.now();p.received_date=date;p.revision+=1;p.save()
-    audit(actor,p,'receive_purchase',{'status':'ORDERED'},{'status':p.status,'operation':op.pk,'date':str(date),'total':str(p.total)})
+    audit(actor,p,'receive_purchase',{'status':'ORDERED'},{'status':p.status,'operation':op.pk if op else None,'date':str(date),'total':str(p.total)})
     return p
 
 @transaction.atomic
@@ -154,7 +181,7 @@ def cancel(*,actor,purchase_id,reason):
     from apps.finance.services import cancel_origin
     cancel_origin(actor,reason,purchase_installment__purchase=p)
     previous=p.status
-    if previous=='RECEIVED':
+    if previous=='RECEIVED' and p.receipt_id:
         moves=list(p.receipt.movements.select_related('location').order_by('-pk'))
         products={product.pk:product for product in Product.objects.select_for_update().filter(pk__in=[m.product_id for m in moves]).order_by('pk')}
         for product in products.values():

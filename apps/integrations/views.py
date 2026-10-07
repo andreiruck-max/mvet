@@ -23,13 +23,13 @@ from .models import BlingConnection, InvoiceImport, ImportRun, ReviewDefaults
 @login_required
 @permission_required('core.review_bling', raise_exception=True)
 def queue(request):
-    rows = InvoiceImport.objects.select_related('sale')
-    state = request.GET.get('status', 'PENDING')
-    if state in dict(InvoiceImport._meta.get_field('status').choices): rows = rows.filter(status=state)
-    if request.GET.get('q'): rows = rows.filter(number__icontains=request.GET['q'][:30])
-    if request.GET.get('divergence') == '1': rows = rows.filter(discrepancy=True)
+    from . import bulk
+    rows=bulk.filtered_rows('SALE',request.GET)
+    state=request.GET.get('status','PENDING')
+    page=Paginator(rows,50).get_page(request.GET.get('page'))
+    bulk_context=bulk.context(request.user,'SALE',rows,page)
     return render(request, 'integrations/queue.html', {
-        'page': Paginator(rows, 30).get_page(request.GET.get('page')), 'state': state,
+        'page':page, 'state':state, **bulk_context,
         'states': InvoiceImport._meta.get_field('status').choices, 'query_form': QueryForm(),
         'runs': ImportRun.objects.filter(kind='SALE')[:10], 'connection': BlingConnection.objects.filter(pk=1).first(),
     })

@@ -24,6 +24,7 @@ class InvoiceImport(models.Model):
     # Allowlisted commercial fields only: never retain costs, tokens or contact PII.
     source = models.JSONField(default=dict)
     approved_source = models.JSONField(default=dict, editable=False)
+    review_overrides = models.JSONField(default=dict, blank=True)
     fingerprint = models.CharField(max_length=64)
     revision = models.PositiveIntegerField(default=1)
     status = models.CharField(max_length=12, default='PENDING', choices=[
@@ -92,6 +93,7 @@ class PurchaseInvoiceImport(models.Model):
     issued_on = models.DateField()
     source = models.JSONField(default=dict)
     approved_source = models.JSONField(default=dict, editable=False)
+    review_overrides = models.JSONField(default=dict, blank=True)
     fingerprint = models.CharField(max_length=64)
     revision = models.PositiveIntegerField(default=1)
     error = models.CharField(max_length=500, blank=True)

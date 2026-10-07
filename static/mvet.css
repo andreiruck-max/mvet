@@ -115,3 +115,6 @@ main.workspace{padding:12px 14px}
 .workspace .dashboard-channels th,.workspace .dashboard-channels td{padding:6px}
 .topbar>span{display:none}.topbar{justify-content:flex-end}
 }
+/* Compact invoice selection and item treatment. */
+.bulk-toolbar{margin:10px 0;flex-wrap:wrap}.bulk-toolbar label{display:flex;align-items:center;gap:8px}.bulk-toolbar select{max-width:440px}.import-treatment{min-width:260px;max-width:460px}.import-treatment select,.import-treatment input{max-width:100%;width:100%;box-sizing:border-box}.import-treatment [data-mode]{margin-top:8px}.import-treatment small{display:block;max-width:40ch}.import-treatment [hidden]{display:none}
+@media(max-width:600px){.bulk-toolbar label{flex-wrap:wrap}.bulk-toolbar select{max-width:100%}}

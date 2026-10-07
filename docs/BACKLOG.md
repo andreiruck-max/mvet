@@ -1,5 +1,9 @@
 # Backlog
 
+## Pacote em preparação — 06/10/2026
+
+Seleção em massa nas filas Bling, compras mistas (estoque/financeiro), cadastro de produto durante importação e bonificação sem pagamento: implementados, em validação. Ver ADR 0025. Manter separado da instalação local até reunir as próximas alterações do usuário. Não limpar notas reais por migration; usar a ação reversível na fila após implantação.
+
 ## Ampliação — acessos e arquivos
 
 [PR #18](https://github.com/andreiruck-max/mvet/pull/18): políticas individuais pelo master e exportações Excel/PDF nos módulos existentes. Entregue e integrado: 236 testes PostgreSQL e 9 Chromium aprovados. Não adiar exportações para a Fase 9. Bling: importação assistida de NF/SKU e OAuth implementados nesta etapa; validação PostgreSQL/Chromium registrada no [PR #20](https://github.com/andreiruck-max/mvet/pull/20), com homologação real ainda pendente. Conciliação financeira continua futura, sem promessa de saldo bancário direto. ADR 0015 define fila separada de conferência, custos de marketplace manuais, CMV exclusivo do MVet e cancelamentos independentes; implementação preserva escolhas locais e não reativa vendas canceladas. Ver BLING_SETUP.md para os limites concretos.

@@ -53,6 +53,7 @@ class ReviewForm(SaleForm):
             for field in ('channel', 'location'):
                 obj = getattr(defaults, prefix + '_' + field)
                 self.initial[field] = obj.pk if obj.active else None
+        self.initial.update(invoice.review_overrides)
         self.fields['shipping_received'].help_text = 'Frete da nota no Bling; confira e altere se necessário.'
         self.fields['shipping_paid'].help_text = 'Sugerido igual ao frete da nota. Ajuste para o custo efetivamente pago.'
         self.fields['discount'].help_text = 'Não fornecido nesta consulta do Bling. Confira e informe se houver.'

@@ -167,3 +167,70 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
         self.assertEqual(Purchase.objects.get().status,'DRAFT')
         self.assertFalse(FinancialTitle.objects.exists())
         self.product.refresh_from_db();self.assertEqual(self.product.quantity,10)
+
+    def test_bulk_ignore_and_reopen_selected_invoices(self):
+        from playwright.sync_api import sync_playwright
+        from django.urls import reverse
+        from .models import InvoiceImport
+        connection=BlingConnection.objects.create(pk=1,issuer=ISSUER)
+        invoice=stage(actor=self.actor,connection=connection,payload=payload())
+        client=Client();client.force_login(self.actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1000})
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page();page.goto(self.live_server_url+reverse('bling_queue'))
+            page.get_by_label('Selecionar página',exact=True).check()
+            page.get_by_role('button',name='Ignorar / modificar em massa',exact=True).click()
+            page.get_by_role('button',name='Revisar alterações',exact=True).click()
+            from pathlib import Path
+            Path('artifacts').mkdir(exist_ok=True)
+            page.screenshot(path='artifacts/bling-bulk-preview.png',full_page=True)
+            page.get_by_role('button',name='Aplicar nas 1 notas',exact=True).click()
+            invoice.refresh_from_db();self.assertEqual(invoice.status,'IGNORED')
+            page.locator('#status').select_option('IGNORED');page.get_by_role('button',name='Filtrar',exact=True).click()
+            page.locator('input[name="selected"]').check()
+            page.get_by_role('button',name='Ignorar / modificar em massa',exact=True).click()
+            page.locator('#id_action').select_option('reopen')
+            page.get_by_role('button',name='Revisar alterações',exact=True).click()
+            page.get_by_role('button',name='Aplicar nas 1 notas',exact=True).click()
+            invoice.refresh_from_db();self.assertEqual(invoice.status,'PENDING');browser.close()
+
+    def test_purchase_new_product_and_financial_only_item(self):
+        from playwright.sync_api import sync_playwright
+        from django.urls import reverse
+        from apps.purchases.models import Supplier, Purchase
+        from apps.products.models import Product
+        from apps.expenses.models import ChartOfAccount
+        from .test_purchase_import import incoming, SUPPLIER
+        from .purchase_services import stage as stage_purchase
+        from pathlib import Path
+        connection=BlingConnection.objects.create(pk=1,issuer=ISSUER)
+        Supplier.objects.create(legal_name='Fornecedor sintético',document=SUPPLIER)
+        category=ChartOfAccount.objects.create(code='04',name='Embalagens sintéticas',nature='OPERATING')
+        data=incoming(valorNota='110',parcelas=[]);data['itens'][0]['codigo']=''
+        data['itens'].append(dict(data['itens'][0],descricao='Caixas sintéticas',quantidade=1,valor=10))
+        invoice=stage_purchase(actor=self.actor,connection=connection,payload=data)
+        client=Client();client.force_login(self.actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1050},locale='pt-BR')
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page();errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
+            page.goto(self.live_server_url+reverse('bling_purchase_detail',args=[invoice.pk]))
+            page.locator('#id_location').select_option(str(self.location.pk))
+            page.locator('#id_products-0-mode').select_option('NEW')
+            page.locator('#id_products-0-new_sku').fill('NEW-BROWSER')
+            page.locator('#id_products-0-new_name').fill('Produto com nome local')
+            page.locator('#id_products-1-mode').select_option('NONSTOCK')
+            page.locator('#id_products-1-category').select_option(str(category.pk))
+            Path('artifacts').mkdir(exist_ok=True)
+            page.screenshot(path='artifacts/bling-purchase-mixed-desktop.png',full_page=True)
+            page.set_viewport_size({'width':390,'height':844})
+            self.assertFalse(page.evaluate('document.documentElement.scrollWidth > innerWidth'))
+            page.screenshot(path='artifacts/bling-purchase-mixed-mobile.png',full_page=True)
+            page.locator('#id_reviewed').check()
+            page.get_by_role('button',name='Importar rascunho de compra',exact=True).click()
+            page.get_by_text('Rascunho importado.',exact=False).wait_for()
+            self.assertEqual(errors,[]);browser.close()
+        p=Purchase.objects.get();self.assertEqual(p.total,110)
+        self.assertEqual(p.items.get(moves_stock=False).nonstock_total,10)
+        self.assertTrue(Product.objects.filter(sku='NEW-BROWSER',name='Produto com nome local').exists())

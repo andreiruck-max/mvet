@@ -8,6 +8,7 @@
  function value(name,places){return scaled(form.elements.namedItem(name)?.value,places);}
  function format(cents){return (cents/100n).toString()+','+(cents%100n).toString().padStart(2,'0');}
  function total(){
+  if(form.elements.namedItem('acquisition_kind')?.value==='BONUS')return 0n;
   let sum=0n;const count=Number(form.elements.namedItem('form-TOTAL_FORMS').value);
   for(let i=0;i<count;i++){if(form.elements.namedItem(`form-${i}-DELETE`)?.checked)continue;sum+=(value(`form-${i}-quantity`,4)*value(`form-${i}-unit_cost`,6)+50000000n)/100000000n;}
   return sum-value('discount',2)+value('freight',2)+value('other_costs',2);

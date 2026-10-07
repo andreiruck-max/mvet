@@ -47,7 +47,7 @@ def save_category(*,actor,data,pk=None):
         if obj.parent.postable or obj.nature!=obj.parent.nature:raise ValidationError('Categoria superior deve ser agrupadora e possuir a mesma natureza.')
         if obj.code.rsplit('.',1)[0]!=obj.parent.code or '.' not in obj.code:raise ValidationError('Código deve ser filho direto do código superior.')
     elif '.' in obj.code:raise ValidationError('Código com subnível exige categoria superior.')
-    if pk and (obj.children.exists() or obj.expenses.exists() or Rule.objects.filter(category=obj).exists()):
+    if pk and (obj.children.exists() or obj.expenses.exists() or obj.purchase_items.exists() or Rule.objects.filter(category=obj).exists()):
         for field in ['code','parent','nature','postable']:
             if str(getattr(obj,field))!=before[field]:raise ValidationError('Estrutura utilizada é histórica; crie outra categoria. Nome e atividade podem ser ajustados.')
     obj.full_clean();obj.save()

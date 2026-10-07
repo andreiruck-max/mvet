@@ -1,3 +1,11 @@
+# Bling — seleção em massa e compras flexíveis (06/10/2026)
+- Seleção de notas por página ou filtro, com prévia, ignorar/reabrir e modificar preenchimento em lote; revisões assinadas e aplicação atômica. Não confirma vendas/compras em massa.
+- Cadastro de produto na importação com SKU, unidade e nome local editável; código externo vazio não bloqueia identificação manual.
+- Item somente financeiro sem cadastro de produto, com categoria e parcela de rateio próprias. Total integral a pagar preservado; somente itens estocáveis afetam estoque/custo.
+- Bonificação x910 explicitamente selecionada: quantidade recebida a custo zero, sem parcelas; fiscal e CMV histórico preservados.
+- Reconhecimento dos itens sem estoque na DRE por categoria histórica, sem duplicar obrigações. Categorias patrimoniais não são despesas da empresa.
+- Migrações aditivas; implantação local adiada para o pacote de alterações solicitado pelo usuário. ADR 0025.
+
 # Bling — conferência compacta e vendas sem contas a receber
 - Filtros compactos e atalho para relatório de vendas.
 - Sugestões configuráveis Full/demais lojas, com alteração manual por nota.
