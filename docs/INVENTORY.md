@@ -1,4 +1,5 @@
 # Estoque — contrato para Fase 2
+Atualização 07/10/2026: catálogo e exportação iniciam com saldo positivo, desmarcável. Planejar compra reúne saldo por depósito, vendas não estornadas, mínimo e compras confirmadas a receber. Produtos zerados e sem movimentação registrada por N dias (30 padrão) ficam fora apenas do planejamento. Sem histórico permanecem; filtros de prazo são lembrados na sessão. Ver ADR 0026 para cálculo e limites.
 Estado: implementado no PR #11, com backend PostgreSQL e fluxo visual aprovados no [CI](https://github.com/andreiruck-max/mvet/actions/runs/35041612447).
 - Cadastro manual de SKU único, produto, marca, categoria, unidade, mínimo e status.
 - Abertura em 15/09/2026 por movimento, quantidade e custo informados; sem lançamento de resultado.

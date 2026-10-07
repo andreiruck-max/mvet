@@ -1,5 +1,8 @@
 # Backlog
 
+## Complemento do pacote — 07/10/2026
+Vínculos de venda sem unidade externa, confirmação única, estoque com saldo por padrão e planejamento de compra implementados (ADR 0026). Manter no PR 33 junto às compras flexíveis até terminar o pacote; sem implantação local nesta etapa.
+
 ## Pacote em preparação — 06/10/2026
 
 Seleção em massa nas filas Bling, compras mistas (estoque/financeiro), cadastro de produto durante importação e bonificação sem pagamento: implementados, em validação. Ver ADR 0025. Manter separado da instalação local até reunir as próximas alterações do usuário. Não limpar notas reais por migration; usar a ação reversível na fila após implantação.

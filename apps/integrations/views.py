@@ -50,15 +50,14 @@ def detail(request, pk):
             try:
                 costs = [(f.cleaned_data['name'], f.cleaned_data['amount']) for f in extras if f.cleaned_data and f.cleaned_data.get('name') and not f.cleaned_data.get('DELETE')]
                 services.approve(actor=request.user, invoice_id=pk, revision=form.cleaned_data['revision'],
-                    data={k: form.cleaned_data[k] for k in EDIT_FIELDS}, extra_costs=costs, reviewed=True,
-                    purpose_reviewed=form.cleaned_data['purpose_reviewed'])
+                    data={k: form.cleaned_data[k] for k in EDIT_FIELDS}, extra_costs=costs, reviewed=True)
                 messages.success(request, 'Venda confirmada no MVet. Nenhuma alteração foi enviada ao Bling.')
                 return redirect('bling_detail', pk=pk)
             except ValidationError as exc: form.add_error(None, exc)
             except IntegrityError: form.add_error(None, 'NF/série ou chave já cadastrada. Confira a venda existente; não crie outra.')
     rows = [{'source': r, 'product': services.resolve(invoice.connection, r)} for r in invoice.source.get('items', [])]
     return render(request, 'integrations/detail.html', {'invoice': invoice, 'rows': rows, 'form': form,
-        'extra_formset': extras, 'alias_form': AliasForm(initial={'revision': invoice.revision}, prefix='alias'),
+        'extra_formset': extras, 'alias_form': AliasForm(invoice=invoice, initial={'revision': invoice.revision}, prefix='alias'),
         'decision_form': DecisionForm(initial={'revision': invoice.revision}, prefix='decision')})
 
 
@@ -92,14 +91,14 @@ def query(request):
 @require_POST
 def alias(request, pk):
     require(request.user, 'core.review_bling'); require(request.user, 'core.map_bling_products')
-    get_object_or_404(InvoiceImport, pk=pk)
-    form = AliasForm(request.POST, prefix='alias')
+    invoice = get_object_or_404(InvoiceImport, pk=pk)
+    form = AliasForm(request.POST, invoice=invoice, prefix='alias')
     if form.is_valid():
         try:
             services.map_product(actor=request.user, invoice_id=pk, **form.cleaned_data)
             messages.success(request, 'Código vinculado. Confira os produtos antes de confirmar a venda.')
         except ValidationError as exc: messages.error(request, '; '.join(exc.messages))
-    else: messages.error(request, 'Informe código, unidade e produto válidos.')
+    else: messages.error(request, 'Selecione um item da nota e um produto válido.')
     return redirect('bling_detail', pk=pk)
 
 

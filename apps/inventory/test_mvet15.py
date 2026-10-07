@@ -86,12 +86,12 @@ class Mvet15Tests(Fixture, TestCase):
         for sku in ['2', '101', '1000', '1009', '1031', '1131', '331', 'A31', '9'*60]:
             Product.objects.create(sku=sku, name='Produto '+sku)
         expected = ['2', '31', '101', '331', '1000', '1009', '1031', '1131', '9'*60, 'A31']
-        self.assertEqual(list(catalog({}).values_list('sku', flat=True)), expected)
+        self.assertEqual(list(catalog({'positive':'0'}).values_list('sku', flat=True)), expected)
         self.assertEqual(list(catalog({'q': '31'}).values_list('sku', flat=True)), ['31'])
         self.assertEqual(catalog({'q': '99'}).count(), 0)
         self.assertEqual(len(self.client.get(reverse('product_lookup'), {'q': '31'}).json()['results']), 1)
         Product.objects.bulk_create([Product(sku='X'+str(i),name='Extra '+str(i)) for i in range(51)])
-        page = self.client.get(reverse('products'), {'location': self.full.pk}).context['page']
+        page = self.client.get(reverse('products'), {'location': self.full.pk, 'positive':'0'}).context['page']
         self.assertEqual(len(page), 50)
         self.assertEqual(page.paginator.count, 61)
 

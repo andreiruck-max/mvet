@@ -71,34 +71,42 @@ def compatible_units(local, external):
 
 
 def resolve(connection, row):
-    alias = ProductAlias.objects.select_related('product').filter(connection=connection, code=row['code'], unit=row['unit']).first()
-    product = alias.product if alias else Product.objects.filter(sku=row['code']).first()
-    if not product or not product.active or not compatible_units(product.unit, row['unit']):
+    aliases = ProductAlias.objects.filter(connection=connection, code=row['code'])
+    alias = aliases.select_related('product').filter(unit='').first()
+    if alias:
+        product = alias.product
+    else:
+        ids = list(aliases.values_list('product_id', flat=True).distinct())
+        if len(ids) > 1:
+            return None  # Legacy conflicting mappings need an explicit new choice.
+        product = Product.objects.filter(pk=ids[0]).first() if ids else Product.objects.filter(sku=row['code']).first()
+    if not product or not product.active:
         return None
     return product
 
 
 @transaction.atomic
-def map_product(*, actor, invoice_id, revision, code, unit, product):
+def map_product(*, actor, invoice_id, revision, code, product, unit=None):
     require(actor, 'core.review_bling'); require(actor, 'core.map_bling_products')
     domain_lock()
     invoice = InvoiceImport.objects.select_for_update().get(pk=invoice_id)
     if invoice.revision != revision or invoice.sale_id:
         raise ValidationError('Nota alterada ou já importada. Reabra a conferência.')
-    if not any(r['code'] == code and r['unit'] == unit for r in invoice.source.get('items', [])):
+    code = code.strip()
+    if not any(r['code'] == code for r in invoice.source.get('items', [])):
         raise ValidationError('Código não pertence à nota.')
     product = Product.objects.get(pk=product.pk)
-    if not code or not unit or not product.active or not compatible_units(product.unit, unit):
-        raise ValidationError('Produto inativo ou unidade incompatível. Conversão de unidade não é automática.')
-    alias = ProductAlias.objects.filter(connection=invoice.connection, code=code, unit=unit).first()
+    if not code or not product.active:
+        raise ValidationError('Selecione um produto ativo.')
+    alias = ProductAlias.objects.filter(connection=invoice.connection, code=code, unit='').first()
     if alias and alias.product_id != product.pk:
         raise ValidationError('Código já possui outro vínculo. Revisão do cadastro exige tratamento separado.')
     exact = Product.objects.filter(sku=code).first()
     if exact and exact.pk != product.pk:
         raise ValidationError('Código coincide com outro SKU do MVet. Corrija o cadastro antes de vincular.')
-    alias, _ = ProductAlias.objects.get_or_create(connection=invoice.connection, code=code, unit=unit, defaults={'product': product})
+    alias, _ = ProductAlias.objects.get_or_create(connection=invoice.connection, code=code, unit='', defaults={'product': product})
     invoice.revision += 1; invoice.save()
-    audit(actor, alias, 'bling_map_product', after={'code': code, 'unit': unit, 'product': product.pk})
+    audit(actor, alias, 'bling_map_product', after={'code': code, 'local_unit': product.unit, 'product': product.pk, 'scope': 'external_code'})
 
 
 @transaction.atomic
@@ -108,13 +116,13 @@ def approve(*, actor, invoice_id, revision, data, extra_costs, reviewed, purpose
     domain_lock()
     invoice = InvoiceImport.objects.select_for_update().get(pk=invoice_id)
     if invoice.sale_id: return invoice.sale
-    if invoice.revision != revision or invoice.status != 'PENDING' or not reviewed:
+    if invoice.revision != revision or invoice.status != 'PENDING' or reviewed is not True:
         raise ValidationError('Revise a nota atual e confirme os valores, inclusive os zeros.')
-    eligibility(invoice.source, purpose_reviewed=purpose_reviewed)
+    eligibility(invoice.source, purpose_reviewed=reviewed)
     items = []
     for row in invoice.source['items']:
         product = resolve(invoice.connection, row)
-        if product is None: raise ValidationError('Há produto sem vínculo válido. Relacione o SKU e confira a unidade.')
+        if product is None: raise ValidationError('Há produto sem vínculo válido. Relacione o código a um produto ativo.')
         items.append((product.pk, Decimal(row['quantity'])))
     # Never trust posted invoice identifiers, quantities or external costs.
     data = dict(data, date=invoice.issued_on, invoice_number=invoice.number, invoice_series=invoice.series)
@@ -126,7 +134,7 @@ def approve(*, actor, invoice_id, revision, data, extra_costs, reviewed, purpose
     invoice.status = 'IMPORTED'; invoice.revision += 1; invoice.save()
     audit(actor, invoice, 'bling_approve', after={'sale': sale.pk, 'fingerprint': invoice.fingerprint,
         'purpose_missing': not bool(invoice.source.get('purpose')),
-        'purpose_reviewed': purpose_reviewed is True})
+        'purpose_reviewed': reviewed, 'review_action': 'confirm_sale'})
     return sale
 
 
