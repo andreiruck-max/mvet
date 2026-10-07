@@ -186,14 +186,18 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
             Path('artifacts').mkdir(exist_ok=True)
             page.screenshot(path='artifacts/bling-bulk-preview.png',full_page=True)
             page.get_by_role('button',name='Aplicar nas 1 notas',exact=True).click()
-            invoice.refresh_from_db();self.assertEqual(invoice.status,'IGNORED')
+            page.get_by_text('1 notas atualizadas. Estoque e financeiro não foram movimentados.',exact=True).wait_for()
+            self.assertEqual(page.get_by_role('link',name='123 / 1',exact=True).count(),0)
             page.locator('#status').select_option('IGNORED');page.get_by_role('button',name='Filtrar',exact=True).click()
             page.locator('input[name="selected"]').check()
             page.get_by_role('button',name='Ignorar / modificar em massa',exact=True).click()
             page.locator('#id_action').select_option('reopen')
             page.get_by_role('button',name='Revisar alterações',exact=True).click()
             page.get_by_role('button',name='Aplicar nas 1 notas',exact=True).click()
-            invoice.refresh_from_db();self.assertEqual(invoice.status,'PENDING');browser.close()
+            page.get_by_text('1 notas atualizadas. Estoque e financeiro não foram movimentados.',exact=True).wait_for()
+            page.get_by_role('link',name='123 / 1',exact=True).wait_for()
+            browser.close()
+        invoice.refresh_from_db();self.assertEqual(invoice.status,'PENDING')
 
     def test_purchase_new_product_and_financial_only_item(self):
         from playwright.sync_api import sync_playwright
