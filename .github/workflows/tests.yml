@@ -24,6 +24,14 @@ jobs:
       POSTGRES_PASSWORD: ci-only-password
     steps:
       - uses: actions/checkout@v4
+      - name: Validate Windows update script syntax
+        shell: pwsh
+        run: |
+          $parseErrors = $null
+          $tokens = $null
+          [System.Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD 'scripts/update_windows.ps1'), [ref]$tokens, [ref]$parseErrors) | Out-Null
+          if ($parseErrors.Count) { $parseErrors | Format-List; exit 1 }
+          & ./scripts/test_update_windows.ps1
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

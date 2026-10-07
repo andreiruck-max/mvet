@@ -20,13 +20,12 @@ from . import bling, purchase_services as services
 @login_required
 @permission_required('core.operate_purchases', raise_exception=True)
 def queue(request):
-    rows = PurchaseInvoiceImport.objects.select_related('purchase')
-    state = request.GET.get('status', 'pending')
-    if state == 'pending': rows = rows.filter(purchase__isnull=True, rejected=False)
-    elif state == 'rejected': rows = rows.filter(rejected=True)
-    elif state == 'imported': rows = rows.filter(purchase__isnull=False)
-    if request.GET.get('q'): rows = rows.filter(number__icontains=request.GET['q'][:30])
-    return render(request, 'integrations/purchase_queue.html', dict(page=Paginator(rows, 30).get_page(request.GET.get('page')),
+    from . import bulk
+    rows=bulk.filtered_rows('PURCHASE',request.GET)
+    state=request.GET.get('status','pending')
+    page=Paginator(rows,50).get_page(request.GET.get('page'))
+    bulk_context=bulk.context(request.user,'PURCHASE',rows,page)
+    return render(request, 'integrations/purchase_queue.html', dict(page=page, **bulk_context,
         query_form=PurchaseQueryForm(), state=state, runs=ImportRun.objects.filter(kind='PURCHASE')[:10], connection=BlingConnection.objects.filter(pk=1).first()))
 
 
@@ -52,19 +51,25 @@ def detail(request, pk):
     company = Company.objects.filter(pk=1).first()
     initial = dict(revision=invoice.revision, supplier=supplier, freight=Decimal(source.get('freight', '0')),
                    location=company.default_stock_location_id if company else None)
+    initial.update({k:v for k,v in invoice.review_overrides.items() if k in ('location','discount','freight','other_costs','acquisition_kind')})
     post = request.POST if request.method == 'POST' else None
     form = PurchaseReviewForm(post, initial=initial)
-    item_initial = [{'product': Product.objects.filter(sku=row['code'], active=True, kind='SIMPLE').first()} for row in source.get('items', [])]
+    item_initial = [{'product': Product.objects.filter(sku=row['code'], active=True, kind='SIMPLE').first(),
+        'new_sku':row['code'] if len(row['code'])<=60 else '', 'new_name':row['name'],'new_unit':'UN',
+        'mode':invoice.review_overrides.get('item_mode','STOCK'),'category':invoice.review_overrides.get('category')} for row in source.get('items', [])]
     items = PurchaseProducts(post, initial=item_initial, prefix='products')
     schedule = [{'due_date': date.fromisoformat(row['date']), 'amount': Decimal(row['amount']), 'notes': ''} for row in source.get('installments', [])]
-    installments = Installments(post, initial=schedule, prefix='installments')
+    bonus=(post.get('acquisition_kind') if post is not None else initial.get('acquisition_kind'))=='BONUS'
+    if bonus:schedule=[]
+    # Source parcels on a bonus are informative only; no payable is created.
+    installments = Installments(None if bonus else post, initial=schedule, prefix='installments')
     if request.method == 'POST':
-        valid = form.is_valid(); valid_items = items.is_valid(); valid_dates = installments.is_valid()
+        valid = form.is_valid(); valid_items = items.is_valid(); valid_dates = True if bonus else installments.is_valid()
         if valid and valid_items and valid_dates:
             try:
                 data = form.cleaned_data
-                purchase = services.create_draft(actor=request.user, invoice_id=pk, products=[f.cleaned_data['product'] for f in items],
-                    installments=[(f.cleaned_data['due_date'], f.cleaned_data['amount'], f.cleaned_data['notes']) for f in installments if f.cleaned_data and not f.cleaned_data.get('DELETE')], **data)
+                purchase = services.create_draft(actor=request.user, invoice_id=pk, products=[f.cleaned_data.get('product') for f in items],treatments=[f.cleaned_data for f in items],
+                    installments=[] if bonus else [(f.cleaned_data['due_date'], f.cleaned_data['amount'], f.cleaned_data['notes']) for f in installments if f.cleaned_data and not f.cleaned_data.get('DELETE')], **data)
                 messages.success(request, 'Rascunho importado. Confira parcelas, confirme a compra e registre o recebimento físico separadamente.')
                 return redirect('purchase_detail', pk=purchase.pk)
             except ValidationError as exc: form.add_error(None, exc)

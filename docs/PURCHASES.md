@@ -1,4 +1,16 @@
 # Compras e fornecedores — Fase 4
+
+## Evolução de 06/10/2026 — ver ADR 0025
+
+- Nas filas de notas Bling: marcar notas ou escolher todas as não importadas do filtro, abrir **Ignorar / modificar em massa**, revisar e aplicar. Reabrir desfaz a retirada da fila. Documentos vinculados não são alterados.
+- No item importado, **Movimentar estoque** é o padrão. **Cadastrar produto e movimentar estoque** permite definir SKU, nome no MVet e unidade durante a criação do rascunho, com as permissões de cadastro existentes. Código externo vazio não impede esse fluxo.
+- **Somente financeiro — sem estoque** mantém o valor no total/parcelas sem exigir produto. Escolher categoria por item; exemplo embalagens em despesa operacional, uso pessoal em categoria patrimonial apropriada. Categoria ausente fica a classificar. Essa opção também existe no rascunho manual.
+- O rateio conserva o total entre valores incorporados ao estoque e valores sem estoque. Despesa pessoal/embalagens não aumenta o custo dos produtos de revenda. Conferir categoria antes de confirmar; após confirmação os itens são imutáveis.
+- Em nota de bonificação x910, escolher **Bonificação sem financeiro** e conferir explicitamente o documento. O valor fiscal permanece, mas o total a pagar e valor de entrada são zero. Não gerar parcelas; frete/custos efetivamente cobrados são lançamentos separados. Recebimento pondera o custo atual por depósito sem alterar CMV passado.
+- Compra exclusivamente financeira não exige receber mercadoria para gerar obrigações; confirmar já gera parcelas. Se concluir o recebimento, não cria movimento vazio de estoque. Não lançar novamente como despesa avulsa: a DRE já considera sua classificação e o financeiro já contém suas parcelas.
+
+As regras abaixo descrevem a base original; itens somente financeiros e bonificações obedecem às exceções acima. Migrações mantêm compras anteriores como normais e estocáveis, sem recalcular histórico.
+
 Implementação: `apps/purchases`. Operação manual; evidências de validação no pull request da fase.
 
 ## Uso

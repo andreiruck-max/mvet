@@ -85,16 +85,19 @@ main.workspace{max-width:1920px;padding:16px 22px;min-width:0}
 .workspace .report-caption{font-size:12px;margin:6px 0 10px}
 .cash-matrix-wrap{max-height:65vh}
 .cash-matrix{width:max-content;min-width:100%;font-size:12px}
-.workspace .cash-matrix td,.workspace .cash-matrix th{padding:6px 8px;min-width:90px}
+.workspace .cash-matrix td,.workspace .cash-matrix th{padding:9px 10px;min-width:105px}
 .cash-matrix thead th{text-align:center}
-.cash-matrix th:first-child{position:sticky;left:0;z-index:2;min-width:140px;max-width:180px;white-space:normal;background:var(--surface);box-shadow:1px 0 0 var(--border)}
+.cash-matrix .cash-account{position:sticky;left:0;z-index:2;min-width:140px;max-width:180px;white-space:normal;background:var(--surface);box-shadow:1px 0 0 var(--border)}
 .cash-matrix thead{position:sticky;top:0;z-index:3}
 .cash-matrix tbody tr:nth-child(even){background:color-mix(in srgb,var(--muted) 9%,var(--surface))}
 .cash-matrix tbody tr:nth-child(even) th{background:color-mix(in srgb,var(--muted) 9%,var(--surface))}
-.cash-matrix .day-end,.cash-matrix .cash-date{border-right:2px solid var(--border)}
+.cash-matrix .day-end,.cash-matrix .cash-date{border-right:3px solid #8892aa}.cash-matrix .cash-date{padding:12px 10px;background:var(--surface);border-bottom:2px solid #8892aa}
 .cash-matrix tfoot{font-weight:700;background:var(--bg)}
 .cash-matrix a{text-decoration:none}
 .cash-matrix a:hover{text-decoration:underline}
+.cash-matrix td,.cash-matrix th{border:1px solid #a2abbd}.cash-matrix tbody th,.cash-matrix tfoot th{border-bottom:1px solid #a2abbd}.cash-matrix tfoot td,.cash-matrix tfoot th{border-top:2px solid #77849e}.cash-matrix tbody tr:hover td:not(.cash-balance){background:color-mix(in srgb,var(--focus) 10%,var(--surface))}
+.cash-page .cash-in{color:#155cc2}.cash-page .cash-out,.cash-page .cash-negative{color:#ba1834}.cash-page .cash-balance{background:#f4f6fa;color:#101010;font-weight:700}.cash-page .cash-balance.cash-negative{color:#ba1834}.cash-page .cash-balance a{color:inherit;font-weight:inherit}.cash-page .report-cards b{border-radius:4px;padding:3px 6px}.cash-matrix thead .cash-account{z-index:5}.cash-matrix tbody .cash-account,.cash-matrix tfoot .cash-account{z-index:2}
+[data-theme=dark] .cash-page .cash-in{color:#86b7ff}[data-theme=dark] .cash-page .cash-out{color:#ff8f9f}
 .menu-toggle{display:none}
 @media(max-width:1100px){.workspace .metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:850px){
@@ -115,3 +118,12 @@ main.workspace{padding:12px 14px}
 .workspace .dashboard-channels th,.workspace .dashboard-channels td{padding:6px}
 .topbar>span{display:none}.topbar{justify-content:flex-end}
 }
+/* Compact invoice selection and item treatment. */
+.bulk-toolbar{margin:10px 0;flex-wrap:wrap}.bulk-toolbar label{display:flex;align-items:center;gap:8px}.bulk-toolbar select{max-width:440px}.import-treatment{min-width:260px;max-width:460px}.import-treatment select,.import-treatment input{max-width:100%;width:100%;box-sizing:border-box}.import-treatment [data-mode]{margin-top:8px}.import-treatment small{display:block;max-width:40ch}.import-treatment [hidden]{display:none}
+@media(max-width:600px){.bulk-toolbar label{flex-wrap:wrap}.bulk-toolbar select{max-width:100%}}
+.review-confirmation{grid-column:1/-1;display:flex;align-items:flex-start;gap:8px}.review-confirmation input{width:auto;flex:none;margin-top:4px}.review-confirmation label{margin:0}
+.new-product-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}.new-product-name{grid-column:1/-1}
+.planning-page details{margin:8px 0}.planning-page summary{cursor:pointer}
+.expense-editor .form-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px}.expense-editor .field{margin-bottom:0}.expense-editor .expense-wide{grid-column:span 2}.expense-editor small{display:block;margin-top:4px}.expense-editor #category-search{margin-bottom:6px}.expense-editor .expense-supplier{margin:14px 0}.expense-editor .expense-supplier summary{cursor:pointer;margin-bottom:10px}.expense-editor #suggest-category-code{margin-top:6px;padding:5px 9px}.expense-editor>.primary{margin-top:14px}@media(max-width:700px){.expense-editor .form-grid{grid-template-columns:1fr}.expense-editor .expense-wide{grid-column:auto}}
+@media(max-width:650px){.workspace .planning-page .stock-totals{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.workspace .planning-page .stock-totals .card{padding:10px 7px;font-size:11px}.planning-page .stock-totals strong{font-size:20px}.planning-page table,.planning-page tbody,.planning-page tr{display:block;width:100%}.planning-page thead{display:none}.planning-page tr{padding:8px;box-sizing:border-box}.planning-page td[data-label]{display:grid;grid-template-columns:40% 60%;padding:5px 4px;white-space:normal;overflow-wrap:anywhere}.planning-page td[data-label]::before{content:attr(data-label);font-weight:600}.planning-page td small{grid-column:2}.planning-page td[colspan]{display:block}}
+@media(max-width:700px){table.purchase-import-items{display:block;min-width:0;width:100%}.purchase-import-items thead{display:none}.purchase-import-items tbody{display:block}.purchase-import-items tr{display:block;border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px}.purchase-import-items td{display:block;border:0;padding:4px 0;white-space:normal}.purchase-import-items td[data-label]::before{content:attr(data-label) ': ';font-weight:600}.purchase-import-items td.import-treatment{min-width:0;max-width:none;width:100%;padding-top:10px}.purchase-import-items .import-treatment small{max-width:none}}

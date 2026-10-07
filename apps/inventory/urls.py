@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 urlpatterns=[
+ path('planejar-compra/', views.planning, name='purchase_planning'),
  path('produtos/<int:pk>/contar/<int:location_id>/', views.product_count, name='product_count'),
  path('produtos/<int:pk>/inativar/', views.product_inactivate, name='product_inactivate'),
  path('produtos/',views.products,name='products'),path('produtos/novo/',views.product_edit,name='product_new'),

@@ -7,6 +7,28 @@ from apps.purchases.models import Supplier
 from .models import ChartOfAccount, ClassificationRule, Expense
 
 
+def chart_options():
+    """One snapshot for paths and suggestions; inactive codes remain reserved."""
+    rows=list(ChartOfAccount.objects.all());by_id={row.pk:row for row in rows};paths={}
+    for row in rows:
+        chain=[];seen=set();current=row
+        while current:
+            if current.pk in seen or not current.active:
+                chain=[];break
+            seen.add(current.pk);chain.append(current.name);current=by_id.get(current.parent_id)
+        if chain:paths[row.pk]=f'{row.code} · ' + ' / '.join(reversed(chain))
+    used={}
+    for row in rows:used.setdefault(row.parent_id,set()).add(int(row.code.split('.')[-1]))
+    suggestions={}
+    for parent in [None]+[row for row in rows if not row.postable and row.pk in paths]:
+        taken=used.get(parent.pk if parent else None,set());number=max(taken,default=0)+1
+        if number>99:number=next((n for n in range(1,100) if n not in taken),None)
+        code=(f'{parent.code}.' if parent else '')+f'{number:02d}' if number else ''
+        if parent and len(parent.code.split('.'))>=8:code=''
+        suggestions[str(parent.pk) if parent else '']={'code':code,'nature':parent.nature if parent else ''}
+    return paths,suggestions
+
+
 class CategoryForm(forms.ModelForm):
     class Meta:
         model=ChartOfAccount
@@ -14,6 +36,12 @@ class CategoryForm(forms.ModelForm):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
         self.fields['parent'].queryset=ChartOfAccount.objects.filter(postable=False,active=True).exclude(pk=self.instance.pk)
+        if not self.instance.pk:
+            paths,self.code_suggestions=chart_options()
+            self.fields['parent'].queryset=self.fields['parent'].queryset.filter(pk__in=paths)
+            parent=self.initial.get('parent');parent=str(getattr(parent,'pk',parent) or '')
+            self.initial.setdefault('code',self.code_suggestions.get(parent,{}).get('code',''))
+            self.fields['code'].help_text='Sugestão para o grupo escolhido. Você pode alterar o código.'
 
 
 class RuleForm(forms.ModelForm):
@@ -37,6 +65,16 @@ class ExpenseForm(forms.ModelForm):
         self.fields['category'].queryset=ChartOfAccount.objects.filter(active=True,postable=True,nature__in=['OPERATING','FINANCIAL'])
         self.fields['category'].empty_label='Aplicar regras / deixar a classificar'
         self.fields['supplier'].queryset=Supplier.objects.filter(active=True)
+        self.fields['supplier'].label='Fornecedor cadastrado (opcional)'
+        self.fields['supplier'].help_text='Use apenas se quiser vincular um cadastro. Sem favorecido, o título usa o nome do fornecedor.'
+        self.fields['counterparty'].label='Favorecido (opcional)'
+        self.fields['counterparty'].help_text='Nome livre; não exige cadastro. Pode deixar em branco.'
+        paths,_=chart_options()
+        self.fields['category'].queryset=self.fields['category'].queryset.filter(pk__in=paths)
+        self.fields['category'].label_from_instance=lambda obj:paths[obj.pk]
+        self.fields['category'].help_text='Em branco aplica regras; sem regra, fica a classificar.'
+        self.fields['notes'].widget=forms.Textarea(attrs={'rows':2})
+        self.order_fields(['description','amount','counterparty','competence','document_date','due_date','category','account','cost_center','notes','recurrence_enabled','supplier','key'])
 
 
 class ReclassifyForm(forms.Form):

@@ -1,1 +1,34 @@
-{% extends 'base.html' %}{% block content %}{% include 'expenses/nav.html' %}<h1>{{ title }}</h1>{% if help %}<p class="notice">{{ help }}</p>{% endif %}<form method="post" class="panel">{% csrf_token %}{{ form.as_p }}<button class="primary">{{ button }}</button></form>{% endblock %}
+{% extends 'base.html' %}{% load static %}{% block content %}
+{% include 'expenses/nav.html' %}<h1>{{ title }}</h1>
+{% if help %}<p class="help">{{ help }}</p>{% endif %}
+<form method="post" class="panel expense-editor">
+  {% csrf_token %}{{ form.non_field_errors }}
+  {% for field in form.hidden_fields %}{{ field }}{{ field.errors }}{% endfor %}
+  <div class="form-grid">
+    {% for field in form.visible_fields %}
+      {% if not expense_form or field.name != 'supplier' %}
+      <div class="field {% if field.name == 'category' or field.name == 'notes' %}expense-wide{% endif %}">
+        {{ field.label_tag }}
+        {% if expense_form and field.name == 'category' %}
+        <label class="help" for="category-search">Pesquisar categoria por código ou nome</label>
+        <input id="category-search" type="search" placeholder="Ex.: 04.01 ou contabilidade" autocomplete="off" aria-controls="id_category">
+        <small id="category-search-status" class="help" role="status"></small>
+        {% endif %}
+        {{ field }}{{ field.errors }}
+        {% if field.help_text %}<small class="help">{{ field.help_text }}</small>{% endif %}
+        {% if form.code_suggestions and field.name == 'code' %}<button type="button" id="suggest-category-code">Usar código sugerido</button>{% endif %}
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% if expense_form %}
+  <details class="expense-supplier" {% if form.supplier.value or form.supplier.errors %}open{% endif %}>
+    <summary>Vincular fornecedor cadastrado (opcional)</summary>
+    <div class="field">{{ form.supplier.label_tag }}{{ form.supplier }}{{ form.supplier.errors }}<small class="help">{{ form.supplier.help_text }}</small></div>
+  </details>
+  {% endif %}
+  <button class="primary">{{ button }}</button>
+</form>
+{% if form.code_suggestions %}{{ form.code_suggestions|json_script:'category-code-suggestions' }}{% endif %}
+<script src="{% static 'expense-form.js' %}" defer></script>
+{% endblock %}

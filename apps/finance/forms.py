@@ -78,14 +78,27 @@ class FilterForm(forms.Form):
 
 class CashForm(forms.Form):
     mode=forms.ChoiceField(label='Visão', required=False, choices=[('projected','Realizado + previsto'),('actual','Somente realizado')])
-    period=forms.ChoiceField(label='Período',required=False,choices=[('','Personalizado'),('today','Hoje'),('yesterday','Ontem'),('last7','Últimos 7 dias'),('week','Semana'),('month','Mês'),('previous_month','Mês anterior'),('year','Ano')])
+    period=forms.ChoiceField(label='Período',required=False,choices=[('','Personalizado'),('next15','15 dias, a partir de ontem'),('today','Hoje'),('yesterday','Ontem'),('last7','Últimos 7 dias'),('week','Semana'),('month','Mês'),('previous_month','Mês anterior'),('year','Ano')])
     start=forms.DateField(label='De',widget=DateInput(),initial=timezone.localdate,required=False)
     end=forms.DateField(label='Até',widget=DateInput(),initial=lambda:timezone.localdate()+timedelta(days=30),required=False)
-    account=forms.ModelChoiceField(label='Conta',queryset=Account.objects.all(),required=False)
+    account=forms.ModelChoiceField(label='Conta',queryset=Account.objects.filter(active=True),required=False)
     def clean(self):
         data=super().clean()
         from apps.reporting.forms import PeriodForm
-        period=PeriodForm({k:data.get(k) for k in ['start','end','period']})
+        values={k:data.get(k) for k in ['start','end','period']}
+        if values['period']=='next15' or not any(values.values()):
+            values.update(period='',start=timezone.localdate()-timedelta(days=1),end=timezone.localdate()+timedelta(days=13))
+        period=PeriodForm(values)
         if not period.is_valid():raise forms.ValidationError('Selecione um período válido, de até 366 dias.')
         data.update(start=period.cleaned_data['start'],end=period.cleaned_data['end'])
         return data
+
+
+class AccountEntryForm(forms.Form):
+    key=forms.UUIDField(initial=uuid4,widget=forms.HiddenInput)
+    direction=forms.ChoiceField(label='Movimento',choices=[('RECEIVE','Entrada'),('PAY','Saída')])
+    date=forms.DateField(label='Data efetiva',widget=DateInput(),initial=timezone.localdate)
+    description=forms.CharField(label='Descrição',max_length=240)
+    amount=forms.DecimalField(label='Valor (R$)',max_digits=18,decimal_places=2,min_value=Decimal('.01'),initial=Decimal('0.00'),localize=True)
+    category=forms.ChoiceField(label='Classificação',choices=[c for c in Title.CATEGORIES if c[0]!='OPENING'])
+    notes=forms.CharField(label='Observação',max_length=500,required=False)

@@ -1,3 +1,31 @@
+# Plano de contas e nova despesa (07/10/2026)
+- Código sugerido automaticamente por grupo, editável e sem renumerar cadastros existentes.
+- Formulário compacto, favorecido livre e opcional, fornecedor cadastrado em seção adicional.
+- Pesquisa de categoria por código/nome com caminho hierárquico e exclusão de ancestrais inativos.
+- Atualizador Windows com preservação dos scripts locais, backup/restauração isolada antes de migrations e verificação de inicialização. Sem alterações de schema nesta etapa.
+
+# Saldos bancários e fluxo de caixa (07/10/2026)
+- Período inicial de 15 dias a partir de ontem; intervalo inteiro na mesma tabela, sem paginação de dias.
+- Cabeçalho Banco / conta fixo sem sobreposição com Entradas; bordas de células e separação de dias reforçadas.
+- Entradas azuis, saídas/negativos vermelhos e saldos pretos em negrito sobre fundo claro inclusive no modo escuro.
+- Conta clicável abre extrato com saldo acumulado, compromissos e ações de lançamento, previsão, transferência e edição.
+- Adicionar conta no fluxo; inativas saem do quadro e seus totais sem apagar histórico nem alterar indicadores consolidados. ADR 0027.
+
+# Vínculo de vendas e planejamento de compra (07/10/2026)
+- Vínculo por código independente da unidade externa; seleção do item da nota, unidade local e quantidade preservada.
+- Confirmação única de venda, sem checkbox adicional de finalidade; aviso, auditoria e bloqueios de documentos incompatíveis mantidos.
+- Estoque inicia em Com saldo, com opção de desmarcar e exportação consistente.
+- Planejar compra por depósito, histórico/cobertura configuráveis, estoque mínimo, compras a receber e prazo de fora de linha para zerados sem movimento; não altera cadastro nem gera pedidos.
+- Sem alteração de schema nesta etapa; pacote permanece separado da instalação local. ADR 0026.
+
+# Bling — seleção em massa e compras flexíveis (06/10/2026)
+- Seleção de notas por página ou filtro, com prévia, ignorar/reabrir e modificar preenchimento em lote; revisões assinadas e aplicação atômica. Não confirma vendas/compras em massa.
+- Cadastro de produto na importação com SKU, unidade e nome local editável; código externo vazio não bloqueia identificação manual.
+- Item somente financeiro sem cadastro de produto, com categoria e parcela de rateio próprias. Total integral a pagar preservado; somente itens estocáveis afetam estoque/custo.
+- Bonificação x910 explicitamente selecionada: quantidade recebida a custo zero, sem parcelas; fiscal e CMV histórico preservados.
+- Reconhecimento dos itens sem estoque na DRE por categoria histórica, sem duplicar obrigações. Categorias patrimoniais não são despesas da empresa.
+- Migrações aditivas; implantação local adiada para o pacote de alterações solicitado pelo usuário. ADR 0025.
+
 # Bling — conferência compacta e vendas sem contas a receber
 - Filtros compactos e atalho para relatório de vendas.
 - Sugestões configuráveis Full/demais lojas, com alteração manual por nota.

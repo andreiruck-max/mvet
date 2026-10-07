@@ -4,6 +4,8 @@ Consulta pública em 18/09/2026. **Avaliação e escopo: importação assistida 
 
 ## Decisão de produto: importação assistida e independente
 
+Atualização 07/10/2026 (ADR 0026): na venda, unidade externa não bloqueia vínculo nem confirmação. Seleciona-se o item da nota e o produto MVet; a quantidade externa é mantida na unidade local. A confirmação da venda substitui o checkbox de finalidade ausente, com aviso e auditoria; bloqueios explícitos de finalidade/CFOP permanecem. Esta decisão substitui exigências anteriores de unidade coincidente e declaração separada neste documento e no ADR 0017.
+
 O Bling fornece dados para facilitar o preenchimento. O MVet mantém seu próprio estoque, custo médio, CMV, deduções e resultados. Não há sincronização bidirecional nem dependência do Bling para continuar os lançamentos manuais. Decisão detalhada no [ADR 0015](adr/0015-bling-independent-import.md).
 
 A interface prevista é uma área separada **Notas do Bling para conferir**, com estados pendente, em conferência, importada, ignorada e com erro. A situação fiscal recebida do Bling é um campo separado do estado da importação e do status da venda MVet. A consulta não confirma vendas.

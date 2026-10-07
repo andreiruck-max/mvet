@@ -40,19 +40,20 @@ def normalize_purchase(payload, issuer):
     return source
 
 
-def eligible(source, *, reviewed=False):
+def eligible(source, *, reviewed=False, acquisition_kind='NORMAL'):
     if source['type'] != '0' or source['status'] not in ('5', '7'):
         raise ValidationError('A compra exige nota de entrada autorizada ou registrada no Bling.')
     if source['purpose'] not in ('', '1'):
         raise ValidationError('Nota complementar, ajuste ou devolução não pode gerar nova compra.')
     if reviewed is not True:
         raise ValidationError('Confira destinatário, finalidade de compra e produtos no documento.')
+    if acquisition_kind not in ('NORMAL','BONUS'):raise ValidationError('Tipo de entrada inválido.')
     # Original supplier CFOP may be outgoing; do not convert it to incoming silently.
     for row in source['items']:
-        if row['type'] != 'P' or not row['code'] or Decimal(row['quantity']) <= 0:
-            raise ValidationError('Compra exige mercadorias com código e quantidade positiva.')
-        if len(row['cfop']) != 4 or row['cfop'][0] not in '123567' or row['cfop'][1:] not in {'101','102','111','113','116','117','118','120','122','401','403','405'}:
-            raise ValidationError('CFOP não identificado como aquisição/venda de mercadoria. Confira remessas, transferências e devoluções.')
+        if row['type'] != 'P' or Decimal(row['quantity']) <= 0:
+            raise ValidationError('Compra exige mercadorias com quantidade positiva.')
+        if len(row['cfop']) != 4 or row['cfop'][0] not in '123567' or row['cfop'][1:] not in ({'910'} if acquisition_kind=='BONUS' else {'101','102','111','113','116','117','118','120','122','401','403','405'}):
+            raise ValidationError('CFOP incompatível com o tipo de entrada. Para bonificação (x910), selecione Bonificação sem financeiro. Remessas, transferências e devoluções continuam bloqueadas.')
 
 
 @transaction.atomic
@@ -89,31 +90,42 @@ def stage(*, actor, connection, payload):
 
 
 @transaction.atomic
-def create_draft(*, actor, invoice_id, revision, supplier, location, products, discount, freight, other_costs, installments, reviewed):
+def create_draft(*, actor, invoice_id, revision, supplier, location, products, discount, freight, other_costs, installments, reviewed, acquisition_kind='NORMAL', treatments=None):
     require(actor, 'core.operate_purchases'); domain_lock()
     invoice = PurchaseInvoiceImport.objects.select_for_update().get(pk=invoice_id)
     if invoice.purchase_id: return invoice.purchase
     if invoice.rejected: raise ValidationError('Nota rejeitada. Reabra antes de importar.')
-    if invoice.revision != revision or invoice.error: raise ValidationError('Nota mudou ou possui erro. Reabra a conferência.')
-    eligible(invoice.source, reviewed=reviewed)
+    legacy_errors=('Compra exige mercadorias com código e quantidade positiva.','CFOP não identificado como aquisição/venda de mercadoria. Confira remessas, transferências e devoluções.')
+    reviewable=invoice.error in legacy_errors or invoice.error.startswith('CFOP incompatível com o tipo de entrada.')
+    if invoice.revision != revision or (invoice.error and not reviewable): raise ValidationError('Nota mudou ou possui erro. Reabra a conferência.')
+    eligible(invoice.source, reviewed=reviewed,acquisition_kind=acquisition_kind)
     supplier.refresh_from_db()
     if invoice.source['supplier_document'] and supplier.document != invoice.source['supplier_document']:
         raise ValidationError('CPF/CNPJ do fornecedor selecionado não corresponde à nota. Corrija o cadastro.')
     source_rows = invoice.source['items']
     if len(products) != len(source_rows): raise ValidationError('Vincule todos os itens da nota.')
+    treatments=treatments or [{} for _ in source_rows]
+    if len(treatments)!=len(source_rows):raise ValidationError('Confira o tratamento de todos os itens.')
     items = []
-    for product, row in zip(products, source_rows):
-        product = Product.objects.get(pk=product.pk)
-        # Quantity and price are interpreted in the local product unit, without conversion.
-        items.append((product.pk, Decimal(row['quantity']), Decimal(row['price'])))
+    from apps.products.services import save_product
+    for product, row, treatment in zip(products, source_rows,treatments):
+        mode=treatment.get('mode','STOCK')
+        if mode not in ('STOCK','NEW','NONSTOCK'):raise ValidationError('Tratamento do item inválido.')
+        if mode=='NEW':
+            product=save_product(actor=actor,data=dict(sku=treatment.get('new_sku',''),name=treatment.get('new_name',''),unit=treatment.get('new_unit','UN'),kind='SIMPLE',active=True))
+        if mode!='NONSTOCK' and not product:raise ValidationError('Selecione ou cadastre o produto que entrará no estoque.')
+        items.append(dict(product_id=product.pk if product else None,quantity=Decimal(row['quantity']),unit_cost=Decimal(row['price']),
+            moves_stock=mode!='NONSTOCK',name=row['name'],category_id=treatment.get('category').pk if treatment.get('category') else None))
     purchase = purchases.save_draft(actor=actor, key=uuid4(), data=dict(supplier=supplier, location=location,
-        document=invoice.number, series=invoice.series, date=invoice.issued_on, discount=discount,
+        document=invoice.number, series=invoice.series, date=invoice.issued_on, acquisition_kind=acquisition_kind,discount=discount,
         freight=freight, other_costs=other_costs, notes='Importada do Bling; conferir parcelas e recebimento.'), items=items, installments=installments)
     # Financial composition must reconcile; no hidden inference for discount/tax.
-    if purchase.total != Decimal(invoice.source['total']):
+    fiscal_composition=purchase.products_total-discount+freight+other_costs
+    if fiscal_composition != Decimal(invoice.source['total']):
         raise ValidationError('Total dos itens, desconto, frete e outros custos não fecha o valor da nota. Confira os valores antes de importar.')
+    purchase.source='bling';purchase.external_id=invoice.external_id;purchase.save(update_fields=['source','external_id'])
     invoice.purchase = purchase; invoice.approved_source = invoice.source; invoice.revision += 1; invoice.save()
-    audit(actor, invoice, 'bling_purchase_draft', after={'purchase': purchase.pk, 'reviewed': True})
+    audit(actor, invoice, 'bling_purchase_draft', after={'purchase': purchase.pk, 'reviewed': True,'acquisition_kind':acquisition_kind,'items':[{k:str(v) for k,v in i.items()} for i in items]})
     return purchase
 
 

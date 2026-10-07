@@ -36,6 +36,7 @@ class Purchase(models.Model):
     series=models.CharField('Série',max_length=20,blank=True)
     date=models.DateField('Data da compra',db_index=True)
     location=models.ForeignKey(StockLocation,on_delete=models.PROTECT,verbose_name='Estoque de destino')
+    acquisition_kind=models.CharField('Tipo de entrada', max_length=10, choices=[('NORMAL','Compra com financeiro'),('BONUS','Bonificação sem financeiro')], default='NORMAL')
     discount=money('Desconto (R$)')
     freight=money('Frete de aquisição (R$)')
     other_costs=money('Outros custos de aquisição (R$)')
@@ -64,7 +65,11 @@ class Purchase(models.Model):
 
 class PurchaseItem(models.Model):
     purchase=models.ForeignKey(Purchase,on_delete=models.PROTECT,related_name='items')
-    product=models.ForeignKey(Product,on_delete=models.PROTECT)
+    product=models.ForeignKey(Product,on_delete=models.PROTECT,null=True,blank=True)
+    moves_stock=models.BooleanField('Movimentar estoque',default=True)
+    category=models.ForeignKey('expenses.ChartOfAccount',on_delete=models.PROTECT,null=True,blank=True,related_name='purchase_items',verbose_name='Categoria sem estoque')
+    category_snapshot=models.JSONField(default=dict,blank=True,editable=False)
+    nonstock_total=money('Valor sem estoque')
     quantity=models.DecimalField('Quantidade',max_digits=18,decimal_places=4,validators=[MinValueValidator(Decimal('0.0001'))])
     unit_cost=models.DecimalField('Preço unitário (R$)',max_digits=24,decimal_places=6,validators=[MinValueValidator(0)])
     subtotal=money('Subtotal')
@@ -75,7 +80,7 @@ class PurchaseItem(models.Model):
     movement=models.OneToOneField(StockMovement,null=True,on_delete=models.PROTECT,editable=False)
     class Meta:
         ordering=['pk']
-        constraints=[models.CheckConstraint(condition=models.Q(quantity__gt=0,unit_cost__gte=0,subtotal__gte=0,allocated_total__gte=0),name='purchase_item_nonnegative')]
+        constraints=[models.CheckConstraint(condition=models.Q(quantity__gt=0,unit_cost__gte=0,subtotal__gte=0,allocated_total__gte=0),name='purchase_item_nonnegative'),models.CheckConstraint(condition=models.Q(moves_stock=False,allocated_total=0)|models.Q(moves_stock=True,product__isnull=False,nonstock_total=0,category__isnull=True),name='purchase_item_stock_consistent'),models.CheckConstraint(condition=models.Q(nonstock_total__gte=0),name='purchase_item_nonstock_nonnegative')]
 
 class PurchaseInstallment(models.Model):
     purchase=models.ForeignKey(Purchase,on_delete=models.PROTECT,related_name='installments')

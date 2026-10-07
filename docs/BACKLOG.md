@@ -1,5 +1,18 @@
 # Backlog
 
+## Fechamento do pacote — 07/10/2026
+Últimos ajustes autorizados: plano de contas com sugestão editável, nova despesa compacta com favorecido/fornecedor opcionais e categorias pesquisáveis. Pacote PR 33 liberado pelo usuário para integração após validação; a instalação Windows é feita por `scripts/update_windows.ps1`, com backup restaurado em banco isolado antes de migrations. A execução na máquina da empresa permanece a cargo do usuário; não confundir integração ao Git com implantação local.
+
+## Complemento financeiro — 07/10/2026
+Quadro bancário com 15 dias desde ontem, sem páginas de dias, bordas/cores e cabeçalho corrigidos; página de conta com extrato, entrada/saída, agendamento, transferência e edição. Inativas ocultas do quadro com histórico preservado. Em validação no mesmo PR 33, sem implantação local. ADR 0027.
+
+## Complemento do pacote — 07/10/2026
+Vínculos de venda sem unidade externa, confirmação única, estoque com saldo por padrão e planejamento de compra implementados (ADR 0026). Manter no PR 33 junto às compras flexíveis até terminar o pacote; sem implantação local nesta etapa.
+
+## Pacote em preparação — 06/10/2026
+
+Seleção em massa nas filas Bling, compras mistas (estoque/financeiro), cadastro de produto durante importação e bonificação sem pagamento: implementados, em validação. Ver ADR 0025. Manter separado da instalação local até reunir as próximas alterações do usuário. Não limpar notas reais por migration; usar a ação reversível na fila após implantação.
+
 ## Ampliação — acessos e arquivos
 
 [PR #18](https://github.com/andreiruck-max/mvet/pull/18): políticas individuais pelo master e exportações Excel/PDF nos módulos existentes. Entregue e integrado: 236 testes PostgreSQL e 9 Chromium aprovados. Não adiar exportações para a Fase 9. Bling: importação assistida de NF/SKU e OAuth implementados nesta etapa; validação PostgreSQL/Chromium registrada no [PR #20](https://github.com/andreiruck-max/mvet/pull/20), com homologação real ainda pendente. Conciliação financeira continua futura, sem promessa de saldo bancário direto. ADR 0015 define fila separada de conferência, custos de marketplace manuais, CMV exclusivo do MVet e cancelamentos independentes; implementação preserva escolhas locais e não reativa vendas canceladas. Ver BLING_SETUP.md para os limites concretos.

@@ -31,17 +31,30 @@ class PurchaseForm(forms.ModelForm):
         else:
             company=Company.objects.filter(pk=1).first()
             if company and company.default_stock_location_id and company.default_stock_location.active:self.initial['location']=company.default_stock_location_id
-        for field in ['discount','freight','other_costs']:self.fields[field].required=False
+        for field in ['discount','freight','other_costs','acquisition_kind']:self.fields[field].required=False
     def clean(self):
         data=super().clean()
+        data['acquisition_kind']=data.get('acquisition_kind') or 'NORMAL'
         for field in ['discount','freight','other_costs']:
             if data.get(field) is None and field not in self.errors:data[field]=Decimal('0')
         return data
 
 class ItemForm(forms.Form):
-    product=forms.ModelChoiceField(queryset=Product.objects.filter(active=True,kind='SIMPLE'),widget=forms.HiddenInput(attrs={'data-product-lookup':'true'}),label='Produto')
+    mode=forms.ChoiceField(label='Destino do item',choices=[('STOCK','Movimentar estoque'),('NONSTOCK','Somente financeiro — sem estoque')],initial='STOCK',required=False)
+    name=forms.CharField(label='Descrição sem estoque',max_length=240,required=False)
+    from apps.expenses.models import ChartOfAccount
+    category=forms.ModelChoiceField(label='Categoria sem estoque',required=False,queryset=ChartOfAccount.objects.filter(active=True,postable=True).exclude(nature='REVENUE'))
+    product=forms.ModelChoiceField(required=False,queryset=Product.objects.filter(active=True,kind='SIMPLE'),widget=forms.HiddenInput(attrs={'data-product-lookup':'true'}),label='Produto')
     quantity=forms.DecimalField(label='Quantidade',max_digits=18,decimal_places=4,min_value=Decimal('0.0001'),initial=1)
     unit_cost=forms.DecimalField(label='Preço unitário (R$)',max_digits=24,decimal_places=6,min_value=0)
+
+    def clean(self):
+        data=super().clean();data['mode']=data.get('mode') or 'STOCK'
+        if data['mode']=='STOCK':
+            if not data.get('product'):self.add_error('product','Selecione um produto.')
+            data['category']=None
+        elif not data.get('name') and not data.get('product'):self.add_error('name','Informe a descrição.')
+        return data
 
 Items=forms.formset_factory(ItemForm,extra=1,can_delete=True,max_num=100,validate_max=True)
 

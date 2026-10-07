@@ -5,11 +5,15 @@ Em `/despesas/`, registre o valor, descrição, competência do consumo/serviço
 Competência e documento respeitam o corte da empresa. Pendências anteriores são abertura no financeiro, sem nova despesa. Vencimento não pode anteceder o documento. Pagamento antecipado de competência futura é permitido: a saída ocorre no pagamento e o relatório reconhece a competência futura.
 
 ## Plano de contas
+Novo cadastro sugere o próximo código livre entre irmãos, inclusive reservando códigos inativos. Selecionar um grupo ajusta a sugestão e a natureza; código digitado manualmente é preservado. **Usar código sugerido** reaplica a sugestão. A sugestão não é reserva: se outra pessoa usar o código antes de salvar, a validação de unicidade pede a revisão. Edição de categorias existentes não renumera registros.
+
 Em **Plano de contas e regras**, cadastre um grupo, por exemplo `04 Despesas operacionais`, natureza operacional e **Aceita lançamentos** desmarcado. Depois crie categorias analíticas como `04.01 Honorários contábeis`. Códigos têm dois dígitos por nível, até oito níveis; filhos têm a mesma natureza do pai. Não há categorias empresariais obrigatórias embutidas.
 
 Despesas aceitam apenas categorias analíticas operacionais ou financeiras. Contas de ativo, passivo, patrimônio e receita não recebem despesas. Compra de estoque e amortização de principal continuam nos módulos próprios. Categoria utilizada permite mudar nome ou inativar; código, pai, natureza e caráter analítico ficam protegidos. Não há exclusão destrutiva pela interface.
 
 ## Classificação e correção
+A nova despesa prioriza favorecido livre e opcional. O vínculo com fornecedor cadastrado fica em uma seção adicional; sem favorecido, o título usa o nome do fornecedor, como antes. Nenhum dos dois é exigido e nomes livres não criam fornecedores automaticamente. Categoria tem pesquisa por código/nome e mostra o caminho completo no plano; só oferece categorias válidas com ancestrais ativos. Filtrar as opções conserva a categoria já selecionada.
+
 Categoria manual prevalece. Em branco, são aplicadas regras ativas por prioridade crescente, com desempate pela ordem de cadastro. Campos: descrição, favorecido ou CPF/CNPJ do fornecedor; operadores: contém, igual e começa com. Comparação ignora maiúsculas/minúsculas e espaços nas extremidades. CPF/CNPJ deve usar o mesmo formato do cadastro. Ancestral inativo também desabilita a categoria. Sem correspondência, a despesa fica **A classificar**, separada no relatório.
 
 Despesa guarda cópia do caminho/natureza da categoria e da regra aplicada. Renomear categoria ou editar regra não altera histórico. **Corrigir classificação** exige motivo e versão atual; permite categoria manual ou reaplicação explícita das regras atuais. A revisão conserva valores anteriores/novos, usuário e horário. Pode corrigir despesa paga: relatório muda, dinheiro e competência permanecem iguais.

@@ -73,6 +73,15 @@ def financial_result(d):
 def dre(d):
     sales=sales_summary(sale_rows({**d,'status':'CONFIRMED'}))
     groups,expenses=expense_report({'start':d['start'],'end':d['end']})
+    from apps.purchases.models import PurchaseItem
+    nonstock=PurchaseItem.objects.filter(moves_stock=False,purchase__status__in=['ORDERED','RECEIVED'],purchase__date__range=(d['start'],d['end'])).values('category_snapshot').annotate(amount=Sum('nonstock_total'),count=Count('pk'))
+    for row in nonstock:
+        snap=row['category_snapshot'];nature=snap.get('nature','NONE')
+        if nature not in expenses:continue  # Personal withdrawals/assets are not company expenses.
+        path=snap.get('path',[])
+        label=(f"{path[-1]['code']} · {path[-1]['name']}" if path else 'A classificar')+' · compras sem estoque'
+        groups.append(dict(label=label,nature=nature,amount=row['amount'],count=row['count']))
+        expenses[nature]+=row['amount']
     for group in groups:group['nature_label']={'OPERATING':'Operacional','FINANCIAL':'Financeira','NONE':'A classificar'}[group['nature']]
     financial=financial_result(d)
     provisional=bool(expenses['NONE'] or financial['unresolved'] or financial['discounts'])

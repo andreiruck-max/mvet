@@ -77,5 +77,5 @@ def eligibility(source, *, purpose_reviewed=False):
         cfop = row['cfop']
         if row['type'] != 'P' or len(cfop) != 4 or cfop[0] not in '567' or cfop[1] != '1':
             raise ValidationError('Item não identificado como venda de mercadoria. Confira CFOP/natureza; remessas e transferências não são vendas.')
-        if not row['code'] or not row['unit'] or Decimal(row['quantity']) <= 0:
-            raise ValidationError('Item sem código, unidade ou quantidade válida.')
+        if not row['code'] or Decimal(row['quantity']) <= 0:
+            raise ValidationError('Item sem código ou quantidade válida.')

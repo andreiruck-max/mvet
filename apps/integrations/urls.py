@@ -1,7 +1,8 @@
 from django.urls import path
-from . import views, purchase_views
+from . import views, purchase_views, bulk_views
 
 urlpatterns = [
+    path('lote/<str:kind>/',bulk_views.review,name='bling_bulk'),
     path('compras/', purchase_views.queue, name='bling_purchase_queue'),
     path('compras/consultar/', purchase_views.query, name='bling_purchase_query'),
     path('compras/<int:pk>/', purchase_views.detail, name='bling_purchase_detail'),

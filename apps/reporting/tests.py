@@ -117,7 +117,7 @@ class ReportingTests(ReportingFixture,TestCase):
     def test_cash_days_pagination_preserves_balances_and_empty_days(self):
         self.client.force_login(self.actor);d=dict(start=self.today,end=self.today+timedelta(days=30),page=2)
         r=self.client.get(reverse('finance'),d);self.assertEqual(r.status_code,200)
-        self.assertEqual(len(r.context['days']),14);self.assertEqual(r.context['days'][0]['date'],self.today+timedelta(days=14))
+        self.assertEqual(len(r.context['days']),31);self.assertEqual(r.context['days'][0]['date'],self.today)
         self.assertEqual(r.context['days'][0]['rows'][0]['final'],1000)
     def test_operator_denied_reports_and_post_not_accepted(self):
         self.client.force_login(self.operator)

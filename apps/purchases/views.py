@@ -60,14 +60,14 @@ def purchase_edit(request,pk=None):
     obj=get_object_or_404(Purchase,pk=pk) if pk else None
     if obj and obj.status!='DRAFT':messages.error(request,'Somente rascunhos podem ser editados.');return redirect('purchase_detail',pk=pk)
     form=PurchaseForm(request.POST or None,instance=obj)
-    initial=[{'product':i.product_id,'quantity':i.quantity,'unit_cost':i.unit_cost} for i in obj.items.all()] if obj else []
+    initial=[{'product':i.product_id,'quantity':i.quantity,'unit_cost':i.unit_cost,'mode':'STOCK' if i.moves_stock else 'NONSTOCK','name':i.name_snapshot,'category':i.category_id} for i in obj.items.all()] if obj else []
     schedule=list(obj.installments.values('due_date','amount','notes')) if obj else []
     items=Items(request.POST or None,initial=initial);installments=Installments(request.POST or None,initial=schedule,prefix='installments')
     if request.method=='POST':
         valid=form.is_valid();items_valid=items.is_valid();schedule_valid=installments.is_valid()
         if valid and items_valid and schedule_valid:
             try:
-                lines=[(f.cleaned_data['product'].pk,f.cleaned_data['quantity'],f.cleaned_data['unit_cost']) for f in items if f.cleaned_data and not f.cleaned_data.get('DELETE')]
+                lines=[dict(product_id=f.cleaned_data['product'].pk if f.cleaned_data.get('product') else None,quantity=f.cleaned_data['quantity'],unit_cost=f.cleaned_data['unit_cost'],moves_stock=f.cleaned_data['mode']=='STOCK',name=f.cleaned_data.get('name',''),category_id=f.cleaned_data['category'].pk if f.cleaned_data.get('category') else None) for f in items if f.cleaned_data and not f.cleaned_data.get('DELETE')]
                 dates=[(f.cleaned_data['due_date'],f.cleaned_data['amount'],f.cleaned_data['notes']) for f in installments if f.cleaned_data and not f.cleaned_data.get('DELETE')]
                 p=save_draft(actor=request.user,key=form.cleaned_data['key'],data={k:form.cleaned_data[k] for k in FIELDS},items=lines,installments=dates,purchase_id=pk,revision=form.cleaned_data['revision'])
                 messages.success(request,'Rascunho salvo. Confira o total, o rateio e as parcelas.');return redirect('purchase_detail',pk=p.pk)

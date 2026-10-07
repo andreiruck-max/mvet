@@ -36,7 +36,7 @@ def expense_new(request):
             messages.success(request,'Despesa registrada por competência. O pagamento continua separado no financeiro.')
             return redirect('expense_detail',pk=obj.pk)
         except (ValidationError,IntegrityError) as exc:form_error(form,exc)
-    return render(request,'expenses/form.html',{'title':'Nova despesa','form':form,'button':'Registrar despesa','help':'Informe a competência do serviço/consumo. Compra de estoque, principal de dívida e abertura não são despesas. Categoria em branco aplica regras; sem correspondência, fica a classificar.'})
+    return render(request,'expenses/form.html',{'title':'Nova despesa','form':form,'expense_form':True,'button':'Registrar despesa','help':'Registre a competência e o vencimento; o pagamento é feito no financeiro. Fornecedor e favorecido são opcionais. Compra de estoque, principal de dívida e abertura não são despesas.'})
 
 
 @login_required

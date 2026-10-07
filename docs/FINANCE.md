@@ -1,4 +1,5 @@
 # Financeiro — Fase 5
+Atualização 07/10/2026 (ADR 0027): Saldos e fluxo de caixa inicia com 15 dias (ontem a hoje + 13), sem paginação de dias. Quadro, cartões, API de caixa e exportação mostram somente contas ativas. Histórico de contas inativas permanece acessível pelo cadastro e página da conta; consultas consolidadas dos indicadores preservam todas as contas. A inativação não zera saldo, cancela obrigações nem altera o livro. Na página da conta: extrato cronológico com saldo acumulado, compromissos, edição, entrada/saída realizada e atalhos para previsão/transferência. Entrada/saída manual cria e liquida um título atomicamente com idempotência; não relançar títulos de compras ou despesas existentes. Classificação de caixa não substitui registro de despesa por competência.
 Contas, títulos, liquidações, transferências e caixa diário implementados. Despesas por competência foram integradas na Fase 6; DRE permanece na Fase 7. Evidências de validação no PR de cada fase.
 
 ## Entidades

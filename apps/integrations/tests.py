@@ -12,6 +12,7 @@ from apps.sales.tests import Fixture
 from apps.sales.models import Sale
 from apps.sales.services import cancel
 from apps.inventory.models import StockMovement
+from apps.products.models import Product
 from apps.finance.models import FinancialTitle
 from apps.core.models import AuditLog
 from .models import BlingConnection, InvoiceImport
@@ -132,7 +133,7 @@ class ImportTests(Fixture, TestCase):
         self.assertIsNone(resolve(self.connection, row.source['items'][0]))
         map_product(actor=self.actor, invoice_id=row.pk, revision=row.revision,
                     code='EXT-UNIT', unit='UNID', product=self.product)
-        self.assertEqual(ProductAlias.objects.get(code='EXT-UNIT').unit, 'UNID')
+        self.assertEqual(ProductAlias.objects.get(code='EXT-UNIT').unit, '')
         self.assertEqual(resolve(self.connection, row.source['items'][0]), self.product)
         row.refresh_from_db()
         self.assertEqual(self.approve(row).cmv, D('10'))
@@ -144,16 +145,37 @@ class ImportTests(Fixture, TestCase):
         self.assertTrue(compatible_units('KG', 'KG'))
         for unit in ['KG', 'G', 'L', 'CX', 'PCT', '', 'UNIDADE']:
             self.assertFalse(compatible_units('UN', unit))
-            self.assertIsNone(resolve(self.connection, {'code': self.product.sku, 'unit': unit}))
+            self.assertEqual(resolve(self.connection, {'code': self.product.sku, 'unit': unit}), self.product)
         self.product.active = False; self.product.save()
         self.assertIsNone(resolve(self.connection, {'code': self.product.sku, 'unit': 'UNID'}))
 
-    def test_unit_mismatch_blocks_even_exact_sku(self):
+    def test_external_unit_does_not_block_exact_sku(self):
         data = payload(); data['itens'][0]['unidade'] = 'KG'
         row = stage(actor=self.actor, connection=self.connection, payload=data)
-        with self.assertRaises(ValidationError): self.approve(row)
-        with self.assertRaises(ValidationError):
-            map_product(actor=self.actor, invoice_id=row.pk, revision=row.revision, code='TEST-1', unit='KG', product=self.product)
+        map_product(actor=self.actor, invoice_id=row.pk, revision=row.revision, code='TEST-1', product=self.product)
+        row.refresh_from_db()
+        self.assertEqual(self.approve(row).cmv, D('10'))
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.quantity, 8)
+        self.assertEqual(self.product.unit, 'UN')
+
+    def test_legacy_aliases_and_empty_unit_follow_code_without_rewriting_history(self):
+        from .models import ProductAlias
+        from .services import resolve
+        ProductAlias.objects.create(connection=self.connection, code='LEGACY', unit='PCT', product=self.product)
+        self.assertEqual(resolve(self.connection, {'code':'LEGACY','unit':'KG'}), self.product)
+        other = Product.objects.create(sku='OTHER-LEGACY', name='Outro')
+        ProductAlias.objects.create(connection=self.connection, code='LEGACY', unit='UN', product=other)
+        self.assertIsNone(resolve(self.connection, {'code':'LEGACY','unit':''}))
+        data = payload(); data['itens'][0].update(codigo='LEGACY', unidade='')
+        row = stage(actor=self.actor, connection=self.connection, payload=data)
+        self.assertEqual(row.status, 'PENDING')
+        self.client.force_login(self.actor)
+        response = self.client.post(reverse('bling_alias', args=[row.pk]), {'alias-code':'LEGACY', 'alias-product':self.product.pk, 'alias-revision':row.revision})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(resolve(self.connection, {'code':'LEGACY','unit':'CX'}), self.product)
+        self.assertEqual(ProductAlias.objects.filter(code='LEGACY').count(), 3)
+        row.refresh_from_db(); self.assertEqual(self.approve(row).cmv, 10)
 
     def test_non_sales_and_foreign_issuer_stay_blocked(self):
         for changes in [{'tipo': 0}, {'finalidade': 4}, {'situacao': 2}, {'chaveAcesso': '0'*44}]:

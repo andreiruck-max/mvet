@@ -13,16 +13,12 @@ class QueryForm(forms.Form):
 
 
 class ReviewForm(SaleForm):
-    purpose_reviewed = forms.BooleanField(required=False, label="Conferi o documento no Bling/DANFE: é uma venda com finalidade normal, não devolução, complemento, ajuste ou remessa.")
     def __init__(self, *args, invoice, **kwargs):
         super().__init__(*args, **kwargs)
         for field, value in [('date', invoice.issued_on), ('invoice_number', invoice.number), ('invoice_series', invoice.series)]:
             self.fields[field].disabled = True
             self.initial[field] = value
         self.initial['revision'] = invoice.revision
-        self.fields['purpose_reviewed'].required = not bool(invoice.source.get('purpose'))
-        if invoice.source.get('purpose'):
-            self.fields['purpose_reviewed'].widget = forms.HiddenInput()
         # Submission of the confirmation button is the review action.
         for name in ['channel', 'location', 'tax_rule']:
             self.fields[name].required = True
@@ -53,6 +49,7 @@ class ReviewForm(SaleForm):
             for field in ('channel', 'location'):
                 obj = getattr(defaults, prefix + '_' + field)
                 self.initial[field] = obj.pk if obj.active else None
+        self.initial.update(invoice.review_overrides)
         self.fields['shipping_received'].help_text = 'Frete da nota no Bling; confira e altere se necessário.'
         self.fields['shipping_paid'].help_text = 'Sugerido igual ao frete da nota. Ajuste para o custo efetivamente pago.'
         self.fields['discount'].help_text = 'Não fornecido nesta consulta do Bling. Confira e informe se houver.'
@@ -94,8 +91,13 @@ class ReviewDefaultsForm(forms.ModelForm):
 class AliasForm(forms.Form):
     revision = forms.IntegerField(widget=forms.HiddenInput)
     code = forms.CharField(label='Código externo', max_length=120)
-    unit = forms.CharField(label='Unidade externa', max_length=12)
     product = forms.ModelChoiceField(label='Produto MVet', queryset=Product.objects.filter(active=True), widget=forms.HiddenInput(attrs={'data-product-lookup': 'true'}))
+
+    def __init__(self, *args, invoice=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if invoice is not None:
+            choices = dict((row['code'], f"{row['code']} · {row['name']}") for row in invoice.source.get('items', []) if row['code'])
+            self.fields['code'] = forms.ChoiceField(label='Item da nota', choices=list(choices.items()))
 
 
 class DecisionForm(forms.Form):

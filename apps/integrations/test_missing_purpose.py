@@ -34,16 +34,17 @@ class MissingPurposeTests(Fixture, TestCase):
         row = self.stage()
         self.assertEqual(row.status, 'PENDING')
         self.assertEqual(row.source['purpose'], '')
-        for option in ({}, {'purpose_reviewed': False}, {'purpose_reviewed': 'true'}):
+        for reviewed in (False, 'true', None):
             with self.assertRaises(ValidationError):
-                self.approve(row, **option)
+                approve(actor=self.actor, invoice_id=row.pk, revision=row.revision,
+                        data=self.data(), extra_costs=[], reviewed=reviewed)
         self.assertFalse(Sale.objects.exists())
         self.assertFalse(FinancialTitle.objects.exists())
         self.assertEqual(StockMovement.objects.count(), moves)
 
     def test_manual_review_is_audited_without_fabricating_external_purpose(self):
         row = self.stage()
-        sale = self.approve(row, purpose_reviewed=True)
+        sale = self.approve(row)
         row.refresh_from_db()
         self.assertEqual(row.approved_source['purpose'], '')
         self.assertEqual(sale.cmv, 10)
@@ -78,11 +79,11 @@ class MissingPurposeTests(Fixture, TestCase):
         row = self.stage()
         form = ReviewForm({}, invoice=row, actor=self.actor)
         self.assertFalse(form.is_valid())
-        self.assertIn('purpose_reviewed', form.errors)
+        self.assertNotIn('purpose_reviewed', form.fields)
         self.client.force_login(self.actor)
         response = self.client.get(reverse('bling_detail', args=[row.pk]))
         self.assertContains(response, 'Finalidade não informada pelo Bling')
-        self.assertContains(response, 'id_purpose_reviewed')
+        self.assertNotContains(response, 'id_purpose_reviewed')
         self.client.post(reverse('bling_detail', args=[row.pk]), {})
         self.assertFalse(Sale.objects.exists())
 
