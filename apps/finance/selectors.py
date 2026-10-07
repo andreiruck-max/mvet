@@ -25,10 +25,11 @@ def titles(data):
     return rows.order_by(data.get('sort') or 'due_date','pk')
 
 
-def daily_cash(start,end,account_id=None):
+def daily_cash(start,end,account_id=None, *, active_only=False):
     """Bounded report. Actual ledger is immutable; balances are derived, never cached."""
     today=timezone.localdate()
     accounts=Account.objects.filter(opening_date__lte=end)
+    if active_only: accounts=accounts.filter(active=True)
     if account_id: accounts=accounts.filter(pk=account_id)
     accounts=list(accounts)
     ids=[a.pk for a in accounts]
@@ -73,9 +74,9 @@ def daily_cash(start,end,account_id=None):
     return result, {k:v or ZERO for k,v in unallocated.items()}
 
 
-def cash_summary(start, end, account_id=None):
+def cash_summary(start, end, account_id=None, *, active_only=False):
     """Period endpoint, independent of pagination; company includes unassigned debts."""
-    rows, unallocated = daily_cash(start, end, account_id)
+    rows, unallocated = daily_cash(start, end, account_id, active_only=active_only)
     final_rows = [row for row in rows if row['date'] == end]
     actual = sum((row['final'] for row in final_rows), ZERO)
     projected = sum((row['projected'] for row in final_rows), ZERO)
@@ -100,3 +101,18 @@ def cash_matrix(rows, dates, mode='projected'):
             totals[row['date']][key] += cell[key]
     return ([{'account': group['account'], 'cells': [group['by_date'].get(day) for day in dates]}
              for group in accounts.values()], [totals[day] for day in dates])
+
+
+def account_statement(account, start, end):
+    from django.db.models import Case, When, Value, Window, DecimalField
+    money=DecimalField(max_digits=24,decimal_places=2)
+    prior=Entry.objects.filter(account=account,operation__status='POSTED',operation__date__lt=start,
+        operation__date__lte=timezone.localdate()).aggregate(total=Sum('amount'))['total'] or ZERO
+    initial=account.opening_balance+prior if account.opening_date<=start else ZERO
+    rows=Entry.objects.filter(account=account,operation__date__range=(start,end)).select_related('operation','operation__title').order_by('operation__date','pk')
+    # Opening can occur inside the selected range; every entry is on/after it.
+    running_base=account.opening_balance+prior
+    rows=rows.annotate(running_balance=Value(running_base,output_field=money)+Window(
+        expression=Sum(Case(When(operation__status='POSTED',operation__date__lte=timezone.localdate(),then=F('amount')),default=Value(ZERO),output_field=money)),
+        order_by=[F('operation__date').asc(),F('pk').asc()]))
+    return rows, initial

@@ -1,6 +1,6 @@
 """Cash ledger services; obligations are not bank movements or DRE entries."""
 from decimal import Decimal
-from uuid import UUID
+from uuid import UUID, uuid5
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
@@ -92,6 +92,22 @@ def create_title(*, actor, key, data):
     title.full_clean(); title.save()
     audit(actor,title,'create_financial_title',{}, {'amount':str(title.amount),'direction':title.direction,'opening':title.opening})
     return title
+
+
+@transaction.atomic
+def account_entry(*, actor, account_id, key, direction, date, description, amount, category, notes=''):
+    """Manual cash entry via the existing obligation and settlement ledger."""
+    require(actor,'core.view_finance'); require(actor,'core.operate_finance')
+    require(actor,'core.create_financial_titles')
+    if direction not in ('PAY','RECEIVE') or category not in dict(Title.CATEGORIES) or category=='OPENING':
+        raise ValidationError('Tipo ou classificação inválidos.')
+    require(actor,'core.pay_titles' if direction=='PAY' else 'core.receive_titles')
+    domain_lock(); validate_date(date)
+    account=account_for(account_id,date)
+    title=create_title(actor=actor,key=key,data=dict(direction=direction,description=description,date=date,
+        due_date=date,amount=amount,account=account,category=category,opening=False,notes=notes))
+    return settle(actor=actor,key=uuid5(UUID(str(key)),'account-entry-settlement'),title_id=title.pk,
+        account_id=account_id,date=date,principal=amount,interest=ZERO,discount=ZERO,actual=amount,notes=notes,revision=0)
 
 
 @transaction.atomic

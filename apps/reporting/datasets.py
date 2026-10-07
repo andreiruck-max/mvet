@@ -94,7 +94,7 @@ def build(kind, user, query):
         result.locations = Dataset('Estoque por local',['SKU','PRODUTO','LOCAL','QTD'],[[p.sku,p.name,str(b.location),b.quantity] for p in rows for b in p.balances.all() if location and b.location_id == location.pk])
     elif kind == 'cash':
         from apps.finance.selectors import daily_cash
-        rows,unallocated = daily_cash(d['start'],d['end'],d['account'].pk if d.get('account') else None)
+        rows,unallocated = daily_cash(d['start'],d['end'],d['account'].pk if d.get('account') else None,active_only=True)
         if len(rows)>10000: raise ValidationError('Reduza o período ou selecione uma conta (máximo 10.000 posições).')
         result = Dataset('Fluxo de Caixa',['Data','Conta','Saldo inicial','Entradas','Saídas','Saldo final','Projetado'],[[r['date'],str(r['account']),r['initial'],r['credits'],r['debits'],r['final'],r['projected']] for r in rows],f'Pendências sem conta fora da projeção: pagar R$ {unallocated["pay"]:.2f}; receber R$ {unallocated["receive"]:.2f}.',cash=rows)
     elif kind == 'titles':

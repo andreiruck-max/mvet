@@ -59,11 +59,11 @@ class ReportingBrowser(ReportingFixture,StaticLiveServerTestCase):
             page.get_by_role('link',name='Fluxo diário',exact=True).click()
             page.get_by_label('Período:',exact=True).select_option('month')
             page.get_by_role('button',name='Consultar',exact=True).click()
-            self.assertEqual(page.locator('.cash-date').count(),14)
+            import calendar
+            self.assertEqual(page.locator('.cash-date').count(),calendar.monthrange(self.today.year,self.today.month)[1])
             self.assertLess(page.locator('.cash-matrix tbody tr').first.bounding_box()['y'],600)
             page.screenshot(path='artifacts/cash-matrix-desktop.png',full_page=True)
-            page.get_by_role('link',name='Próxima',exact=True).first.click()
-            self.assertIn('page=2',page.url)
+            self.assertEqual(page.locator('.cash-page nav[aria-label="Paginação"]').count(),0)
             for name in ['dashboard','sales_sheet','dre','purchase_payables','finance','products','purchases','sales','expenses','financial_titles','notifications','configuration','bling_queue','bling_purchase_queue']:
                 page.set_viewport_size({'width':1440,'height':1050})
                 page.goto(self.live_server_url+reverse(name))

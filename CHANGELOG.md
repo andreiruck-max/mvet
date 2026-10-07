@@ -1,3 +1,10 @@
+# Saldos bancários e fluxo de caixa (07/10/2026)
+- Período inicial de 15 dias a partir de ontem; intervalo inteiro na mesma tabela, sem paginação de dias.
+- Cabeçalho Banco / conta fixo sem sobreposição com Entradas; bordas de células e separação de dias reforçadas.
+- Entradas azuis, saídas/negativos vermelhos e saldos pretos em negrito sobre fundo claro inclusive no modo escuro.
+- Conta clicável abre extrato com saldo acumulado, compromissos e ações de lançamento, previsão, transferência e edição.
+- Adicionar conta no fluxo; inativas saem do quadro e seus totais sem apagar histórico nem alterar indicadores consolidados. ADR 0027.
+
 # Vínculo de vendas e planejamento de compra (07/10/2026)
 - Vínculo por código independente da unidade externa; seleção do item da nota, unidade local e quantidade preservada.
 - Confirmação única de venda, sem checkbox adicional de finalidade; aviso, auditoria e bloqueios de documentos incompatíveis mantidos.

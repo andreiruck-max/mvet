@@ -1,5 +1,8 @@
 # Backlog
 
+## Complemento financeiro — 07/10/2026
+Quadro bancário com 15 dias desde ontem, sem páginas de dias, bordas/cores e cabeçalho corrigidos; página de conta com extrato, entrada/saída, agendamento, transferência e edição. Inativas ocultas do quadro com histórico preservado. Em validação no mesmo PR 33, sem implantação local. ADR 0027.
+
 ## Complemento do pacote — 07/10/2026
 Vínculos de venda sem unidade externa, confirmação única, estoque com saldo por padrão e planejamento de compra implementados (ADR 0026). Manter no PR 33 junto às compras flexíveis até terminar o pacote; sem implantação local nesta etapa.
 

@@ -34,7 +34,10 @@ def title_list(request):
 @login_required
 @permission_required('core.operate_finance',raise_exception=True)
 def title_new(request):
-    form=forms.TitleForm(request.POST or None)
+    initial={}
+    if request.GET.get('account'):
+        initial['account']=get_object_or_404(Account,pk=request.GET['account'],active=True)
+    form=forms.TitleForm(request.POST or None,initial=initial)
     if request.method=='POST' and form.is_valid():
         data=dict(form.cleaned_data);key=data.pop('key')
         try:
@@ -87,8 +90,8 @@ def account_edit(request,pk=None):
     form=forms.AccountForm(request.POST or None,instance=account,initial={} if pk else {'opening_date':timezone.localdate()})
     if request.method=='POST' and form.is_valid():
         try:
-            services.save_account(actor=request.user,data=form.cleaned_data,pk=pk)
-            messages.success(request,'Conta salva.');return redirect('financial_accounts')
+            saved=services.save_account(actor=request.user,data=form.cleaned_data,pk=pk)
+            messages.success(request,'Conta salva.');return redirect('financial_account',pk=saved.pk)
         except (ValidationError,IntegrityError) as exc: error(form,exc)
     return render(request,'finance/form.html',{'form':form,'title':'Editar conta' if pk else 'Nova conta financeira','button':'Salvar conta','help':'Saldo inicial é o saldo no início do dia escolhido. Não inclua novamente as operações já contidas nele.'})
 
@@ -107,7 +110,10 @@ def account_delete(request,pk):
 @login_required
 @permission_required('core.operate_finance',raise_exception=True)
 def transfer_new(request):
-    form=forms.TransferForm(request.POST or None)
+    initial={}
+    if request.GET.get('source'):
+        initial['source']=get_object_or_404(Account,pk=request.GET['source'],active=True)
+    form=forms.TransferForm(request.POST or None,initial=initial)
     if request.method=='POST' and form.is_valid():
         data=dict(form.cleaned_data);data['source_id']=data.pop('source').pk;data['destination_id']=data.pop('destination').pk
         try:
@@ -144,7 +150,7 @@ def operation_action(request,pk,action):
 @transaction.atomic
 def cash(request):
     domain_lock()
-    form=forms.CashForm(request.GET or {'start':timezone.localdate(),'end':timezone.localdate()+timedelta(days=30)})
+    form=forms.CashForm(request.GET or {'period':'next15','mode':'projected'})
     rows=[];unallocated={};days=[];page=None;summary=None;pending=[];matrix=[];day_totals=[]
     if form.is_valid():
         data=form.cleaned_data
@@ -152,13 +158,13 @@ def cash(request):
         display.update(start=data['start'].isoformat(),end=data['end'].isoformat())
         form.data=display
         account_id=data['account'].pk if data['account'] else None
-        summary=selectors.cash_summary(data['start'],data['end'],account_id)
+        summary=selectors.cash_summary(data['start'],data['end'],account_id,active_only=True)
         pending=Title.objects.filter(status='OPEN',settled__lt=F('amount'),direction='PAY',due_date__lte=data['end']).select_related('account').order_by('due_date','pk')
         if account_id: pending=pending.filter(account_id=account_id)
         pending=Paginator(pending,20).get_page(request.GET.get('payments_page'))
         dates=[data['start']+timedelta(days=i) for i in range((data['end']-data['start']).days+1)]
-        page=Paginator(dates,14).get_page(request.GET.get('page'))
-        rows,unallocated=selectors.daily_cash(page.object_list[0],page.object_list[-1],data['account'].pk if data['account'] else None)
+        page=Paginator(dates,len(dates)).get_page(1)
+        rows,unallocated=selectors.daily_cash(data['start'],data['end'],account_id,active_only=True)
         grouped=OrderedDict((date,[]) for date in page.object_list)
         for row in rows:grouped[row['date']].append(row)
         days=[{'date':date,'rows':values} for date,values in grouped.items()]
@@ -173,7 +179,7 @@ def cash_api(request):
     domain_lock()
     form=forms.CashForm(request.GET)
     if not form.is_valid(): return JsonResponse({'errors':form.errors.get_json_data()},status=400)
-    d=form.cleaned_data;rows,unallocated=selectors.daily_cash(d['start'],d['end'],d['account'].pk if d['account'] else None)
+    d=form.cleaned_data;rows,unallocated=selectors.daily_cash(d['start'],d['end'],d['account'].pk if d['account'] else None,active_only=True)
     return JsonResponse({'days':[{k:(v.pk if k=='account' else str(v)) for k,v in row.items()} for row in rows],'unallocated':{k:str(v) for k,v in unallocated.items()}})
 
 
@@ -188,3 +194,37 @@ def day_detail(request,pk,date):
         raise Http404
     rows=Entry.objects.filter(account=account,operation__date=day).select_related('operation').order_by('pk')
     return render(request,'finance/day.html',{'account':account,'date':day,'page':Paginator(rows,50).get_page(request.GET.get('page'))})
+
+
+@login_required
+@permission_required('core.view_finance',raise_exception=True)
+def account_detail(request,pk):
+    from apps.reporting.forms import PeriodForm
+    account=get_object_or_404(Account,pk=pk)
+    data=request.GET or {'start':timezone.localdate()-timedelta(days=29),'end':timezone.localdate()}
+    form=PeriodForm(data)
+    form.fields.pop('channel')
+    rows=Entry.objects.none(); initial=None; summary=None
+    if form.is_valid():
+        start,end=form.cleaned_data['start'],form.cleaned_data['end']
+        rows,initial=selectors.account_statement(account,start,end)
+        summary=selectors.cash_summary(start,end,account.pk)
+        display=form.data.copy();display.update(start=start.isoformat(),end=end.isoformat());form.data=display
+    pending=Title.objects.filter(account=account,status='OPEN',settled__lt=F('amount')).order_by('due_date','pk')
+    return render(request,'finance/account.html',{'account':account,'form':form,'initial':initial,'summary':summary,
+        'page':Paginator(rows,50).get_page(request.GET.get('page')),'pending':Paginator(pending,20).get_page(request.GET.get('pending_page'))})
+
+
+@login_required
+@permission_required(['core.view_finance','core.operate_finance','core.create_financial_titles'],raise_exception=True)
+def account_entry(request,pk):
+    account=get_object_or_404(Account,pk=pk,active=True)
+    form=forms.AccountEntryForm(request.POST or None)
+    if request.method=='POST' and form.is_valid():
+        try:
+            services.account_entry(actor=request.user,account_id=pk,**form.cleaned_data)
+            messages.success(request,'Lançamento registrado na conta.')
+            return redirect('financial_account',pk=pk)
+        except (ValidationError,IntegrityError) as exc:error(form,exc)
+    return render(request,'finance/form.html',{'form':form,'title':f'Lançar em {account.name}',
+        'button':'Registrar lançamento','help':'Entrada ou saída já realizada. Para previsões, use Agendar entrada / saída na conta. Não repita compras, despesas ou títulos existentes: liquide o título original. Classificação de caixa não substitui o cadastro de despesa por competência. Transferências usam a opção própria.'})

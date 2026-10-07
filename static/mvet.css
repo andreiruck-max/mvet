@@ -85,16 +85,19 @@ main.workspace{max-width:1920px;padding:16px 22px;min-width:0}
 .workspace .report-caption{font-size:12px;margin:6px 0 10px}
 .cash-matrix-wrap{max-height:65vh}
 .cash-matrix{width:max-content;min-width:100%;font-size:12px}
-.workspace .cash-matrix td,.workspace .cash-matrix th{padding:6px 8px;min-width:90px}
+.workspace .cash-matrix td,.workspace .cash-matrix th{padding:9px 10px;min-width:105px}
 .cash-matrix thead th{text-align:center}
-.cash-matrix th:first-child{position:sticky;left:0;z-index:2;min-width:140px;max-width:180px;white-space:normal;background:var(--surface);box-shadow:1px 0 0 var(--border)}
+.cash-matrix .cash-account{position:sticky;left:0;z-index:2;min-width:140px;max-width:180px;white-space:normal;background:var(--surface);box-shadow:1px 0 0 var(--border)}
 .cash-matrix thead{position:sticky;top:0;z-index:3}
 .cash-matrix tbody tr:nth-child(even){background:color-mix(in srgb,var(--muted) 9%,var(--surface))}
 .cash-matrix tbody tr:nth-child(even) th{background:color-mix(in srgb,var(--muted) 9%,var(--surface))}
-.cash-matrix .day-end,.cash-matrix .cash-date{border-right:2px solid var(--border)}
+.cash-matrix .day-end,.cash-matrix .cash-date{border-right:3px solid #8892aa}.cash-matrix .cash-date{padding:12px 10px;background:var(--surface);border-bottom:2px solid #8892aa}
 .cash-matrix tfoot{font-weight:700;background:var(--bg)}
 .cash-matrix a{text-decoration:none}
 .cash-matrix a:hover{text-decoration:underline}
+.cash-matrix td,.cash-matrix th{border:1px solid #a2abbd}.cash-matrix tbody th,.cash-matrix tfoot th{border-bottom:1px solid #a2abbd}.cash-matrix tfoot td,.cash-matrix tfoot th{border-top:2px solid #77849e}.cash-matrix tbody tr:hover td:not(.cash-balance){background:color-mix(in srgb,var(--focus) 10%,var(--surface))}
+.cash-page .cash-in{color:#155cc2}.cash-page .cash-out,.cash-page .cash-negative{color:#ba1834}.cash-page .cash-balance{background:#f4f6fa;color:#101010;font-weight:700}.cash-page .cash-balance.cash-negative{color:#ba1834}.cash-page .cash-balance a{color:inherit;font-weight:inherit}.cash-page .report-cards b{border-radius:4px;padding:3px 6px}.cash-matrix thead .cash-account{z-index:5}.cash-matrix tbody .cash-account,.cash-matrix tfoot .cash-account{z-index:2}
+[data-theme=dark] .cash-page .cash-in{color:#86b7ff}[data-theme=dark] .cash-page .cash-out{color:#ff8f9f}
 .menu-toggle{display:none}
 @media(max-width:1100px){.workspace .metric-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:850px){
