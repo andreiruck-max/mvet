@@ -40,6 +40,8 @@ class BrowserAcceptance(StaticLiveServerTestCase):
             page.screenshot(path=str(output/'planning-desktop.png'),full_page=True)
             page.set_viewport_size({'width':390,'height':844})
             self.assertFalse(page.evaluate('document.documentElement.scrollWidth > innerWidth'))
+            suggestion = page.locator('td[data-label="Sugestão"]').bounding_box()
+            self.assertLessEqual(suggestion['x'] + suggestion['width'],390)
             page.screenshot(path=str(output/'planning-mobile.png'),full_page=True)
             page.set_viewport_size({'width':1440,'height':1050})
             page.goto(self.live_server_url+'/estoque/produtos/')
