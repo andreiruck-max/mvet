@@ -1,3 +1,6 @@
+# Correção do atualizador Windows (07/10/2026)
+- Verificação de inicialização tolera stderr transitório no PowerShell 5.1, repete a tentativa pelo código de saída e conserva o diagnóstico final. Teste com stderr nativo também executado em Windows.
+
 # Plano de contas e nova despesa (07/10/2026)
 - Código sugerido automaticamente por grupo, editável e sem renumerar cadastros existentes.
 - Formulário compacto, favorecido livre e opcional, fornecedor cadastrado em seção adicional.

@@ -1,4 +1,5 @@
 # Backlog
+Correção de compatibilidade do atualizador com stderr nativo do PowerShell 5.1; validação adicional em runner Windows. Sem mudança de dados ou aplicação.
 
 ## Fechamento do pacote — 07/10/2026
 Últimos ajustes autorizados: plano de contas com sugestão editável, nova despesa compacta com favorecido/fornecedor opcionais e categorias pesquisáveis. Pacote PR 33 liberado pelo usuário para integração após validação; a instalação Windows é feita por `scripts/update_windows.ps1`, com backup restaurado em banco isolado antes de migrations. A execução na máquina da empresa permanece a cargo do usuário; não confundir integração ao Git com implantação local.
