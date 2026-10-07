@@ -48,6 +48,41 @@ class Fixture:
 
 
 class ExpenseTests(Fixture,TestCase):
+    def test_optional_supplier_and_counterparty_do_not_require_registration(self):
+        from .forms import ExpenseForm
+        supplier=Supplier.objects.create(legal_name='Prestador cadastrado')
+        for linked,name,expected in [(None,'',''),(None,'Nome livre','Nome livre'),(supplier,'','Prestador cadastrado'),(supplier,'Outro favorecido','Outro favorecido')]:
+            data=self.data(supplier=linked.pk if linked else '',counterparty=name,category=self.category.pk,account=self.account.pk)
+            data['key']=uuid4();form=ExpenseForm(data=data)
+            self.assertTrue(form.is_valid(),form.errors)
+            values=dict(form.cleaned_data);key=values.pop('key')
+            obj=s.create_expense(actor=self.operator,key=key,data=values)
+            self.assertEqual(obj.title.counterparty,expected)
+            self.assertEqual(s.create_expense(actor=self.operator,key=key,data=values).pk,obj.pk)
+        self.assertEqual(Supplier.objects.count(),1)
+        self.assertEqual(FinancialTitle.objects.count(),4)
+        self.assertFalse(FinancialEntry.objects.exists())
+
+    def test_category_suggestion_respects_hierarchy_manual_codes_and_inactive_codes(self):
+        from .forms import CategoryForm
+        s.save_category(actor=self.admin,data=dict(code='04.03',name='Reservada',parent=self.root,nature='OPERATING',active=False))
+        form=CategoryForm()
+        self.assertEqual(form.initial['code'],'05')
+        self.assertEqual(form.code_suggestions[str(self.root.pk)]['code'],'04.04')
+        self.assertEqual(CategoryForm(initial={'parent':self.root.pk}).initial['code'],'04.04')
+        manual=CategoryForm(data=dict(code='04.20',name='Manual',parent=self.root.pk,nature='OPERATING',postable=True,active=True))
+        self.assertTrue(manual.is_valid(),manual.errors)
+        obj=s.save_category(actor=self.admin,data=manual.cleaned_data)
+        self.assertEqual(obj.code,'04.20')
+        self.assertFalse(hasattr(CategoryForm(instance=obj),'code_suggestions'))
+
+    def test_category_selection_shows_paths_and_excludes_inactive_ancestors(self):
+        from .forms import ExpenseForm
+        form=ExpenseForm();field=form.fields['category']
+        self.assertEqual(field.label_from_instance(self.category),'04.01 · Despesas operacionais / Contabilidade')
+        s.save_category(actor=self.admin,pk=self.root.pk,data={'active':False})
+        self.assertFalse(ExpenseForm().fields['category'].queryset.exists())
+
     def test_expense_accrual_is_separate_from_payment(self):
         obj=self.expense(category=self.category)
         self.assertEqual(FinancialTitle.objects.count(),1);self.assertFalse(FinancialEntry.objects.exists())

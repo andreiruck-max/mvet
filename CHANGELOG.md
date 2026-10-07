@@ -1,3 +1,9 @@
+# Plano de contas e nova despesa (07/10/2026)
+- Código sugerido automaticamente por grupo, editável e sem renumerar cadastros existentes.
+- Formulário compacto, favorecido livre e opcional, fornecedor cadastrado em seção adicional.
+- Pesquisa de categoria por código/nome com caminho hierárquico e exclusão de ancestrais inativos.
+- Atualizador Windows com preservação dos scripts locais, backup/restauração isolada antes de migrations e verificação de inicialização. Sem alterações de schema nesta etapa.
+
 # Saldos bancários e fluxo de caixa (07/10/2026)
 - Período inicial de 15 dias a partir de ontem; intervalo inteiro na mesma tabela, sem paginação de dias.
 - Cabeçalho Banco / conta fixo sem sobreposição com Entradas; bordas de células e separação de dias reforçadas.
