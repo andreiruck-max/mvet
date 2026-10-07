@@ -12,6 +12,7 @@ Monólito Django 5.2 LTS, PostgreSQL, templates, CSS/JS locais. Código em ingl�
 - Imposto admite recálculo retroativo autorizado com SaleTaxRevision imutável e auditoria; nunca atualizar imposto histórico diretamente. Ver ADR 0009.
 - Operações críticas são atômicas. Lock de produtos por ID crescente antes dos saldos por local.
 - Livro de movimentos imutável, com estorno vinculado. Cadastros utilizados são inativados.
+- Venda cancelada por engano admite recuperação explícita pelo master com SaleRecovery imutável e nova saída histórica vinculada ao estorno; somente Taxas pode ser corrigido nesse fluxo. Preservar CMV, imposto, data e vínculo Bling. Não reabrir financeiro histórico. ADR 0028.
 - Entrada de estoque não é despesa; transferência não é receita; amortização do principal não é despesa.
 - Expense reconhece competência e gera título sem caixa. Classificação histórica só muda com ExpenseRevision e motivo; pagamento não recria despesa. Ver docs/EXPENSES.md e ADR 0012.
 - Direção visual aprovada: tabelas de vendas próximas da planilha, caixa por dia/período e compras a pagar. Ver docs/DASHBOARD.md; preservar permissões e normalização.

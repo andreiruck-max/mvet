@@ -8,6 +8,12 @@ from apps.inventory.models import StockLocation
 from .models import Sale, SalesChannel, TaxRule
 from .services import EDIT_FIELDS, FINANCIAL_FIELDS
 
+class RecoveryForm(forms.Form):
+    key=forms.UUIDField(widget=forms.HiddenInput,initial=uuid.uuid4)
+    revision=forms.IntegerField(widget=forms.HiddenInput)
+    fees=forms.DecimalField(label='Taxas corrigidas (R$)',max_digits=18,decimal_places=2,min_value=0)
+    reason=forms.CharField(label='Motivo da recuperação',max_length=500,widget=forms.Textarea(attrs={'rows':2}))
+
 class SaleForm(forms.ModelForm):
     key=forms.UUIDField(widget=forms.HiddenInput,initial=uuid.uuid4)
     revision=forms.IntegerField(widget=forms.HiddenInput,initial=0)

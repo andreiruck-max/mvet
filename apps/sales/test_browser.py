@@ -12,6 +12,40 @@ from apps.products.models import Product
 from apps.inventory.models import StockLocation
 from apps.inventory.services import execute
 from .models import SalesChannel, TaxRule, Sale
+from .tests import Fixture
+
+@skipUnless(os.environ.get('MVET_BROWSER_TESTS')=='1','Browser acceptance is enabled in CI')
+@override_settings(STORAGES={'default':{'BACKEND':'django.core.files.storage.FileSystemStorage'},'staticfiles':{'BACKEND':'django.contrib.staticfiles.storage.StaticFilesStorage'}})
+class RecoveryBrowser(Fixture,StaticLiveServerTestCase):
+    def test_recover_cancelled_sale_from_details(self):
+        from playwright.sync_api import sync_playwright, expect
+        from .services import confirm, cancel
+        from .models import SaleRecovery
+        sale=self.draft(fees=Decimal('41.62'))
+        sale=confirm(actor=self.actor,sale_id=sale.pk,revision=sale.revision)
+        sale=cancel(actor=self.actor,sale_id=sale.pk,reason='Taxa incorreta')
+        client=Client();client.force_login(self.actor)
+        output=Path('artifacts');output.mkdir(exist_ok=True)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1000},locale='pt-BR')
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page();errors=[];page.on('pageerror',lambda err:errors.append(str(err)))
+            page.goto(self.live_server_url+f'/vendas/{sale.pk}/')
+            page.get_by_role('link',name='Recuperar venda / corrigir taxa',exact=True).click()
+            page.get_by_label('Taxas corrigidas (R$):',exact=True).fill('20.81')
+            page.get_by_label('Motivo da recuperação:',exact=True).fill('Cancelamento por engano ao corrigir taxa')
+            page.screenshot(path=str(output/'sale-recovery-desktop.png'),full_page=True)
+            page.set_viewport_size({'width':390,'height':844})
+            page.screenshot(path=str(output/'sale-recovery-mobile.png'),full_page=True)
+            self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390)
+            page.get_by_role('button',name='Recuperar venda e corrigir taxa',exact=True).click()
+            page.get_by_text('Venda recuperada com taxa corrigida. Estoque e relatórios atualizados; histórico preservado.',exact=True).wait_for()
+            expect(page.get_by_role('heading',name='Histórico de recuperações')).to_be_visible()
+            self.assertEqual(errors,[]);browser.close()
+        sale.refresh_from_db();self.product.refresh_from_db()
+        self.assertEqual(sale.status,'CONFIRMED');self.assertEqual(sale.fees,Decimal('20.81'))
+        self.assertEqual(sale.cmv,Decimal('10'));self.assertEqual(self.product.quantity,Decimal('8'))
+        self.assertEqual(SaleRecovery.objects.count(),1)
 
 @skipUnless(os.environ.get('MVET_BROWSER_TESTS')=='1','Browser acceptance is enabled in CI')
 @override_settings(STORAGES={'default':{'BACKEND':'django.core.files.storage.FileSystemStorage'},'staticfiles':{'BACKEND':'django.contrib.staticfiles.storage.StaticFilesStorage'}})

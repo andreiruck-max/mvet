@@ -67,13 +67,24 @@ try {
     Run docker @('compose', 'up', '-d', '--no-deps', 'web')
     $newWebStarted = $true
     $ready = $false
+    $probeOutput = @()
     for ($attempt = 0; $attempt -lt 12; $attempt++) {
-        $healthCheck = "import sys, urllib.request`ntry: urllib.request.urlopen('http://127.0.0.1:8000/entrar/', timeout=5).read()`nexcept Exception: sys.exit(1)"
-        & docker compose exec -T web python -c $healthCheck 2>$null
-        if ($LASTEXITCODE -eq 0) { $ready = $true; break }
+        $healthCheck = "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/entrar/', timeout=5).read()"
+        # Windows PowerShell 5.1 turns native stderr into ErrorRecords. A startup
+        # probe may fail normally; only its exit code decides whether to retry.
+        $previousPreference = $ErrorActionPreference
+        try {
+            $ErrorActionPreference = 'Continue'
+            $probeOutput = @(& docker compose exec -T web python -c $healthCheck 2>&1)
+            $probeExitCode = $LASTEXITCODE
+        } finally { $ErrorActionPreference = $previousPreference }
+        if ($probeExitCode -eq 0) { $ready = $true; break }
         Start-Sleep -Seconds 3
     }
-    if (!$ready) { throw 'Aplicacao nao respondeu. Confira docker compose logs --tail=60 web; o backup foi preservado.' }
+    if (!$ready) {
+        Write-Warning ($probeOutput -join [Environment]::NewLine)
+        throw 'Aplicacao nao respondeu. Confira docker compose logs --tail=60 web; o backup foi preservado.'
+    }
     Run docker @('compose', 'ps')
     Write-Host "MVet atualizado. Backup: $backupFile"
     Write-Host 'Abra o endereco habitual do MVet e atualize o navegador com Ctrl+F5.'

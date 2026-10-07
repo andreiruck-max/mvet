@@ -12,6 +12,8 @@ from .services import save_draft, confirm, cancel, save_configuration, EDIT_FIEL
 from .selectors import sales
 from .taxes import change_rate, effective_terms
 from apps.core.services import require
+from .forms import RecoveryForm
+from .recovery import recover_sale
 
 def check_read(user):
     if not user.has_perm('core.view_sales'):raise PermissionDenied
@@ -54,7 +56,22 @@ def sale_edit(request,pk=None):
 def sale_detail(request,pk):
     check_read(request.user)
     sale=get_object_or_404(Sale.objects.select_related('channel','location','created_by','confirmed_by','cancelled_by'),pk=pk)
-    return render(request,'sales/detail.html',{'sale':sale,'items':sale.items.select_related('product'),'cancel_form':CancelForm(),'extra_costs':sale.extra_costs.all(),'tax_revisions':sale.tax_revisions.select_related('change__actor')})
+    return render(request,'sales/detail.html',{'sale':sale,'items':sale.items.select_related('product'),'cancel_form':CancelForm(),'extra_costs':sale.extra_costs.all(),'tax_revisions':sale.tax_revisions.select_related('change__actor'),'recoveries':sale.recoveries.select_related('actor')})
+
+@login_required
+def sale_recover(request,pk):
+    if not request.user.is_active or not request.user.is_superuser: raise PermissionDenied
+    sale=get_object_or_404(Sale,pk=pk)
+    form=RecoveryForm(request.POST or None,initial={'revision':sale.revision,'fees':sale.fees})
+    if request.method=='POST' and form.is_valid():
+        values=dict(form.cleaned_data)
+        try:
+            recover_sale(actor=request.user,sale_id=pk,**values)
+            messages.success(request,'Venda recuperada com taxa corrigida. Estoque e relatórios atualizados; histórico preservado.')
+            return redirect('sale_detail',pk=pk)
+        except (ValidationError,IntegrityError) as exc:
+            form.add_error(None,'; '.join(exc.messages) if isinstance(exc,ValidationError) else 'A operação mudou ou foi enviada novamente. Reabra a venda para conferir.')
+    return render(request,'sales/recover.html',{'sale':sale,'form':form})
 
 @login_required
 @permission_required('core.operate_sales',raise_exception=True)
