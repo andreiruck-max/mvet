@@ -7,6 +7,8 @@ New-Item -ItemType Directory -Path $testRoot | Out-Null
 Set-Content -LiteralPath (Join-Path $testRoot '.env') -Value '# fixture, no secrets'
 $global:mvetTestCalls = [Collections.Generic.List[string]]::new()
 $global:mvetTestFailRestore = $false
+$global:mvetTestProbeCount = 0
+$global:mvetTestShell = (Get-Process -Id $PID).Path
 function git {
     $global:LASTEXITCODE = 0
     $global:mvetTestCalls.Add('git ' + ($args -join ' '))
@@ -18,6 +20,13 @@ function docker {
     $global:mvetTestCalls.Add('docker ' + $line)
     if ($line -like 'compose cp *') { [IO.File]::WriteAllText($args[-1], 'isolated backup fixture') }
     if ($global:mvetTestFailRestore -and $line -match 'pg_restore') { $global:LASTEXITCODE = 1 }
+    if ($line -like 'compose exec -T web python -c *') {
+        $global:mvetTestProbeCount++
+        if ($global:mvetTestProbeCount -eq 1) {
+            & $global:mvetTestShell -NoProfile -Command "[Console]::Error.WriteLine('container starting'); exit 1"
+            $global:LASTEXITCODE = 1
+        }
+    }
 }
 try {
     & $updater -ProjectPath $testRoot -BackupPath (Join-Path $testRoot 'backups')
@@ -25,6 +34,7 @@ try {
     $migration = $global:mvetTestCalls.FindIndex({ param($line) $line -match 'manage.py migrate' })
     if ($restore -lt 0 -or $migration -le $restore) { throw 'Migration ran before backup verification.' }
     if (!$global:mvetTestCalls.Exists({ param($line) $line -match '127.0.0.1:8000/entrar/' })) { throw 'Missing startup verification.' }
+    if ($global:mvetTestProbeCount -ne 2) { throw 'Native stderr must trigger a retry, not abort the update.' }
     $global:mvetTestCalls.Clear();$global:mvetTestFailRestore = $true;$failed = $false
     try { & $updater -ProjectPath $testRoot -BackupPath (Join-Path $testRoot 'backups') } catch { $failed = $true }
     if (!$failed) { throw 'Failed restore must stop the update.' }
@@ -35,5 +45,5 @@ try {
 } finally {
     Set-Location $originalDirectory
     Remove-Item -LiteralPath $testRoot -Recurse -Force
-    Remove-Variable -Name mvetTestCalls, mvetTestFailRestore -Scope Global
+    Remove-Variable -Name mvetTestCalls, mvetTestFailRestore, mvetTestProbeCount, mvetTestShell -Scope Global
 }

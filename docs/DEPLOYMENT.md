@@ -5,6 +5,8 @@ Siga README. Banco PostgreSQL 16 sem porta publicada; web por padrão em 127.0.0
 Atualização: backup testado → obter versão → docker compose build → migrate em janela de manutenção → subir web → testar login/operação. Migrations não são executadas automaticamente a cada worker.
 
 ### Atualização Windows
+No PowerShell 5.1, mensagens nativas no stderr durante a inicialização não interrompem a primeira tentativa: a verificação repete pelo código de saída. Se parar depois do novo `up`, conferir `docker compose ps`, o acesso habitual e `docker compose logs --tail=60 web` antes de repetir a atualização. Esse ponto ocorre após backup testado e migrations.
+
 `scripts/update_windows.ps1` recebe `-ProjectPath` (padrão `C:\Mercadovet\mvet`) e `-BackupPath` (padrão `C:\Mercadovet\backups`). Exige Docker aberto e branch main sem commits divergentes. Preserva mudanças locais nos dois scripts de backup em stash e as reaplica; outras mudanças ou arquivos não versionados interrompem sem apagá-los. Não altera `.env` nem recria o banco. Obter o script de `origin/main` somente após `git fetch origin` bem-sucedido.
 
 O build ocorre com o container anterior em funcionamento. Depois interrompe web, faz dump, copia e testa restauração em banco temporário, remove somente esse banco de teste e aplica migrations. Por fim inicia web e verifica a resposta HTTP interna. Fechar o uso do MVet nos demais computadores durante a atualização. Se falhar, conservar o erro e o dump; não restaurar sobre o banco real nem repetir migrations sem avaliar a falha. O script tenta reiniciar o container existente quando a falha antecede a conclusão do novo `up`; não desfaz migrations automaticamente.

@@ -16,7 +16,12 @@ CMV por item é soma dos valores reais baixados; custo unitário snapshot é CMV
 
 ## Cancelamento
 Permitido ao usuário com `operate_sales`, sem depender de `operate_stock` ou `view_costs`. Repõe componentes originais mesmo se o kit mudar ou ficar inativo. Valor devolvido é histórico; média atual é recalculada sobre saldo atual mais devolução. Não restaura média antiga sobre compras posteriores.
-Cancelamento integral é idempotente. Rascunho cancelado não movimenta. Não há exclusão de venda, edição após confirmação, estorno genérico de operação vinculada a venda ou reabertura de cancelada.
+Cancelamento integral é idempotente. Rascunho cancelado não movimenta. Não há exclusão de venda, edição genérica após confirmação ou estorno genérico de operação vinculada a venda.
+
+### Recuperação de cancelamento por engano
+O master encontra **Recuperar venda / corrigir taxa** nos detalhes da venda cancelada com estorno. Informe a taxa correta e o motivo. A ação preserva NF, série, data comercial, CMV, imposto e vínculo Bling, refaz a saída de estoque hoje pelo valor histórico e devolve a venda ao dashboard, DRE, relatório e exportações na data original. Não é necessário importar novamente. O histórico de recuperação mostra valores anterior/novo e os movimentos preservados.
+
+Recuperação exige estorno consistente e saldo/valor suficientes no depósito. Produtos/depósitos inativos, divergência ou situação não autorizada no registro Bling, e qualquer título financeiro histórico vinculado bloqueiam a ação. Rascunho cancelado não pode ser recuperado por essa rotina. Reenvio não duplica estoque. Uma venda recuperada pode ser cancelada novamente. ADR 0028; migrations aditivas 0008/0009.
 Não há recebíveis/liquidações nesta fase. A Fase 5 deve adicionar bloqueio/tratamento explícito de vínculos financeiros antes de habilitar pagamentos dessas vendas. Devolução parcial é evolução futura.
 
 ## Resultado individual

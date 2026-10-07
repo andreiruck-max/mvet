@@ -3,6 +3,13 @@ on: [push, pull_request]
 permissions:
   contents: read
 jobs:
+  windows-updater:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test updater on Windows PowerShell 5.1
+        shell: powershell
+        run: ./scripts/test_update_windows.ps1
   postgres:
     runs-on: ubuntu-latest
     services:

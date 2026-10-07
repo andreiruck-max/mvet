@@ -134,3 +134,20 @@ class SaleTaxRevision(Immutable):
     after_snapshot = models.JSONField()
     class Meta:
         constraints = [models.UniqueConstraint(fields=['sale','change'],name='sales_unique_tax_revision')]
+
+
+class SaleRecovery(Immutable):
+    key = models.UUIDField(default=uuid.uuid4, unique=True)
+    sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name='recoveries')
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    reason = models.CharField(max_length=500)
+    before_revision = models.PositiveIntegerField()
+    before_fees = money('Taxas anteriores')
+    after_fees = money('Taxas corrigidas')
+    cancellation_snapshot = models.JSONField()
+    original_operation = models.ForeignKey(StockOperation, on_delete=models.PROTECT, related_name='+')
+    returned_operation = models.OneToOneField(StockOperation, on_delete=models.PROTECT, related_name='+')
+    recovery_operation = models.OneToOneField(StockOperation, on_delete=models.PROTECT, related_name='+')
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['sale','before_revision'],name='sales_unique_recovery_revision')]

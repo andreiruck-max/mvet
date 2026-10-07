@@ -1,3 +1,10 @@
+# Recuperação de venda cancelada por engano (07/10/2026)
+- Master pode recuperar venda e corrigir Taxas com histórico imutável, nova saída vinculada ao estorno, preservação de CMV/imposto/data e manutenção do vínculo Bling.
+- Resultados passam a considerar a mesma venda confirmada; nenhuma reimportação ou recebível duplicado. Saldo inconsistente, divergência Bling e financeiro histórico bloqueiam integralmente. ADR 0028.
+
+# Correção do atualizador Windows (07/10/2026)
+- Verificação de inicialização tolera stderr transitório no PowerShell 5.1, repete a tentativa pelo código de saída e conserva o diagnóstico final. Teste com stderr nativo também executado em Windows.
+
 # Plano de contas e nova despesa (07/10/2026)
 - Código sugerido automaticamente por grupo, editável e sem renumerar cadastros existentes.
 - Formulário compacto, favorecido livre e opcional, fornecedor cadastrado em seção adicional.

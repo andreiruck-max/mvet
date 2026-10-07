@@ -1,0 +1,10 @@
+{% extends 'base.html' %}{% block content %}
+<a class="button" href="{% url 'sale_detail' sale.pk %}">Voltar à venda</a>
+<h1>Recuperar venda {{ sale.reference }}</h1>
+<p>{{ sale.date|date:'d/m/Y' }} · {{ sale.channel }} · {{ sale.location }}</p>
+<p class="notice">Use somente para corrigir um cancelamento feito por engano no MVet. A venda volta aos resultados na data original. O estoque será baixado hoje pelas quantidades e custos históricos do estorno. CMV, imposto e vínculo com o Bling são preservados. Nenhum recebível é criado.</p>
+<p>Taxa anterior: R$ {{ sale.fees|floatformat:2 }}. Motivo do cancelamento: {{ sale.cancellation_reason }}.</p>
+{% if sale.status == 'CANCELLED' and sale.return_operation_id %}
+<form method="post" class="panel">{% csrf_token %}{{ form.as_p }}<button class="primary">Recuperar venda e corrigir taxa</button></form>
+{% else %}<p class="notice">Esta venda não está cancelada com estorno de estoque. Reabra os detalhes para conferir a situação atual.</p>{% endif %}
+{% endblock %}
