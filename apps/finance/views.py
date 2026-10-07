@@ -204,15 +204,16 @@ def account_detail(request,pk):
     data=request.GET or {'start':timezone.localdate()-timedelta(days=29),'end':timezone.localdate()}
     form=PeriodForm(data)
     form.fields.pop('channel')
-    rows=Entry.objects.none(); initial=None; summary=None
+    rows=Entry.objects.none(); initial=None; summary=None; opening_in_period=False
     if form.is_valid():
         start,end=form.cleaned_data['start'],form.cleaned_data['end']
+        opening_in_period=start<=account.opening_date<=end
         rows,initial=selectors.account_statement(account,start,end)
         summary=selectors.cash_summary(start,end,account.pk)
         display=form.data.copy();display.update(start=start.isoformat(),end=end.isoformat());form.data=display
     pending=Title.objects.filter(account=account,status='OPEN',settled__lt=F('amount')).order_by('due_date','pk')
     return render(request,'finance/account.html',{'account':account,'form':form,'initial':initial,'summary':summary,
-        'page':Paginator(rows,50).get_page(request.GET.get('page')),'pending':Paginator(pending,20).get_page(request.GET.get('pending_page'))})
+        'opening_in_period':opening_in_period,'page':Paginator(rows,50).get_page(request.GET.get('page')),'pending':Paginator(pending,20).get_page(request.GET.get('pending_page'))})
 
 
 @login_required
