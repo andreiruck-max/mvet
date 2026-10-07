@@ -7,7 +7,8 @@ from django.utils import timezone
 from apps.sales.tests import Fixture
 from apps.sales import services as sales
 from apps.products.models import Product
-from apps.purchases.models import Supplier, Purchase, PurchaseItem
+from apps.purchases.models import Supplier
+from apps.purchases import services as purchases
 from .services import execute
 from .planning import purchase_plan
 
@@ -36,8 +37,11 @@ class PlanningTests(Fixture, TestCase):
         sale = self.draft(items=[(self.product.pk,D(8))])
         sale = sales.confirm(actor=self.actor, sale_id=sale.pk, revision=sale.revision)
         supplier = Supplier.objects.create(legal_name='Teste')
-        purchase = Purchase.objects.create(supplier=supplier, document='SYNTHETIC', date=timezone.localdate(), location=self.location, created_by=self.actor, status='ORDERED')
-        PurchaseItem.objects.create(purchase=purchase, product=self.product, quantity=3, unit_cost=1, subtotal=3)
+        purchase = purchases.save_draft(actor=self.actor, key=uuid4(),
+            data={'supplier':supplier, 'document':'SYNTHETIC', 'series':'', 'date':timezone.localdate(),
+                  'location':self.location, 'discount':D(0), 'freight':D(0), 'other_costs':D(0), 'notes':''},
+            items=[(self.product.pk,D(3),D(1))], installments=[(timezone.localdate(),D(3),'')])
+        purchases.confirm(actor=self.actor, purchase_id=purchase.pk, revision=purchase.revision)
         row = self.plan()[0][0]
         self.assertEqual(row['sold'], 8); self.assertEqual(row['pending'], 3)
         self.assertEqual(row['suggested'], 3)
