@@ -74,6 +74,25 @@ def sale_recover(request,pk):
     return render(request,'sales/recover.html',{'sale':sale,'form':form})
 
 @login_required
+def sale_correct(request,pk):
+    from apps.accounts.access import master
+    from .forms import CorrectionForm
+    from .corrections import correct_sale,FIELDS
+    master(request.user)
+    sale=get_object_or_404(Sale,pk=pk)
+    if sale.status!='CONFIRMED':
+        messages.error(request,'Recupere a venda cancelada ou edite seu rascunho antes de corrigir os valores.')
+        return redirect('sale_detail',pk=pk)
+    form=CorrectionForm(request.POST or None,instance=sale,initial={'revision':sale.revision})
+    if request.method=='POST' and form.is_valid():
+        try:
+            correct_sale(actor=request.user,sale_id=pk,revision=form.cleaned_data['revision'],key=form.cleaned_data['key'],reason=form.cleaned_data['reason'],values={name:form.cleaned_data[name] for name in FIELDS})
+            messages.success(request,'Valores corrigidos. Relatórios atualizados e histórico preservado, sem nova baixa de estoque.')
+            return redirect('sale_detail',pk=pk)
+        except ValidationError as exc:form.add_error(None,exc)
+    return render(request,'sales/correct.html',{'sale':sale,'form':form})
+
+@login_required
 @permission_required('core.operate_sales',raise_exception=True)
 @require_POST
 def sale_confirm(request,pk):

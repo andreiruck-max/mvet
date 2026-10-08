@@ -10,6 +10,20 @@ from . import bling
 
 
 class PeriodQueryTests(Fixture, TestCase):
+    def test_manual_invoice_without_store_found_by_number(self):
+        from urllib.parse import urlparse,parse_qs
+        from .tests import payload,ISSUER
+        from .models import BlingConnection,InvoiceImport
+        BlingConnection.objects.create(pk=1,issuer=ISSUER,tokens='synthetic')
+        doc=payload(loja=None,numeroPedidoLoja=None)
+        with patch.object(bling,'read',side_effect=[{'data':[{'id':1000}]},{'data':doc}]) as read:
+            run=bling.sync_page(actor=self.actor,start=timezone.localdate(),end=timezone.localdate(),number=123,series=1)
+        params=parse_qs(urlparse(read.call_args_list[0].args[0]).query)
+        self.assertEqual(params['numero'],['123']);self.assertEqual(params['serie'],['1'])
+        self.assertNotIn('situacao',params);self.assertNotIn('dataEmissaoInicial',params);self.assertNotIn('idLoja',params)
+        self.assertEqual(run.processed,1);self.assertEqual(run.errors,0)
+        invoice=InvoiceImport.objects.get();self.assertEqual(invoice.status,'PENDING');self.assertEqual(invoice.source['store'],'')
+
     def setUp(self):
         super().setUp()
         self.client.force_login(self.actor)

@@ -139,10 +139,12 @@ def read(path):
     return result
 
 
-def sync_page(*, actor, start, end, page=1, source_status=5, kind="SALE"):
+def sync_page(*, actor, start, end, page=1, source_status=5, kind="SALE", number=None, series=None):
     require(actor, 'core.fetch_bling')
     require(actor, 'core.operate_purchases' if kind == 'PURCHASE' else 'core.review_bling')
     if kind not in ('SALE', 'PURCHASE'): raise BlingError('Tipo de consulta inválido.')
+    if number is not None and (not isinstance(number,int) or not 1<=number<=999999999):raise BlingError('Número de NF inválido.')
+    if series is not None and (not isinstance(series,int) or not 0<=series<=999):raise BlingError('Série inválida.')
     if start > end or (end - start).days > 366 or page < 1 or page > 10000 or source_status not in ((2, 5, 7) if kind == "PURCHASE" else (2, 5)):
         raise BlingError('Período, situação ou página inválidos.')
     connection = BlingConnection.objects.filter(pk=1).first()
@@ -154,8 +156,11 @@ def sync_page(*, actor, start, end, page=1, source_status=5, kind="SALE"):
         from .services import stage
     deadline = time.monotonic() + 40
     try:
-        result = read('/nfe?' + urlencode({'pagina': page, 'limite': PAGE_SIZE, 'tipo': 0 if kind == 'PURCHASE' else 1, 'situacao': source_status,
-                    'dataEmissaoInicial': f'{start} 00:00:00', 'dataEmissaoFinal': f'{end} 23:59:59'}))
+        params={'pagina':page,'limite':PAGE_SIZE,'tipo':0 if kind=='PURCHASE' else 1}
+        if number is not None:params['numero']=number
+        else:params.update(situacao=source_status,dataEmissaoInicial=f'{start} 00:00:00',dataEmissaoFinal=f'{end} 23:59:59')
+        if series is not None:params['serie']=series
+        result = read('/nfe?' + urlencode(params))
         rows = result.get('data')
         if not isinstance(rows, list) or len(rows) > PAGE_SIZE: raise BlingError('Página inválida recebida do Bling.')
         run.has_more = len(rows) == PAGE_SIZE
@@ -168,6 +173,8 @@ def sync_page(*, actor, start, end, page=1, source_status=5, kind="SALE"):
                 payload = read('/nfe/' + external_id).get('data')
                 if not isinstance(payload, dict) or str(payload.get('id')) != external_id:
                     raise BlingError('Detalhe não corresponde à nota solicitada.')
+                if number is not None and str(payload.get('numero','')).lstrip('0')!=str(number):raise BlingError('Bling retornou número diferente do solicitado. Consulta interrompida.')
+                if series is not None and str(payload.get('serie','')).lstrip('0')!=(str(series).lstrip('0')):raise BlingError('Bling retornou série diferente da solicitada.')
                 invoice = stage(actor=actor, connection=connection, payload=payload)
                 run.processed += 1
                 if invoice.error: run.errors += 1

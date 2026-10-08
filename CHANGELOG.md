@@ -1,4 +1,7 @@
 # Novo pacote — aguardando OK para instalação
+- Correção auditada dos valores de venda confirmada pelo master, sem nova baixa de estoque; recuperação de canceladas destacada e orientação para NF já cadastrada. ADR 0031.
+- Consulta Bling por número/série, inclusive sem loja externa, sem restringir data/situação quando o número é informado.
+- Digitação monetária por centavos, cartões de indicadores com links e navegação de conferência no topo.
 - Vendas com colunas alinhadas, produtos/quantidades, imposto e deduções visíveis quando utilizadas no filtro completo; totais e cabeçalhos fixos, canais recolhíveis e negativos em vermelho.
 - Master pode abrir lançamentos da DRE por linha/categoria histórica e acessar a origem ou iniciar uma despesa extra. Preserva permissões, snapshots e correções auditadas. ADR 0030.
 - Calendário ao clicar no campo; notas de venda por série e número crescente, com valor fiscal e nome do cliente sem cadastro adicional.

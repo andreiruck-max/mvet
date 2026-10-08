@@ -21,7 +21,7 @@
     event.preventDefault();
     if (running) return;
     const data = new FormData(form);
-    const key = JSON.stringify(['start', 'end', 'source_status'].map(name => data.get(name)));
+    const key = JSON.stringify(['start', 'end', 'source_status', 'number', 'series'].map(name => data.get(name)));
     if (key !== previousKey || finished) { nextPage = 1; counts.clear(); }
     previousKey = key; finished = false; running = true; stopping = false;
     start.disabled = true; stop.hidden = false; stop.disabled = false;

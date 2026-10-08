@@ -6,6 +6,8 @@ from apps.products.models import Product
 
 
 class QueryForm(forms.Form):
+    number=forms.IntegerField(label='Buscar NF específica (opcional)',required=False,min_value=1,max_value=999999999,help_text='Com número informado, consulta diretamente no Bling sem limitar data ou situação.')
+    series=forms.IntegerField(label='Série da NF (opcional)',required=False,min_value=0,max_value=999)
     start = forms.DateField(label='Emissão de', initial=timezone.localdate, widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'))
     end = forms.DateField(label='Até', initial=timezone.localdate, widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'))
     page = forms.IntegerField(label='Página do Bling', min_value=1, max_value=10000, initial=1, widget=forms.HiddenInput)

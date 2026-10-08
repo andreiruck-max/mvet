@@ -45,6 +45,7 @@ def dashboard(request):
         if request.user.has_perm('core.view_costs'):ctx['stock']=Product.objects.aggregate(value=Sum('value'))['value'] or 0
         if request.user.has_perm('core.view_finance'):
             today=timezone.localdate();horizon=today+timedelta(days=30)
+            ctx['forecast_dates']=links({'start':today,'end':horizon})
             ctx['cash_today']=cash_summary(today,today)['actual']
             projection=cash_summary(today,horizon)
             ctx['cash_projected']=projection['projected']

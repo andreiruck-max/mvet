@@ -1,0 +1,6 @@
+{% extends 'base.html' %}{% block content %}
+<div class="actions"><a class="button" href="{% url 'sale_detail' sale.pk %}">← Voltar à venda</a></div>
+<h1>Corrigir valores · {{ sale.reference }} / {{ sale.invoice_series }}</h1>
+<p>A correção atualiza os relatórios na data original da venda. Produtos, quantidades, depósito e CMV histórico permanecem preservados. Não há nova baixa de estoque. Se a receita mudar, o imposto automático usa a alíquota histórica; imposto manual é preservado.</p>
+<form method="post" class="panel">{% csrf_token %}{{ form.as_p }}<button>Salvar correção</button></form>
+{% endblock %}
