@@ -6,6 +6,7 @@ from django.db.models import Sum, F, Count
 from datetime import timedelta
 from django.http import JsonResponse
 from django.shortcuts import render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET
 from apps.inventory.services import domain_lock
@@ -64,7 +65,7 @@ def sales_sheet(request):
         company_data = {**d, 'channel': None, 'q': '', 'status': 'CONFIRMED'}
         ctx['company_totals'] = metrics_for(request.user, selectors.sales_summary(selectors.sale_rows(company_data)))
         ctx['channels'] = [metrics_for(request.user, row) for row in selectors.channel_summary(company_data)]
-        rows = selectors.sale_rows(d).order_by('channel__name', d.get('sort') or '-date', '-pk')
+        rows = selectors.sale_rows(d).order_by('channel__name', d.get('sort') or '-date', '-pk').prefetch_related('items__product')
         page = Paginator(rows, 50).get_page(request.GET.get('page'))
         groups = []
         for sale in page:
@@ -73,7 +74,9 @@ def sales_sheet(request):
                 groups.append({'id': sale.channel_id, 'name': str(sale.channel or 'Sem canal'), 'rows': [],
                                'totals': metrics_for(request.user, selectors.sales_summary(channel_rows))})
             groups[-1]['rows'].append(sale)
-        ctx.update(page=page, groups=groups, totals=metrics_for(request.user, selectors.sales_summary(rows)))
+        from .sales_sheet import columns, decorate
+        cols=columns(request.user,rows);decorate(groups,cols,rows)
+        ctx.update(page=page, groups=groups, columns=cols, totals=metrics_for(request.user, selectors.sales_summary(rows)))
     return render(request,'reporting/sales.html',ctx,status=200 if d else 400)
 
 @login_required
@@ -82,7 +85,27 @@ def sales_sheet(request):
 @transaction.atomic
 def dre(request):
     domain_lock();form,d=bind(request,forms.PeriodForm)
-    return render(request,'reporting/dre.html',{'form':form,'report':selectors.dre(d) if d else None,'range':d},status=200 if d else 400)
+    from .drilldown import lines
+    report=selectors.dre(d) if d else None
+    return render(request,'reporting/dre.html',{'form':form,'report':report,'range':d,'lines':lines(report,d,request.user.is_superuser) if d else []},status=200 if d else 400)
+
+@login_required
+@require_GET
+@transaction.atomic
+def dre_sources(request):
+    from apps.accounts.access import master
+    from .drilldown import sources
+    master(request.user);domain_lock()
+    form,d=bind(request,forms.PeriodForm)
+    ctx={'form':form}
+    if d:
+        spec,rows,total=sources(request.GET.get('source',''),d)
+        back_params={'start':d['start'].isoformat(),'end':d['end'].isoformat()}
+        if d.get('channel'):back_params['channel']=d['channel'].pk
+        path=(spec.get('snapshot') or {}).get('path',[])
+        new_expense=reverse('expense_new')+('?' + urlencode({'category':path[-1]['id']}) if path else '')
+        ctx.update(label=spec['label'],page=Paginator(rows,50).get_page(request.GET.get('page')),total=total,range=d,back=reverse('dre')+'?'+urlencode(back_params),new_expense=new_expense)
+    return render(request,'reporting/dre_sources.html',ctx,status=200 if d else 400)
 
 @login_required
 @permission_required('core.view_finance',raise_exception=True)

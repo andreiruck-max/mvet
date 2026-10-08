@@ -1,4 +1,9 @@
 # Dashboard e consultas — direção aprovada em 17/09/2026
+## Revisão de vendas e DRE — 08/10/2026
+Vendas mantêm 50 registros por página e totais de todas as páginas. Produtos e quantidades aparecem na mesma linha da nota. A coluna Composição foi substituída por imposto sempre visível e deduções/ajustes exibidos quando ao menos uma venda do filtro completo os utiliza. Cabeçalho, células e totais compartilham a mesma definição de colunas. Canais são recolhíveis; o quadro possui rolagem própria com cabeçalho e total fixos, também no celular, sem transbordar a página. Bordas e valores negativos são destacados.
+
+Na DRE, somente master acessa o detalhamento das linhas e categorias históricas, com competência, origem, descrição, valor e navegação até o documento. A soma corresponde à linha selecionada; datas e canal são preservados. Despesas comuns continuam sem rateio por canal. Nova despesa pode trazer a categoria selecionada, quando ainda disponível. Correções usam as ações auditadas existentes nas origens; a consulta não altera lançamentos. Ver ADR 0030.
+
 Atualização 18/09: faturamento, relatório de vendas, custos, margens, DRE e bancos agora têm controles independentes. Exportações Excel/PDF estão nos módulos; ver [PERMISSIONS.md](PERMISSIONS.md) e [EXPORTS.md](EXPORTS.md). Essas regras substituem as permissões agregadas descritas no histórico abaixo.
 Estado: Fase 7 implementada e validada em PostgreSQL/Chromium no PR #16. O usuário pediu visualização próxima das planilhas, mantendo as fontes transacionais normalizadas.
 

@@ -8,6 +8,58 @@ from .tests import ReportingFixture
 @skipUnless(os.environ.get('MVET_BROWSER_TESTS')=='1','Browser acceptance is enabled in CI')
 @override_settings(STORAGES={'default':{'BACKEND':'django.core.files.storage.FileSystemStorage'},'staticfiles':{'BACKEND':'django.contrib.staticfiles.storage.StaticFilesStorage'}})
 class ReportingBrowser(ReportingFixture,StaticLiveServerTestCase):
+    def test_channel_grid_sticky_totals_collapse_and_dre_origins(self):
+        from decimal import Decimal
+        from pathlib import Path
+        from playwright.sync_api import sync_playwright
+        from apps.sales.models import SalesChannel
+        for index in range(24):
+            self.confirmed(invoice_number=str(500+index),products_amount=Decimal(1) if index==0 else Decimal(100),discount=Decimal(0),shipping_received=Decimal(0))
+        other=SalesChannel.objects.create(name='Segundo canal')
+        self.confirmed(invoice_number='999',channel=other)
+        expense=self.expense()
+        client=Client();client.force_login(self.actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1050},locale='pt-BR')
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page();page.goto(self.live_server_url+reverse('sales_sheet'))
+            self.assertEqual(page.locator('.channel-ledger').count(),2)
+            grid=page.locator('.channel-scroll').first
+            headers=grid.locator('thead tr').first.locator('th')
+            cells=grid.locator('tbody tr').first.locator('td')
+            self.assertEqual(headers.count(),cells.count())
+            for index in range(headers.count()):
+                self.assertAlmostEqual(headers.nth(index).bounding_box()['x'],cells.nth(index).bounding_box()['x'],delta=1)
+                self.assertAlmostEqual(headers.nth(index).bounding_box()['width'],cells.nth(index).bounding_box()['width'],delta=1)
+            grid.scroll_into_view_if_needed()
+            before=grid.locator('thead').bounding_box()['y']
+            grid.evaluate('(el)=>{el.scrollTop=500;el.scrollLeft=180}')
+            self.assertGreater(grid.evaluate('(el)=>el.scrollTop'),0)
+            self.assertAlmostEqual(grid.locator('thead').bounding_box()['y'],before,delta=1)
+            self.assertTrue(grid.locator('.channel-totals').is_visible())
+            self.assertGreater(page.locator('tbody .result-negative').count(),0)
+            self.assertEqual(page.locator('tbody .result-negative').first.evaluate('(el)=>getComputedStyle(el).color'),'rgb(188, 32, 43)')
+            Path('artifacts').mkdir(exist_ok=True)
+            page.screenshot(path='artifacts/sales-review-sticky.png',full_page=True)
+            page.locator('.channel-ledger summary').first.click()
+            self.assertFalse(grid.is_visible());self.assertTrue(page.locator('.channel-scroll').nth(1).is_visible())
+            page.locator('.channel-ledger summary').first.click()
+            page.locator('#theme-toggle').click()
+            page.screenshot(path='artifacts/sales-review-dark.png',full_page=True)
+            page.set_viewport_size({'width':390,'height':844})
+            self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390)
+            self.assertEqual(grid.locator('table').evaluate('(el)=>getComputedStyle(el).display'),'table')
+            page.screenshot(path='artifacts/sales-review-mobile.png',full_page=True)
+            page.set_viewport_size({'width':1440,'height':1050})
+            page.goto(self.live_server_url+reverse('dre'))
+            page.get_by_role('link',name='(−) Despesas operacionais da empresa',exact=True).click()
+            page.get_by_role('heading',name='Lançamentos da DRE',exact=False).wait_for()
+            self.assertIn('Serviço mensal',page.locator('main').inner_text())
+            page.screenshot(path='artifacts/dre-review-sources.png',full_page=True)
+            page.get_by_role('link',name='Abrir origem / modificar',exact=True).click()
+            self.assertIn(reverse('expense_detail',args=[expense.pk]),page.url)
+            browser.close()
+
     def test_dashboard_sheets_dre_payables_and_daily_cash(self):
         from playwright.sync_api import sync_playwright
         self.confirmed();self.expense();self.purchase()

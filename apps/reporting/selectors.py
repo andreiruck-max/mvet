@@ -76,7 +76,7 @@ def dre(d):
     from apps.inventory.models import StockMovement
     variances=StockMovement.objects.filter(operation__date__range=(d['start'],d['end'])).exclude(cost_variance=0).aggregate(amount=Sum('cost_variance'),count=Count('pk'))
     if variances['count']:
-        groups.append(dict(label='Diferença de custo · estoque negativo',nature='OPERATING',amount=variances['amount'],count=variances['count']))
+        groups.append(dict(label='Diferença de custo · estoque negativo',nature='OPERATING',amount=variances['amount'],count=variances['count'],source_kind='inventory'))
         expenses['OPERATING']+=variances['amount']
     from apps.purchases.models import PurchaseItem
     nonstock=PurchaseItem.objects.filter(moves_stock=False,purchase__status__in=['ORDERED','RECEIVED'],purchase__date__range=(d['start'],d['end'])).values('category_snapshot').annotate(amount=Sum('nonstock_total'),count=Count('pk'))
@@ -85,7 +85,7 @@ def dre(d):
         if nature not in expenses:continue  # Personal withdrawals/assets are not company expenses.
         path=snap.get('path',[])
         label=(f"{path[-1]['code']} · {path[-1]['name']}" if path else 'A classificar')+' · compras sem estoque'
-        groups.append(dict(label=label,nature=nature,amount=row['amount'],count=row['count']))
+        groups.append(dict(label=label,nature=nature,amount=row['amount'],count=row['count'],source_kind='purchase',snapshot=snap))
         expenses[nature]+=row['amount']
     for group in groups:group['nature_label']={'OPERATING':'Operacional','FINANCIAL':'Financeira','NONE':'A classificar'}[group['nature']]
     financial=financial_result(d)

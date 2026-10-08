@@ -129,3 +129,23 @@ main.workspace{padding:12px 14px}
 @media(max-width:700px){table.purchase-import-items{display:block;min-width:0;width:100%}.purchase-import-items thead{display:none}.purchase-import-items tbody{display:block}.purchase-import-items tr{display:block;border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:10px}.purchase-import-items td{display:block;border:0;padding:4px 0;white-space:normal}.purchase-import-items td[data-label]::before{content:attr(data-label) ': ';font-weight:600}.purchase-import-items td.import-treatment{min-width:0;max-width:none;width:100%;padding-top:10px}.purchase-import-items .import-treatment small{max-width:none}}
 /* Keep invoice identification readable without making customer names one long column. */
 .invoice-review-table .invoice-customer { min-width: 9rem; max-width: 16rem; white-space: normal; overflow-wrap: anywhere; }
+.channel-ledger{margin:18px 0;border:2px solid var(--border);border-radius:8px;overflow:hidden}
+.channel-ledger>summary{padding:12px;background:var(--bg);border-bottom:2px solid var(--border)}
+.channel-ledger>summary strong{font-size:18px}.channel-ledger>summary span{margin-left:15px}.channel-ledger>summary small{float:right}
+.channel-ledger>.report-caption{padding:0 10px}.channel-scroll{overflow:auto;max-height:70vh}
+.sales-report .sales-ledger{display:table;table-layout:auto;width:100%;border-collapse:separate;border-spacing:0}
+.sales-report .sales-ledger thead{display:table-header-group;position:sticky;top:0;z-index:3;background:var(--bg)}
+.sales-report .sales-ledger tbody{display:table-row-group}
+.sales-report .sales-ledger tr{display:table-row;border:0;margin:0;padding:0}
+.sales-report .sales-ledger th,.sales-report .sales-ledger td{display:table-cell;width:auto;border-right:1px solid var(--border);border-bottom:1px solid var(--border);white-space:nowrap;overflow-wrap:normal;padding:9px 10px;vertical-align:top;font-variant-numeric:tabular-nums}
+.sales-report .sales-ledger th.numeric,.sales-report .sales-ledger td.numeric{text-align:right}
+.sales-report .sales-ledger td:before{content:none}.sales-ledger .channel-totals>*{background:var(--bg);font-weight:800;border-bottom:3px solid var(--border)!important}
+.sales-ledger .sale-products div,.sales-ledger .sale-quantities div{line-height:1.8;min-height:1.8em}
+.sales-ledger tbody tr:nth-child(even){background:var(--bg)}
+.result-negative{color:#bc202b!important;font-weight:750}[data-theme="dark"] .result-negative{color:#ff858d!important}
+.sales-report .sales-ledger th{white-space:normal;min-width:72px}
+.sales-report .sales-ledger th,.sales-report .sales-ledger td{padding:8px;font-size:12px}
+.sales-ledger .sale-products div{width:170px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sales-ledger .sale-products div,.sales-ledger .sale-quantities div{height:2.8em;min-height:2.8em;line-height:1.4}
+.dre-table th,.dre-table td{border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
+.dre-table th.numeric{text-align:right}

@@ -1,0 +1,7 @@
+{% extends 'base.html' %}{% block title %}Lançamentos da DRE{% endblock %}{% block content %}
+<h1>Lançamentos da DRE · {{ label }}</h1>
+<div class="actions"><a href="{{ back }}">Voltar à DRE</a><a class="button" href="{{ new_expense }}">Nova despesa / lançamento extra</a><a href="{% url 'financial_title_new' %}">Novo título financeiro</a><a href="{% url 'sale_new' %}">Nova venda</a></div>
+<p>{{ range.start|date:'d/m/Y' }} a {{ range.end|date:'d/m/Y' }} · {{ page.paginator.count }} lançamentos · <strong class="{% if total < 0 %}result-negative{% endif %}">Total R$ {{ total|floatformat:'2g' }}</strong></p>
+<p>Abra a origem para conferir, reclassificar ou usar as correções e estornos disponíveis. Alterações seguem as regras da operação e mantêm o histórico. Despesas da empresa não são rateadas por canal.</p>
+{{ form.errors }}<div class="table-wrap"><table><thead><tr><th>Competência</th><th>Origem</th><th>Descrição</th><th class="numeric">Valor (R$)</th><th>Ação</th></tr></thead><tbody>{% for row in page %}<tr><td>{{ row.date|date:'d/m/Y' }}</td><td>{{ row.origin }}</td><td>{{ row.description }}</td><td class="numeric {% if row.amount < 0 %}result-negative{% endif %}">{{ row.amount|floatformat:'2g' }}</td><td><a href="{{ row.url }}">Abrir origem / modificar</a></td></tr>{% empty %}<tr><td colspan="5">Nenhum lançamento neste período.</td></tr>{% endfor %}</tbody></table></div>
+{% include 'finance/pagination.html' %}{% endblock %}

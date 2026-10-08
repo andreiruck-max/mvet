@@ -29,6 +29,9 @@ def expense_list(request):
 @permission_required('core.operate_expenses',raise_exception=True)
 def expense_new(request):
     form=forms.ExpenseForm(request.POST or None)
+    category=request.GET.get('category','')
+    if request.method=='GET' and category.isascii() and category.isdecimal() and len(category)<18:
+        if form.fields['category'].queryset.filter(pk=int(category)).exists():form.initial['category']=int(category)
     if request.method=='POST' and form.is_valid():
         data=dict(form.cleaned_data);key=data.pop('key')
         try:
