@@ -30,6 +30,7 @@ def queue(request):
     bulk_context=bulk.context(request.user,'SALE',rows,page)
     return render(request, 'integrations/queue.html', {
         'page':page, 'state':state, **bulk_context,
+        'series_choices': sorted(set(InvoiceImport.objects.exclude(series='').values_list('series',flat=True)) | {'1','2'}, key=lambda s: (not s.isdecimal(), int(s) if s.isdecimal() else s)),
         'states': InvoiceImport._meta.get_field('status').choices, 'query_form': QueryForm(),
         'runs': ImportRun.objects.filter(kind='SALE')[:10], 'connection': BlingConnection.objects.filter(pk=1).first(),
     })

@@ -90,12 +90,13 @@ class ImportTests(Fixture, TestCase):
         with self.assertRaises(ValidationError):
             approve(actor=self.actor, invoice_id=row.pk, revision=row.revision, data=self.data(), extra_costs=[], reviewed=False)
 
-    def test_shortage_rolls_back_sale_and_import(self):
+    def test_shortage_uses_known_local_cost_and_preserves_import_idempotency(self):
         data = payload(); data['itens'][0]['quantidade'] = '100'
         row = stage(actor=self.actor, connection=self.connection, payload=data)
-        with self.assertRaises(ValidationError): self.approve(row)
-        row.refresh_from_db(); self.assertEqual(row.status, 'PENDING'); self.assertIsNone(row.sale_id)
-        self.assertFalse(Sale.objects.exists()); self.assertFalse(FinancialTitle.objects.exists())
+        sale=self.approve(row)
+        row.refresh_from_db(); self.assertEqual(row.status, 'IMPORTED'); self.assertEqual(row.sale_id,sale.pk)
+        self.product.refresh_from_db();self.assertEqual(self.product.quantity,-90);self.assertEqual(sale.cmv,500)
+        self.assertEqual(self.approve(row).pk,sale.pk);self.assertFalse(FinancialTitle.objects.exists())
 
     def test_manual_duplicate_rejected_without_stock_effect(self):
         self.draft(invoice_number='123', invoice_series='1')

@@ -1,4 +1,9 @@
 (() => {
+  document.addEventListener('click', event => {
+    const input = event.target.closest('input[type="date"]');
+    if (!input || input.disabled || input.readOnly || !input.showPicker) return;
+    try { input.showPicker(); } catch (_) { /* Keep the native keyboard/icon fallback. */ }
+  });
   document.querySelectorAll('form[data-confirm]').forEach(form => {
     form.addEventListener('submit', event => {
       if (!window.confirm(form.dataset.confirm)) event.preventDefault();

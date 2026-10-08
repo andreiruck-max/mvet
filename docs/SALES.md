@@ -1,4 +1,5 @@
 # Vendas — Fase 3
+Novo pacote (ADR 0029): vendas e recuperações podem deixar estoque negativo pelo último custo local conhecido, exigindo referência explícita quando ausente. CMV permanece histórico; diferenças de reposição aparecem separadamente no resultado da empresa. Regra tributária válida para a data comercial é sugerida e pode ser trocada. Substitui a exigência de saldo suficiente descrita nas fases históricas abaixo.
 Implementação: `apps/sales`. Entrega e evidências de validação no [PR #12](https://github.com/andreiruck-max/mvet/pull/12).
 
 ## Uso

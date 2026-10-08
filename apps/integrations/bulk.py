@@ -3,6 +3,8 @@ from django import forms
 from django.core import signing
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.db.models import Case, When, DecimalField, F
+from django.db.models.functions import Cast
 from apps.core.services import require, audit
 from apps.inventory.services import domain_lock
 from apps.inventory.models import StockLocation
@@ -20,6 +22,10 @@ def filtered_rows(kind, params):
         state=params.get('status','PENDING')
         if state in dict(InvoiceImport._meta.get_field('status').choices):rows=rows.filter(status=state)
         if params.get('divergence')=='1':rows=rows.filter(discrepancy=True)
+        if params.get('series'):rows=rows.filter(series=params['series'][:10])
+        numeric = lambda field: Case(When(**{field+'__regex': r'^[0-9]+$'}, then=Cast(field, DecimalField(max_digits=30, decimal_places=0))))
+        rows=rows.annotate(series_order=numeric('series'),number_order=numeric('number')).order_by(
+            F('series_order').asc(nulls_last=True),'series',F('number_order').asc(nulls_last=True),'pk')
     else:
         rows=PurchaseInvoiceImport.objects.select_related('purchase')
         state=params.get('status','pending')

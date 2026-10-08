@@ -19,6 +19,8 @@ class ReviewForm(SaleForm):
             self.fields[field].disabled = True
             self.initial[field] = value
         self.initial['revision'] = invoice.revision
+        from apps.sales.taxes import suggested_rule
+        self.initial['tax_rule'] = suggested_rule(invoice.issued_on or timezone.localdate())
         # Submission of the confirmation button is the review action.
         for name in ['channel', 'location', 'tax_rule']:
             self.fields[name].required = True

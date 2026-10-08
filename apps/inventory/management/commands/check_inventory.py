@@ -14,7 +14,9 @@ class Command(BaseCommand):
             if p.quantity!=(ledger['quantity'] or 0) or p.value!=(ledger['value'] or 0):errors.append(f'SKU {p.sku}: total diverge do livro.')
             local=p.balances.aggregate(total=Sum('quantity'))['total'] or 0
             if p.quantity!=local:errors.append(f'SKU {p.sku}: total diverge dos locais.')
-            if p.quantity and p.average_cost!=quant(p.value/p.quantity):errors.append(f'SKU {p.sku}: custo médio inconsistente.')
+            costs=p.balances.filter(quantity__gt=0).aggregate(q=Sum('quantity'),v=Sum('value'))
+            if not costs['q']:costs=p.balances.filter(quantity__lt=0).aggregate(q=Sum('quantity'),v=Sum('value'))
+            if costs['q'] and p.average_cost!=quant(costs['v']/costs['q']):errors.append(f'SKU {p.sku}: custo médio inconsistente.')
         for b in StockBalance.objects.all():
             qty=StockMovement.objects.filter(product_id=b.product_id,location_id=b.location_id).aggregate(total=Sum('quantity'))['total'] or 0
             local_value=StockMovement.objects.filter(product_id=b.product_id,location_id=b.location_id).aggregate(total=Sum('value'))['total'] or 0

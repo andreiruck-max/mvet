@@ -14,7 +14,9 @@ class StockBalance(models.Model):
     value = models.DecimalField(max_digits=24, decimal_places=6, default=0)
     average_cost = models.DecimalField(max_digits=24, decimal_places=6, default=0)
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['product','location'], name='unique_stock_location'), models.CheckConstraint(condition=Q(quantity__gte=0), name='stock_nonnegative'), models.CheckConstraint(condition=Q(value__gte=0, average_cost__gte=0), name='stock_local_value_nonnegative')]
+        constraints = [models.UniqueConstraint(fields=['product','location'], name='unique_stock_location'),
+            models.CheckConstraint(condition=Q(average_cost__gte=0), name='stock_cost_nonnegative'),
+            models.CheckConstraint(condition=Q(quantity__gt=0,value__gte=0)|Q(quantity__lt=0,value__lte=0)|Q(quantity=0,value=0), name='stock_value_sign')]
 
 class Immutable(models.Model):
     class Meta: abstract = True
@@ -35,6 +37,7 @@ class StockOperation(Immutable):
     class Meta: ordering = ['-pk']
 
 class StockMovement(Immutable):
+    cost_variance = models.DecimalField(max_digits=24, decimal_places=6, default=0, editable=False)
     before_local_average = models.DecimalField(max_digits=24, decimal_places=6, null=True, editable=False)
     operation = models.ForeignKey(StockOperation, on_delete=models.PROTECT, related_name='movements')
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='movements')

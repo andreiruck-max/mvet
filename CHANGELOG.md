@@ -1,3 +1,8 @@
+# Novo pacote — aguardando OK para instalação
+- Calendário ao clicar no campo; notas de venda por série e número crescente, com valor fiscal e nome do cliente sem cadastro adicional.
+- Regra tributária vigente na data comercial sugerida e editável.
+- Venda permite estoque negativo usando último custo local conhecido. Reposição e estornos conciliam diferenças de custo sem alterar CMV histórico; diferenças aparecem na DRE e indicadores de resultado. ADR 0029.
+
 # Recuperação de venda cancelada por engano (07/10/2026)
 - Master pode recuperar venda e corrigir Taxas com histórico imutável, nova saída vinculada ao estorno, preservação de CMV/imposto/data e manutenção do vínculo Bling.
 - Resultados passam a considerar a mesma venda confirmada; nenhuma reimportação ou recebível duplicado. Saldo inconsistente, divergência Bling e financeiro histórico bloqueiam integralmente. ADR 0028.

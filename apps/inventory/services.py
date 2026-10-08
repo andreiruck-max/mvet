@@ -57,42 +57,68 @@ def _date(date, products, *, opening=False):
         if last and date < last.operation.date:
             raise ValidationError(f'{p.sku}: há movimento posterior. Registre um ajuste na data atual para preservar o histórico.')
 
-def _value_out(p, quantity, location):
+def _value_out(p, quantity, location, *, allow_negative=False):
     balance = StockBalance.objects.filter(product=p, location=location).first()
     if balance is None or quantity > balance.quantity:
-        raise ValidationError(f'{p.sku}: estoque insuficiente no depósito escolhido.')
+        if not allow_negative:
+            raise ValidationError(f'{p.sku}: estoque insuficiente no depósito escolhido.')
+        if balance is None or not StockMovement.objects.filter(product=p,location=location).exists():
+            raise ValidationError(f'{p.sku}: sem custo de referência neste depósito. Informe-o em Movimentar estoque → Correção de custo antes de confirmar a venda.')
+        return (balance.value + quant((quantity-balance.quantity)*balance.average_cost)
+                if balance.quantity>0 else quant(quantity*balance.average_cost))
     return balance.value if quantity == balance.quantity else min(balance.value, quant(quantity * balance.average_cost))
 
-def _apply(operation, product, location, quantity, value, *, average_override=None, unit_cost=None, local_average_override=None):
+def _apply(operation, product, location, quantity, value, *, average_override=None, unit_cost=None, local_average_override=None, variance_override=None):
     balance, _ = StockBalance.objects.get_or_create(product=product, location=location)
     balance = StockBalance.objects.select_for_update().get(pk=balance.pk)
     before_local_average = balance.average_cost
+    source_value = value
+    variance = ZERO
+    if variance_override is not None:
+        # Exact reversal, permitted only after the caller has checked chronology.
+        if operation.kind not in {'REVERSAL','PUR_RETURN'}:
+            raise ValidationError('Ajuste de estorno inválido.')
+        variance = variance_override
+        value -= variance
+    elif operation.kind == 'SALE_OUT' and quantity < 0:
+        value = -_value_out(product,-quantity,location,allow_negative=True)
+        variance = source_value-value
+    elif quantity > 0 and balance.quantity < 0:
+        remaining = balance.quantity+quantity
+        target = quant(remaining*(balance.average_cost if remaining<0 else source_value/quantity))
+        value = target-balance.value
+        variance = source_value-value
     local_q, local_v = balance.quantity + quantity, balance.value + value
-    if local_q < 0 or local_v < 0 or (local_q == 0 and local_v != 0):
+    if quantity<0 and local_q<0 and operation.kind!='SALE_OUT' and variance_override is None:
+        raise ValidationError(f'{product.sku}: estoque insuficiente no depósito escolhido.')
+    if (local_q>0 and local_v<0) or (local_q<0 and local_v>0) or (local_q == 0 and local_v != 0):
         raise ValidationError(f'{product.sku}: quantidade ou valor inconsistente no depósito.')
     before_q, before_v, before_avg = product.quantity, product.value, product.average_cost
     next_q, next_v = before_q + quantity, before_v + value
-    if balance.quantity + quantity < 0 or next_q < 0 or next_v < 0:
-        raise ValidationError(f'{product.sku}: saldo insuficiente no local ou valor inconsistente.')
-    if next_q == 0 and next_v != 0:
-        raise ValidationError('Estoque zerado não pode conservar valor residual.')
     product.quantity, product.value = next_q, next_v
-    product.average_cost = quant(next_v/next_q) if next_q else (average_override if average_override is not None else before_avg)
-    product.full_clean()
-    product.save(update_fields=['quantity','value','average_cost'])
     before_local = balance.quantity
     balance.quantity, balance.value = local_q, local_v
     reference = local_average_override if local_average_override is not None else (unit_cost if quantity == 0 and unit_cost is not None else before_local_average)
+    if local_average_override is None and quantity>0 and before_local<0 and local_q==0:
+        reference=quant(source_value/quantity)
     balance.average_cost = quant(local_v / local_q) if local_q else reference
     balance.full_clean()
     balance.save(update_fields=['quantity', 'value', 'average_cost'])
+    # A net zero across two depots may legitimately retain signed value. The
+    # informational aggregate cost uses positive stock, or debt if none exists.
+    from django.db.models import Sum
+    totals=product.balances.filter(quantity__gt=0).aggregate(q=Sum('quantity'),v=Sum('value'))
+    if not totals['q']:totals=product.balances.filter(quantity__lt=0).aggregate(q=Sum('quantity'),v=Sum('value'))
+    product.average_cost=quant(totals['v']/totals['q']) if totals['q'] else (average_override if average_override is not None else before_avg)
+    product.full_clean()
+    product.save(update_fields=['quantity','value','average_cost'])
     movement = StockMovement.objects.create(operation=operation, product=product, location=location,
-        before_local_average=before_local_average, quantity=quantity, value=value, unit_cost=unit_cost if unit_cost is not None else (quant(abs(value/quantity)) if quantity else product.average_cost),
+        cost_variance=variance, before_local_average=before_local_average, quantity=quantity, value=value, unit_cost=unit_cost if unit_cost is not None else (quant(abs(source_value/quantity)) if quantity else product.average_cost),
         before_quantity=before_q, after_quantity=next_q, before_value=before_v, after_value=next_v,
         before_average=before_avg, after_average=product.average_cost)
     audit(operation.actor, movement, operation.kind,
           {'quantity':str(before_q),'value':str(before_v),'local_quantity':str(before_local),'local_value':str(local_v-value),'local_average':str(before_local_average)},
-          {'quantity':str(next_q),'value':str(next_v),'local_quantity':str(balance.quantity),'local_value':str(balance.value),'local_average':str(balance.average_cost),'reason':operation.reason})
+          {'quantity':str(next_q),'value':str(next_v),'local_quantity':str(balance.quantity),'local_value':str(balance.value),'local_average':str(balance.average_cost),'cost_variance':str(variance),'reason':operation.reason})
     return movement
 
 @transaction.atomic
@@ -188,7 +214,7 @@ def reverse(*,actor,operation_id,key,date,reason):
     _date(date,products.values())
     operation=StockOperation.objects.create(key=key,fingerprint=fingerprint,kind='REVERSAL',date=date,reason=reason,actor=actor,reversal_of=original)
     for m in moves:
-        _apply(operation,products[m.product_id],m.location,-m.quantity,-m.value,average_override=m.before_average,unit_cost=m.unit_cost,local_average_override=prior_local_average(m))
+        _apply(operation,products[m.product_id],m.location,-m.quantity,-(m.value+m.cost_variance),variance_override=-m.cost_variance,average_override=m.before_average,unit_cost=m.unit_cost,local_average_override=prior_local_average(m))
     return operation
 
 

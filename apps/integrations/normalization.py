@@ -55,7 +55,10 @@ def normalize(payload, issuer):
         })
     store = payload.get('loja') or {}
     if not isinstance(store, dict): raise ValidationError('Loja externa inválida.')
+    contact = payload.get('contato') or {}
+    if not isinstance(contact, dict): raise ValidationError('Contato externo inválido.')
     return {'number': str(int(number)), 'series': str(int(series)), 'key': key,
+            'customer_name': text(contact.get('nome'), 240),
             'date': issued.isoformat(), 'status': text(payload.get('situacao'), 20),
             'type': text(payload.get('tipo'), 1), 'purpose': text(payload.get('finalidade'), 1),
             'store': text(store.get('id'), 40),
