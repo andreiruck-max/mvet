@@ -93,3 +93,5 @@ Unidade cadastrada no MVet prevalece; quantidade e preço da nota mantidos sem c
 
 ## 05/10/2026 — Dashboard inicial e revisão visual
 Indicadores como início autorizado, mês completo com datas visíveis, cartões de receita/resultado/compras/bancos/estoque respeitando permissões. Menu por função, filtros e espaçamentos compactos globais, navegação móvel recolhível. Caixa como matriz banco × dia, entradas/saídas/saldo, visões realizado/previsto e totais, mantendo histórico e paginação. Ver docs/DASHBOARD.md.
+## 08/10/2026 — Vendas e origens da DRE
+Implementado no novo pacote: grade de vendas por canal com produtos/quantidades, colunas condicionais, cabeçalho/total fixos, recolhimento e negativos destacados. Detalhamento reconciliado da DRE e acesso às origens somente pelo master. Validação PostgreSQL/Chromium registrada no PR; instalação no PC depende do OK final do usuário.

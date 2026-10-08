@@ -42,6 +42,6 @@ def expense_report(data):
         snapshot=row['category_snapshot'];path=snapshot.get('path',[])
         nature=snapshot.get('nature','NONE')
         label=f"{path[-1]['code']} · {path[-1]['name']}" if path else 'A classificar'
-        groups.append({'label':label,'nature':nature,'amount':row['total'],'count':row['count']})
+        groups.append({'label':label,'nature':nature,'amount':row['total'],'count':row['count'],'source_kind':'expense','snapshot':snapshot})
         totals[nature]+=row['total']
     return groups,totals

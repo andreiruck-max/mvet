@@ -1,4 +1,6 @@
 # Novo pacote — aguardando OK para instalação
+- Vendas com colunas alinhadas, produtos/quantidades, imposto e deduções visíveis quando utilizadas no filtro completo; totais e cabeçalhos fixos, canais recolhíveis e negativos em vermelho.
+- Master pode abrir lançamentos da DRE por linha/categoria histórica e acessar a origem ou iniciar uma despesa extra. Preserva permissões, snapshots e correções auditadas. ADR 0030.
 - Calendário ao clicar no campo; notas de venda por série e número crescente, com valor fiscal e nome do cliente sem cadastro adicional.
 - Regra tributária vigente na data comercial sugerida e editável.
 - Venda permite estoque negativo usando último custo local conhecido. Reposição e estornos conciliam diferenças de custo sem alterar CMV histórico; diferenças aparecem na DRE e indicadores de resultado. ADR 0029.

@@ -38,6 +38,7 @@ urlpatterns = [
     path("relatorios/vendas/", reports.sales_sheet, name="sales_sheet"),
     path("relatorios/compras-a-pagar/", reports.purchase_payables, name="purchase_payables"),
     path("dre/", reports.dre, name="dre"),
+    path("dre/lancamentos/", reports.dre_sources, name="dre_sources"),
     path("api/v1/dre/", reports.dre_api, name="dre_api"),
     path("financeiro/", include("apps.finance.urls")),
     path("api/v1/financeiro/diario/", cash_api, name="cash_api"),
