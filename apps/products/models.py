@@ -27,7 +27,7 @@ class Product(models.Model):
     average_cost = models.DecimalField(max_digits=24, decimal_places=6, default=0, editable=False)
     class Meta:
         ordering = ['name','pk']
-        constraints = [models.CheckConstraint(condition=Q(quantity__gte=0, value__gte=0, average_cost__gte=0, minimum__gte=0), name='product_nonnegative')]
+        constraints = [models.CheckConstraint(condition=Q(average_cost__gte=0, minimum__gte=0), name='product_cost_minimum_nonnegative')]
     def __str__(self): return f'{self.sku} · {self.name}'
 
 class ProductComposition(models.Model):

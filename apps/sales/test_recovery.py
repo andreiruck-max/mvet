@@ -54,14 +54,15 @@ class RecoveryTests(Fixture,TestCase):
         self.product.refresh_from_db();self.assertEqual(self.product.quantity,8)
         self.assertFalse(FinancialTitle.objects.exists())
 
-    def test_shortage_rolls_back_recovery_and_fee_change(self):
+    def test_recovery_can_use_known_cost_with_negative_stock(self):
         from apps.inventory.services import execute
         sale=self.cancelled()
         execute(actor=self.actor,key=uuid4(),kind='ISSUE',date=sale.date,reason='Uso posterior',product_id=self.product.pk,location_id=self.location.pk,quantity=D('10'))
         count=StockMovement.objects.count()
-        with self.assertRaises(ValidationError):self.recover(sale)
-        sale.refresh_from_db();self.assertEqual(sale.status,'CANCELLED');self.assertEqual(sale.fees,D('41.62'))
-        self.assertFalse(SaleRecovery.objects.exists());self.assertEqual(StockMovement.objects.count(),count)
+        self.recover(sale)
+        sale.refresh_from_db();self.assertEqual(sale.status,'CONFIRMED');self.assertEqual(sale.fees,D('20.81'))
+        self.product.refresh_from_db();self.assertEqual(self.product.quantity,-2)
+        self.assertTrue(SaleRecovery.objects.exists());self.assertEqual(StockMovement.objects.count(),count+1)
 
     def test_permissions_stale_revision_and_financial_history_block(self):
         sale=self.cancelled()

@@ -2,12 +2,17 @@
 from decimal import Decimal, ROUND_HALF_UP
 from django.core.exceptions import ValidationError
 from django.db import connection, transaction
+from django.db.models import Q
 from django.utils import timezone
 from apps.core.services import require, audit
 from apps.inventory.services import domain_lock, number
 from .models import TaxRule, TaxRateChange, Sale, SaleTaxRevision
 
 CENT=Decimal('0.01')
+
+def suggested_rule(date):
+    return TaxRule.objects.filter(active=True,starts_on__lte=date).filter(
+        Q(ends_on__isnull=True)|Q(ends_on__gte=date)).order_by('-starts_on','-pk').first()
 
 def effective_terms(rule,date):
     change=rule.changes.filter(effective_from__lte=date).first()

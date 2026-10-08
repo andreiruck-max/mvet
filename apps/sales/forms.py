@@ -43,8 +43,11 @@ class SaleForm(forms.ModelForm):
         self.fields['channel'].queryset=SalesChannel.objects.filter(active=True)
         self.fields['location'].queryset=StockLocation.objects.filter(active=True)
         self.fields['tax_rule'].queryset=TaxRule.objects.filter(active=True)
-        for name in ['channel','tax_rule']:
+        for name in ['channel']:
             if self.fields[name].queryset.count()==1:self.fields[name].initial=self.fields[name].queryset.first()
+        if not self.instance.pk and 'tax_rule' not in self.initial:
+            from .taxes import suggested_rule
+            self.initial['tax_rule']=suggested_rule(self.initial.get('date') or timezone.localdate())
         company=Company.objects.select_related('default_stock_location').filter(pk=1).first()
         if not self.instance.pk and company and company.default_stock_location and company.default_stock_location.active:
             self.initial['location']=company.default_stock_location_id

@@ -134,7 +134,7 @@ def confirm(*,actor,sale_id,revision):
     for item,parts in expanded:
         item.cmv=Decimal('0')
         for pid,quantity in parts:
-            product=products[pid];value=_value_out(product,quantity,sale.location)
+            product=products[pid];value=_value_out(product,quantity,sale.location,allow_negative=True)
             movement=_apply(operation,product,sale.location,-quantity,-value)
             SaleConsumption.objects.create(item=item,movement=movement)
             item.cmv+=value
@@ -166,7 +166,7 @@ def cancel(*,actor,sale_id,reason):
         today=timezone.localdate();_date(today,products.values())
         operation=StockOperation.objects.create(kind='SALE_RETURN',date=today,actor=actor,reason=reason.strip(),fingerprint=_fingerprint(['cancel_sale',sale.pk]),reversal_of=sale.stock_operation)
         for movement in moves:
-            _apply(operation,products[movement.product_id],movement.location,-movement.quantity,-movement.value,unit_cost=movement.unit_cost)
+            _apply(operation,products[movement.product_id],movement.location,-movement.quantity,-(movement.value+movement.cost_variance),unit_cost=movement.unit_cost)
         sale.return_operation=operation
     sale.status='CANCELLED';sale.cancelled_by=actor;sale.cancelled_at=timezone.now();sale.cancellation_reason=reason.strip();sale.revision+=1;sale.save()
     audit(actor,sale,'cancel_sale',{'status':previous},{'status':sale.status,'reason':reason,'stock_operation':sale.return_operation_id})

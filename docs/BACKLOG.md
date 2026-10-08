@@ -1,4 +1,5 @@
 # Backlog
+Novo pacote (ADR 0029): calendário, notas por série/valor/cliente, regra tributária sugerida e estoque negativo. Usuário autorizou em 08/10/2026 integrar cada alteração à main após validação. Instalação local/PowerShell somente ao fim do pacote, após OK. Validação PostgreSQL e Chromium em andamento.
 Recuperação de venda cancelada por engano e correção de Taxas: implementação em validação, com auditoria, preservação de snapshots e nova saída do estoque. Sem alteração automática de venda real por migration. ADR 0028.
 
 Correção de compatibilidade do atualizador com stderr nativo do PowerShell 5.1; validação adicional em runner Windows. Sem mudança de dados ou aplicação.

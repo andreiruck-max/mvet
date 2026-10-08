@@ -48,11 +48,11 @@ def recover_sale(*, actor, sale_id, revision, key, fees, reason):
         result=defaultdict(lambda:[Decimal('0'),Decimal('0')])
         for row in rows:
             result[(row.product_id,row.location_id)][0]+=row.quantity
-            result[(row.product_id,row.location_id)][1]+=row.value
+            result[(row.product_id,row.location_id)][1]+=row.value+row.cost_variance
         return dict(result)
-    if not moves or any(m.quantity<=0 or m.value<0 for m in moves) or totals(moves)!={k:[-q,-v] for k,(q,v) in totals(original).items()}:
+    if not moves or any(m.quantity<=0 or m.value+m.cost_variance<0 for m in moves) or totals(moves)!={k:[-q,-v] for k,(q,v) in totals(original).items()}:
         raise ValidationError('O estorno não corresponde à saída original.')
-    if sum((m.value for m in moves),Decimal('0'))!=sale.cmv:
+    if sum((m.value+m.cost_variance for m in moves),Decimal('0'))!=sale.cmv:
         raise ValidationError('Valor do estorno diverge do CMV histórico.')
     products={p.pk:p for p in Product.objects.select_for_update().filter(pk__in=[m.product_id for m in moves]).order_by('pk')}
     if any(not p.active for p in products.values()) or any(not m.location.active for m in moves):
@@ -60,7 +60,7 @@ def recover_sale(*, actor, sale_id, revision, key, fees, reason):
     today=timezone.localdate();_date(today,products.values())
     operation=StockOperation.objects.create(kind='SALE_OUT',date=today,actor=actor,reason=reason,reversal_of=returned,fingerprint=_fingerprint(['recover_sale',sale.pk,str(key)]))
     for movement in moves:
-        _apply(operation,products[movement.product_id],movement.location,-movement.quantity,-movement.value,unit_cost=movement.unit_cost)
+        _apply(operation,products[movement.product_id],movement.location,-movement.quantity,-(movement.value+movement.cost_variance),unit_cost=movement.unit_cost)
     recovery=SaleRecovery.objects.create(key=key,sale=sale,actor=actor,reason=reason,before_revision=revision,before_fees=sale.fees,after_fees=fees,
         original_operation_id=sale.stock_operation_id,returned_operation=returned,recovery_operation=operation,
         cancellation_snapshot={'actor_id':sale.cancelled_by_id,'at':sale.cancelled_at.isoformat() if sale.cancelled_at else None,'reason':sale.cancellation_reason})

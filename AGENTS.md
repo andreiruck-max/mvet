@@ -9,6 +9,7 @@ Monólito Django 5.2 LTS, PostgreSQL, templates, CSS/JS locais. Código em ingl�
 - Venda manual independe de Bling/NF. Master pode salvar rascunhos incompletos e ajustar receita/imposto, mas confirmação preserva estoque e snapshots. Ajuste de receita deve refletir DRE e exportações. Novas vendas não geram contas a receber; títulos históricos e suas proteções são preservados (ADR 0022). Ver ADR 0016.
 - MVet 1.5: quantidade, valor e custo médio por depósito; vendas/saídas usam o local escolhido. Product agrega saldos locais. Migração preserva livro e CMV antigos (ADR 0019).
 - CMV histórico é snapshot. Nunca recalcular venda antiga com custo atual.
+- Venda admite saldo negativo pelo último custo local conhecido; sem referência, exige custo explícito. Reposição reconhece diferença imutável em StockMovement.cost_variance no resultado da empresa, sem reescrever CMV. Estornos exatos revertem a diferença. ADR 0029; saídas avulsas ainda exigem saldo.
 - Imposto admite recálculo retroativo autorizado com SaleTaxRevision imutável e auditoria; nunca atualizar imposto histórico diretamente. Ver ADR 0009.
 - Operações críticas são atômicas. Lock de produtos por ID crescente antes dos saldos por local.
 - Livro de movimentos imutável, com estorno vinculado. Cadastros utilizados são inativados.

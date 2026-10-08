@@ -63,8 +63,9 @@ class SalesTests(Fixture,TestCase):
         sale=confirm(actor=self.operator,sale_id=sale.pk,revision=1);self.assertEqual(sale.cmv,34)
         self.receive(self.product,D('10'),D('20'));sale.refresh_from_db();self.assertEqual(sale.cmv,34)
         self.rule.rate=D('20');self.rule.save();self.assertEqual(sale.tax_snapshot['rate'],'5.0000')
-    def test_shortage_rolls_back_every_item(self):
-        sale=self.draft(items=[(self.product.pk,D('2')),(self.product.pk,D('20'))])
+    def test_missing_local_cost_rolls_back_every_item(self):
+        unknown=Product.objects.create(sku='NO-COST',name='Sem custo local')
+        sale=self.draft(items=[(self.product.pk,D('2')),(unknown.pk,D('20'))])
         before=StockMovement.objects.count()
         with self.assertRaises(ValidationError):confirm(actor=self.operator,sale_id=sale.pk,revision=1)
         self.product.refresh_from_db();sale.refresh_from_db()
@@ -174,7 +175,7 @@ class SalesConcurrency(Fixture,TransactionTestCase):
             except ValidationError:return 'shortage'
             finally:connections.close_all()
         with ThreadPoolExecutor(max_workers=2) as pool:results=list(pool.map(worker,[first.pk,second.pk]))
-        self.assertCountEqual(results,['ok','shortage']);self.product.refresh_from_db();self.assertEqual(self.product.quantity,0)
+        self.assertCountEqual(results,['ok','ok']);self.product.refresh_from_db();self.assertEqual(self.product.quantity,-10)
     def test_concurrent_same_sale_is_idempotent(self):
         sale=self.draft()
         def worker(_):

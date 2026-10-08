@@ -17,6 +17,7 @@ def normalize_purchase(payload, issuer):
     key = text(payload.get('chaveAcesso'), 44)
     # Incoming third-party NF-e has the supplier's CNPJ in its access key.
     source = normalize(payload, key[6:20])
+    source.pop('customer_name', None)  # Purchases retain their existing supplier projection.
     if source['type'] != '0': raise ValidationError('Somente notas de entrada podem gerar compras.')
     contact = payload.get('contato') or {}
     if not isinstance(contact, dict): raise ValidationError('Fornecedor externo inválido.')

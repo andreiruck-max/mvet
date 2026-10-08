@@ -12,6 +12,46 @@ from .tests import payload, ISSUER
 @skipUnless(os.environ.get('MVET_BROWSER_TESTS') == '1', 'Browser acceptance enabled in CI')
 @override_settings(STORAGES={'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'}, 'staticfiles': {'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage'}})
 class BlingBrowser(Fixture, StaticLiveServerTestCase):
+    def test_calendar_series_customer_defaults_and_negative_sale(self):
+        from pathlib import Path
+        from playwright.sync_api import sync_playwright
+        from .models import InvoiceImport
+        connection=BlingConnection.objects.create(pk=1,issuer=ISSUER)
+        data=payload(contato={'nome':'Cliente demonstrativo'})
+        data['itens'][0]['quantidade']='12'
+        row=stage(actor=self.actor,connection=connection,payload=data)
+        InvoiceImport.objects.create(connection=connection,external_id='2000',series='2',number='12',fingerprint='synthetic')
+        client=Client();client.force_login(self.actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1000})
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+            page.goto(self.live_server_url+'/integracoes/bling/')
+            page.evaluate('''() => { window.pickerCalls=0; const native=HTMLInputElement.prototype.showPicker;
+                HTMLInputElement.prototype.showPicker=function(){window.pickerCalls++;return native.call(this);}; }''')
+            page.locator('#id_start').click(position={'x':25,'y':15})
+            self.assertGreater(page.evaluate('window.pickerCalls'),0)
+            page.keyboard.press('Escape')
+            page.get_by_label('Série',exact=True).select_option('1')
+            page.get_by_role('button',name='Filtrar',exact=True).click()
+            self.assertEqual(page.get_by_role('link',name='12 / 2',exact=True).count(),0)
+            self.assertTrue(page.get_by_text('Cliente demonstrativo',exact=True).is_visible())
+            captures=Path('artifacts');captures.mkdir(exist_ok=True)
+            page.screenshot(path=str(captures/'review-package-desktop.png'),full_page=True)
+            page.set_viewport_size({'width':390,'height':844})
+            self.assertFalse(page.evaluate('document.documentElement.scrollWidth > innerWidth'))
+            page.screenshot(path=str(captures/'review-package-mobile.png'),full_page=True)
+            page.set_viewport_size({'width':1440,'height':1000})
+            page.get_by_role('link',name='123 / 1',exact=True).click()
+            self.assertEqual(page.locator('#id_tax_rule').input_value(),str(self.rule.pk))
+            page.locator('#id_channel').select_option(str(self.channel.pk))
+            page.locator('#id_location').select_option(str(self.location.pk))
+            page.get_by_role('button',name='Conferir e confirmar venda',exact=True).click()
+            page.get_by_text('Venda confirmada no MVet. Nenhuma alteração foi enviada ao Bling.',exact=True).wait_for()
+            self.assertEqual(errors,[]);browser.close()
+        self.product.refresh_from_db();self.assertEqual(self.product.quantity,-2)
+        self.assertEqual(Sale.objects.get(invoice_number='123').cmv,60)
+
     def test_review_alias_deductions_and_local_confirmation(self):
         from playwright.sync_api import sync_playwright
         connection = BlingConnection.objects.create(pk=1, issuer=ISSUER)

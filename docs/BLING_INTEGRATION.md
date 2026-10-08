@@ -114,3 +114,5 @@ Fila própria em Compras → Importar notas do Bling. Usa a conexão existente e
 
 ## Compras Bling — unidade local e rejeição (29/09/2026)
 Unidade cadastrada no MVet prevalece; quantidade e preço da nota mantidos sem conversão. Rejeitar nota retira documentos sem compra vinculada das pendências; filtro Rejeitadas permite reabrir. Reconsulta preserva rejeição. Compras existentes seguem cancelamento próprio. Ver ADR 0024.
+## Pacote de conferência por série — ADR 0029
+Fila de venda exibe série/número em ordem crescente, valor fiscal e nome do cliente, sem criar cadastro. Filtro por série também restringe seleção em massa; nome antigo aparece após nova consulta ao Bling. Mudança somente de nome não sinaliza divergência comercial. Regra tributária sugerida pela vigência na data da nota; continua editável. Confirmação permite saldo negativo com custo local conhecido, sem importar custos do Bling. Pacote separado da instalação até OK do usuário.

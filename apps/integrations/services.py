@@ -43,10 +43,13 @@ def stage(*, actor, connection, payload):
         obj.save()
         audit(actor, obj, 'bling_identity_conflict', after={'error': obj.error})
         return obj
-    fingerprint = _fingerprint(source)
+    # Display-only customer names do not invalidate a commercial review or flag
+    # old imports when the field is fetched for the first time.
+    commercial = lambda value: {k: v for k, v in value.items() if k != 'customer_name'}
+    fingerprint = _fingerprint(commercial(source))
     if obj is None:
         obj = InvoiceImport(connection=connection, external_id=external_id)
-    changed = bool(obj.pk and obj.fingerprint != fingerprint)
+    changed = bool(obj.pk and commercial(obj.source) != commercial(source))
     obj.source = source; obj.fingerprint = fingerprint
     obj.access_key = source['key']; obj.number = source['number']; obj.series = source['series']
     obj.issued_on = date.fromisoformat(source['date']); obj.source_status = source['status']
