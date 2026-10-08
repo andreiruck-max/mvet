@@ -136,6 +136,22 @@ class SaleTaxRevision(Immutable):
         constraints = [models.UniqueConstraint(fields=['sale','change'],name='sales_unique_tax_revision')]
 
 
+class SaleCorrection(Immutable):
+    key=models.UUIDField(default=uuid.uuid4,unique=True)
+    sale=models.ForeignKey(Sale,on_delete=models.PROTECT,related_name='corrections')
+    actor=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT)
+    created_at=models.DateTimeField(auto_now_add=True)
+    reason=models.CharField(max_length=500)
+    before_revision=models.PositiveIntegerField()
+    before=models.JSONField()
+    after=models.JSONField()
+    @property
+    def display_changes(self):
+        from django.utils.formats import number_format
+        return [(Sale._meta.get_field(name).verbose_name,number_format(Decimal(value),2,force_grouping=True),number_format(Decimal(self.after[name]),2,force_grouping=True)) for name,value in self.before.items() if name!='tax_snapshot' and value!=self.after.get(name)]
+    class Meta:
+        constraints=[models.UniqueConstraint(fields=['sale','before_revision'],name='sales_unique_correction_revision')]
+
 class SaleRecovery(Immutable):
     key = models.UUIDField(default=uuid.uuid4, unique=True)
     sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name='recoveries')

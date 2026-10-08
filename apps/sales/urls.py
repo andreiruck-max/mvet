@@ -6,6 +6,7 @@ urlpatterns=[
     path('nova/',views.sale_edit,name='sale_new'),
     path('<int:pk>/',views.sale_detail,name='sale_detail'),
     path('<int:pk>/editar/',views.sale_edit,name='sale_edit'),
+    path('<int:pk>/corrigir/',views.sale_correct,name='sale_correct'),
     path('<int:pk>/confirmar/',views.sale_confirm,name='sale_confirm'),
     path('<int:pk>/cancelar/',views.sale_cancel,name='sale_cancel'),
     path('<int:pk>/recuperar/',views.sale_recover,name='sale_recover'),

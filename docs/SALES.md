@@ -62,3 +62,7 @@ Confirmação consome quantidade e custo médio do depósito gravado na venda, i
 
 ## Atualização de 25/09/2026 — ADR 0022
 Novas vendas não geram contas a receber; títulos anteriores e liquidações são preservados. Compras/despesas continuam gerando contas a pagar. Bling: topo compacto, atalho ao relatório, sugestões Full/demais lojas configuradas em Conexão Bling, valores monetários com duas casas e zeros iniciais, frete recebido e pago sugeridos iguais ao valor da nota e editáveis. Desconto manual em zero quando não fornecido pelo contrato. Confirmação pelo botão, sem caixa genérica; finalidade ausente ainda exige declaração. Imposto pela regra tributária, sem campos manuais na conferência.
+# Corrigir lançamentos já confirmados
+Master: abra a venda e clique em **Corrigir valores da venda**. Informe os valores e o motivo. Dashboard, DRE e relatório passam a usar a correção na data original; estoque não se movimenta novamente e CMV fica preservado. Mudança de receita recalcula imposto automático pela alíquota histórica. Histórico manual de imposto e taxas extras discriminadas permanecem nos fluxos existentes; este formulário altera os campos exibidos nele.
+
+Se cancelou por engano, use **Recuperar venda cancelada** na venda existente, revise a taxa e depois faça as demais correções. Não exclua a NF nem tente importar outra venda com o mesmo número/série. A recuperação exige nota externa autorizada e sem divergência e preserva a cadeia de estornos. Ver ADR 0031.

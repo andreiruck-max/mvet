@@ -8,6 +8,14 @@ from apps.inventory.models import StockLocation
 from .models import Sale, SalesChannel, TaxRule
 from .services import EDIT_FIELDS, FINANCIAL_FIELDS
 
+class CorrectionForm(forms.ModelForm):
+    key=forms.UUIDField(widget=forms.HiddenInput,initial=uuid.uuid4)
+    revision=forms.IntegerField(widget=forms.HiddenInput)
+    reason=forms.CharField(label='Motivo da correção',max_length=500,widget=forms.Textarea(attrs={'rows':2}))
+    class Meta:
+        model=Sale
+        fields=['products_amount','discount','shipping_received','shipping_paid','fees','difal','commission','other_costs']
+
 class RecoveryForm(forms.Form):
     key=forms.UUIDField(widget=forms.HiddenInput,initial=uuid.uuid4)
     revision=forms.IntegerField(widget=forms.HiddenInput)
@@ -63,6 +71,9 @@ class SaleForm(forms.ModelForm):
 
     def clean(self):
         data=super().clean()
+        if data.get('invoice_number'):
+            existing=Sale.objects.filter(invoice_number=data['invoice_number'],invoice_series=data.get('invoice_series','')).exclude(pk=self.instance.pk).first()
+            if existing:self.add_error('invoice_number',f'Esta NF/série já pertence à venda #{existing.pk} ({existing.get_status_display()}). Abra essa venda e use Corrigir valores ou Recuperar venda cancelada; não é necessário relançar.')
         for name in FINANCIAL_FIELDS[1:]:
             if data.get(name) is None and name not in self.errors:data[name]=Decimal('0')
         if self.actor and self.actor.is_superuser:
