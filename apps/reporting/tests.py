@@ -250,3 +250,61 @@ class SalesOrderingTests(ReportingFixture,TestCase):
             response=self.client.get(reverse('sales_sheet'),data)
             self.assertEqual([sale.invoice_number for sale in response.context['page']],expected)
             self.assertEqual(list(s.sale_rows(data).values_list('invoice_number',flat=True)),expected)
+
+class NavigationPayablesTests(ReportingFixture, TestCase):
+    def test_active_channel_cards_filter_and_default_order(self):
+        from html.parser import HTMLParser
+        from urllib.parse import urlsplit, parse_qs
+        class Cards(HTMLParser):
+            def __init__(self):super().__init__();self.links=[]
+            def handle_starttag(self,tag,attrs):
+                attrs=dict(attrs)
+                if tag=='a' and 'channel-card' in attrs.get('class',''):self.links.append(attrs['href'])
+        for number in ('100','9','10'):self.confirmed(invoice_number=number)
+        other=SalesChannel.objects.create(name='Novo canal sem vendas')
+        inactive=SalesChannel.objects.create(name='Canal histórico',active=False)
+        self.client.force_login(self.actor)
+        response=self.client.get(reverse('sales_sheet'))
+        self.assertEqual([s.invoice_number for s in response.context['page']],['9','10','100'])
+        self.assertIn(other.pk,[c['id'] for c in response.context['channels']])
+        self.assertNotIn(inactive.pk,[c['id'] for c in response.context['channels']])
+        parser=Cards();parser.feed(response.content.decode())
+        url=next(url for url in parser.links if parse_qs(urlsplit(url).query).get('channel')==[str(other.pk)])
+        filtered=self.client.get(reverse('sales_sheet')+url)
+        self.assertEqual(filtered.status_code,200);self.assertEqual(len(filtered.context['page']),0)
+        self.assertContains(response,'Parcelas a pagar')
+        dash=self.client.get(reverse('dashboard'));self.assertContains(dash,'Impostos sobre vendas')
+        self.assertEqual(dash.context['totals']['tax_amount'],sum(sale.tax_amount for sale in response.context['page']))
+
+    def test_supplier_ranking_open_count_average_and_early_payment_cash(self):
+        from apps.finance.selectors import cash_summary
+        purchase=self.purchase()
+        other=Supplier.objects.create(legal_name='Outro fornecedor')
+        p=purchases.save_draft(actor=self.actor,key=uuid4(),data=dict(supplier=other,document='C-2',series='',date=self.today,location=self.location,discount=D('0'),freight=D('0'),other_costs=D('0'),notes=''),items=[(self.product.pk,D('10'),D('10'))],installments=[(self.today+timedelta(days=30),D('100'),'')])
+        purchases.confirm(actor=self.actor,purchase_id=p.pk,revision=p.revision)
+        rows=s.payables({'status':'all'})
+        months,suppliers=s.payable_groups(rows)
+        self.assertEqual([r['pending'] for r in suppliers],[D('100'),D('50')])
+        self.assertEqual(suppliers[1]['open_count'],2);self.assertEqual(suppliers[1]['average'],D('25'))
+        title=p.installments.get().financial_title
+        before=cash_summary(self.today,self.today+timedelta(days=30))
+        self.pay(title)
+        after=cash_summary(self.today,self.today+timedelta(days=30))
+        self.assertEqual(after['actual'],before['actual']-D('100'))
+        self.assertEqual(after['projected'],before['projected'])
+        months,suppliers=s.payable_groups(s.payables({'status':'all'}))
+        self.assertEqual(suppliers[-1]['open_count'],0);self.assertEqual(suppliers[-1]['average'],0)
+        self.client.force_login(self.actor)
+        response=self.client.get(reverse('purchase_payables'))
+        self.assertContains(response,'Pagar / antecipar');self.assertContains(response,'Títulos abertos')
+        self.assertNotIn(title.pk,[row.pk for row in response.context['page']])
+
+    def test_exact_installment_discrepancy(self):
+        from django.core.exceptions import ValidationError
+        p=self.purchase()
+        # Pure draft validation helper also used by Bling composition errors.
+        self.assertIn('R$ 20,81 a menos',purchases.reconciliation_message(D('41.62'),D('20.81')))
+        self.assertIn('R$ 20,81 a mais',purchases.reconciliation_message(D('20.81'),D('41.62')))
+        supplier=p.supplier
+        with self.assertRaisesMessage(ValidationError,'R$ 20,00 a menos'):
+            purchases.save_draft(actor=self.actor,key=uuid4(),data=dict(supplier=supplier,document='C-3',series='',date=self.today,location=self.location,discount=D('0'),freight=D('0'),other_costs=D('0'),notes=''),items=[(self.product.pk,D('10'),D('5'))],installments=[(self.today,D('30'),'')])

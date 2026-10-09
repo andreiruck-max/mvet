@@ -13,13 +13,19 @@
   for(let i=0;i<count;i++){if(form.elements.namedItem(`form-${i}-DELETE`)?.checked)continue;const gross=(value(`form-${i}-quantity`,4)*value(`form-${i}-unit_cost`,6)+50000000n)/100000000n;const discount=value(`form-${i}-discount`,2);if(discount>gross)throw new Error();sum+=gross-discount;}
   return sum-value('discount',2)+value('freight',2)+value('other_costs',2);
  }
- function update(){try{const t=total();document.getElementById('purchase-total').textContent=t<0n?'Confira o desconto: total negativo.':'Total previsto da compra: R$ '+format(t)+'. Confira o rateio ao salvar.';}catch{document.getElementById('purchase-total').textContent='Confira os valores e casas decimais para calcular o total.';}}
+ function update(){try{
+  const t=total();let installments=0n;const count=Number(form.elements.namedItem('installments-TOTAL_FORMS')?.value||0);
+  for(let i=0;i<count;i++)if(!form.elements.namedItem(`installments-${i}-DELETE`)?.checked)installments+=value(`installments-${i}-amount`,2);
+  const diff=installments-t;
+  document.getElementById('purchase-total').textContent=t<0n?'Confira o desconto: total negativo.':`Total previsto: R$ ${format(t)} · Parcelas: R$ ${format(installments)} · `+(diff===0n?'Valores conciliados.':`Divergência: R$ ${format(diff<0n?-diff:diff)} ${diff>0n?'a mais':'a menos'} nas parcelas.`);
+ }catch{document.getElementById('purchase-total').textContent='Confira os valores e casas decimais para calcular o total.';}}
+
  form.addEventListener('input',update);form.addEventListener('change',update);
  document.getElementById('add-component').addEventListener('click',update);
  document.getElementById('add-installment').addEventListener('click',()=>{
   const totalForms=document.getElementById('id_installments-TOTAL_FORMS'),index=Number(totalForms.value);
   document.getElementById('installment-rows').insertAdjacentHTML('beforeend',document.getElementById('installment-empty').innerHTML.replaceAll('__prefix__',index));totalForms.value=index+1;
   try{let remaining=total();for(let i=0;i<index;i++)if(!form.elements.namedItem(`installments-${i}-DELETE`)?.checked)remaining-=value(`installments-${i}-amount`,2);if(remaining>0n)form.elements.namedItem(`installments-${index}-amount`).value=format(remaining).replace(',','.');}catch{}
-  form.elements.namedItem(`installments-${index}-due_date`).value=document.getElementById('id_date').value;
+  form.elements.namedItem(`installments-${index}-due_date`).value=document.getElementById('id_date').value;update();
  });update();
 })();

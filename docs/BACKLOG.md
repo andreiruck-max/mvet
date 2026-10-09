@@ -1,3 +1,6 @@
+## 09/10/2026 — Navegação, compras e canais
+Pacote implementado: submenus diretos, imposto no Dashboard, relatório de vendas com canais ativos clicáveis e ordem crescente, abas de compras/parcelas, resumo por fornecedor ordenado com contagem/média, divergência exata e antecipação explícita. Validação PostgreSQL/Chromium/Windows e integração acompanhadas no PR. Dados locais não alterados nesta sessão.
+
 # Correção de canal e depósito da venda — 09/10/2026
 Master pode usar Corrigir venda para alterar canal e depósito junto aos valores. Troca de depósito registra estorno e nova saída auditados; CMV histórico preservado e diferenças de estoque no resultado da data atual. Migration 0012; ADR 0034. Sem alteração automática de vendas existentes ou instalação local.
 

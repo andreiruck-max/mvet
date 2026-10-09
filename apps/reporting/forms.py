@@ -27,7 +27,7 @@ class PeriodForm(forms.Form):
 class SalesForm(PeriodForm):
     q=forms.CharField(label='NF',required=False)
     status=forms.ChoiceField(label='Situação',required=False,choices=[('CONFIRMED','Confirmadas'),('DRAFT','Rascunhos'),('CANCELLED','Canceladas'),('all','Todas')])
-    sort=forms.ChoiceField(label='Ordenar',required=False,choices=[('-date','Mais recentes'),('date','Mais antigas'),('-products_amount','Maior valor')])
+    sort=forms.ChoiceField(label='Ordenar',required=False,choices=[('date','Data e NF crescentes'),('-date','Mais recentes'),('-products_amount','Maior valor')],initial='date')
 
 class PayablesForm(PeriodForm):
     channel=None

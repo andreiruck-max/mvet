@@ -131,7 +131,7 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
     # Financial composition must reconcile; no hidden inference for discount/tax.
     fiscal_composition=purchase.products_total-purchase.item_discounts-discount+freight+other_costs
     if fiscal_composition != Decimal(invoice.source['total']):
-        raise ValidationError('Total dos itens, desconto, frete e outros custos não fecha o valor da nota. Confira os valores antes de importar.')
+        raise ValidationError(purchases.reconciliation_message(Decimal(invoice.source['total']),fiscal_composition,'Total dos itens com descontos e custos'))
     purchase.source='bling';purchase.external_id=invoice.external_id;purchase.save(update_fields=['source','external_id'])
     invoice.purchase = purchase; invoice.approved_source = invoice.source; invoice.revision += 1; invoice.save()
     audit(actor, invoice, 'bling_purchase_draft', after={'purchase': purchase.pk, 'reviewed': True,'acquisition_kind':acquisition_kind,'items':[{k:str(v) for k,v in i.items()} for i in items]})

@@ -1,3 +1,8 @@
+## Navegação, compras e canais — 09/10/2026
+Submenus por domínio dão acesso direto às parcelas, importações, cadastros e relatórios, respeitando permissões. Estado de expansão é lembrado neste navegador; grupo da página atual abre automaticamente. Dashboard inclui imposto aplicado às vendas confirmadas no período/canal, condicionado a view_margins.
+Relatório de vendas substitui o nome Vendas em tabela. Ordem padrão por data crescente, seguida de número de NF numérico crescente dentro do canal. Cartões de canais ativos incluem cadastros sem vendas e filtram mantendo período e demais critérios. Total da empresa limpa o canal e preserva histórico de canais inativos; estes continuam disponíveis no filtro e na listagem histórica. Cadastro/inativação usa manage_channels.
+Compras tem abas Notas de compra (uma linha por documento) e Parcelas a pagar (uma linha por obrigação). Resumos abertos usam tabelas com total, quantidade de títulos ainda abertos e média do saldo restante por título aberto; fornecedor ordenado por saldo decrescente. Totais incluem todas as páginas do filtro. Produtos da parcela ficam recolhidos para compactar a lista.
+
 # Dashboard e consultas — direção aprovada em 17/09/2026
 ## Revisão de vendas e DRE — 08/10/2026
 Vendas mantêm 50 registros por página e totais de todas as páginas. Produtos e quantidades aparecem na mesma linha da nota. A coluna Composição foi substituída por imposto sempre visível e deduções/ajustes exibidos quando ao menos uma venda do filtro completo os utiliza. Cabeçalho, células e totais compartilham a mesma definição de colunas. Canais são recolhíveis; o quadro possui rolagem própria com cabeçalho e total fixos, também no celular, sem transbordar a página. Bordas e valores negativos são destacados.

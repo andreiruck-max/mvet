@@ -40,9 +40,16 @@ def validate_active(purchase):
     if not StockLocation.objects.filter(pk=purchase.location_id,active=True).exists():raise ValidationError('Estoque de destino inativo.')
     if not Company.objects.get(pk=1).cutover_date<=purchase.date<=timezone.localdate():raise ValidationError('Data da compra deve estar entre o corte e hoje.')
 
+def reconciliation_message(expected, actual, label='Total das parcelas'):
+    from django.utils.formats import number_format
+    money=lambda value:number_format(value, decimal_pos=2, force_grouping=True)
+    difference=actual-expected
+    direction='a mais' if difference>0 else 'a menos'
+    return f'{label}: R$ {money(actual)}; total da nota: R$ {money(expected)}. Divergência: R$ {money(abs(difference))} {direction}.'
+
 def validate_schedule(purchase):
     installments=list(purchase.installments.all())
-    if sum((i.amount for i in installments),Decimal('0'))!=purchase.total:raise ValidationError('A soma das parcelas deve ser igual ao total da compra.')
+    if sum((i.amount for i in installments),Decimal('0'))!=purchase.total:raise ValidationError(reconciliation_message(purchase.total,sum((i.amount for i in installments),Decimal('0'))))
     if any(i.due_date<purchase.date for i in installments):raise ValidationError('Vencimento não pode ser anterior à compra.')
 
 @transaction.atomic
@@ -123,7 +130,7 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
         if due<purchase.date:raise ValidationError('Vencimento anterior à compra.')
         if len(notes)>500:raise ValidationError('Observação da parcela excede 500 caracteres.')
     # Optional in draft; confirmation requires full and exact schedule.
-    if installments and sum((i[1] for i in installments),Decimal('0'))!=purchase.total:raise ValidationError('A soma das parcelas deve ser igual ao total da compra.')
+    if installments and sum((i[1] for i in installments),Decimal('0'))!=purchase.total:raise ValidationError(reconciliation_message(purchase.total,sum((i[1] for i in installments),Decimal('0'))))
     purchase.revision+=1
     purchase.full_clean(exclude=['received_date','receipt','reversal','confirmed_by','received_by','cancelled_by','confirmed_at','received_at','cancelled_at'])
     purchase.save();purchase.items.all().delete();purchase.installments.all().delete()

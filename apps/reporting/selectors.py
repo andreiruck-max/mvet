@@ -18,7 +18,7 @@ def sale_rows(d):
     if status!='all':rows=rows.filter(status=status)
     from django.db.models.functions import Length
     return rows.annotate(invoice_length=Length('invoice_number')).order_by(
-        d.get('sort') or '-date','invoice_length','invoice_number','invoice_series','pk')
+        d.get('sort') or 'date','invoice_length','invoice_number','invoice_series','pk')
 
 def metrics(values):
     result={f:values.get(f) or ZERO for f in FIELDS}
@@ -102,6 +102,9 @@ def dre(d):
 def payable_groups(rows):
     from django.db.models.functions import TruncMonth
     remaining=F('amount')-F('settled')
-    months=list(rows.order_by().annotate(month=TruncMonth('due_date')).values('month').annotate(pending=Sum(remaining)).order_by('month'))
-    suppliers=list(rows.order_by().values('purchase_installment__purchase__supplier_id','purchase_installment__purchase__supplier__legal_name').annotate(pending=Sum(remaining)).order_by('purchase_installment__purchase__supplier__legal_name'))
-    return months,[{'name':r['purchase_installment__purchase__supplier__legal_name'],'pending':r['pending']} for r in suppliers]
+    aggregates = dict(pending=Sum(remaining), open_count=Count('pk',filter=Q(settled__lt=F('amount'))))
+    months=list(rows.order_by().annotate(month=TruncMonth('due_date')).values('month').annotate(**aggregates).order_by('month'))
+    suppliers=list(rows.order_by().values('purchase_installment__purchase__supplier_id','purchase_installment__purchase__supplier__legal_name').annotate(**aggregates).order_by('-pending','purchase_installment__purchase__supplier__legal_name'))
+    def average(row): return (row['pending']/row['open_count']).quantize(Decimal('.01')) if row['open_count'] else ZERO
+    for row in months: row['average']=average(row)
+    return months,[{'id':r['purchase_installment__purchase__supplier_id'],'name':r['purchase_installment__purchase__supplier__legal_name'],'pending':r['pending'],'open_count':r['open_count'],'average':average(r)} for r in suppliers]

@@ -151,3 +151,25 @@ main.workspace{padding:12px 14px}
 .dre-table th.numeric{text-align:right}
 .invoice-actions{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--border)}
 .metric-link{color:inherit;text-decoration:none;display:block;height:100%}.metric-link:hover,.metric-link:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:5px}
+
+/* Navegação por domínio e leitura de compras */
+.sidebar .nav-submenu{border:1px solid var(--border);border-radius:8px;margin:3px 0;overflow:hidden}
+.sidebar .nav-submenu summary{padding:9px 10px;font-weight:700;cursor:pointer;font-size:13px}
+.sidebar .nav-submenu[open] summary{border-bottom:1px solid var(--border)}
+.sidebar .nav-submenu a{display:block;margin:2px 4px;padding:7px 10px 7px 18px;font-size:12px}
+.purchase-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.report-cards a.channel-card{color:inherit;text-decoration:none;display:block;border:2px solid var(--border)}
+.report-cards a.channel-card:hover,.report-cards a.channel-card:focus-visible,.report-cards a.channel-card.selected{border-color:var(--accent,#5977d9);box-shadow:0 0 0 1px var(--accent,#5977d9)}
+.payable-summaries{display:grid;grid-template-columns:1fr;gap:10px;margin:12px 0}
+.payable-summary summary{cursor:pointer;display:flex;justify-content:space-between;gap:12px;padding:4px;font-weight:700}
+.payable-summary summary::before{content:'▸'}
+.payable-summary[open] summary::before{content:'▾'}
+.payable-summary summary span{margin-left:auto;font-size:12px;color:var(--muted)}
+.payable-summary .table-wrap{max-height:340px;margin-top:10px}
+.payable-summary table{width:100%;border-collapse:collapse}
+.payable-summary th,.payable-summary td,.payables-sheet th,.payables-sheet td{border:1px solid var(--border);padding:9px 10px}
+.payable-summary thead th{position:sticky;top:0;z-index:1;background:var(--surface)}
+.payable-summary tbody tr:nth-child(even){background:var(--bg)}
+.payables-sheet .purchase-products{max-width:240px;min-width:90px}
+.payables-sheet .purchase-products summary{cursor:pointer;white-space:nowrap}
+@media(max-width:850px){.sidebar.menu-open nav .nav-submenu{grid-column:1/-1}.payable-summary summary{flex-wrap:wrap}.payable-summary summary span{margin-left:0}}

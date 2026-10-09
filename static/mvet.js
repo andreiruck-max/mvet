@@ -28,8 +28,14 @@
       update();
     });
   }
+  document.querySelectorAll('.nav-submenu').forEach(menu => {
+    try { menu.open = localStorage.getItem('mvet-menu-' + menu.dataset.menu) === 'open'; } catch (_) {}
+    menu.addEventListener('toggle', () => {
+      try { localStorage.setItem('mvet-menu-' + menu.dataset.menu, menu.open ? 'open' : 'closed'); } catch (_) {}
+    });
+  });
   document.querySelectorAll(".sidebar nav a").forEach((link) => {
-    if (new URL(link.href).pathname === window.location.pathname) link.setAttribute("aria-current", "page");
+    if (new URL(link.href).pathname === window.location.pathname) { link.setAttribute("aria-current", "page"); const menu=link.closest("details"); if (menu) menu.open=true; }
   });
 })();
 
