@@ -29,9 +29,10 @@ def normalize_purchase(payload, issuer):
         raise ValidationError('Fornecedor diverge do emitente da chave fiscal.')
     source['supplier_document'] = document or (key[6:20] if key[6:20] != issuer else '')
     source['supplier_name'] = text(contact.get('nome'), 200)
-    source['supplier_phone'] = text(contact.get('telefone'), 40)
-    source['supplier_email'] = text(contact.get('email'), 254)
-    source['supplier_trade_name'] = text(contact.get('fantasia'), 240)
+    # Do not flag legacy imports as divergent merely by adding empty metadata.
+    for local,external,limit in [('supplier_phone','telefone',40),('supplier_email','email',254),('supplier_trade_name','fantasia',240)]:
+        value=text(contact.get(external),limit)
+        if value:source[local]=value
     parcels = payload.get('parcelas') or []
     if not isinstance(parcels, list) or len(parcels) > 120: raise ValidationError('Parcelas inválidas.')
     source['installments'] = []

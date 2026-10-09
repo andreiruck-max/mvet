@@ -159,6 +159,9 @@ class FlexiblePurchaseTests(Fixture, TestCase):
         from apps.purchases.models import Supplier
         document=self.supplier.document;self.supplier.delete()
         row=self.stage()
+        self.assertNotIn('supplier_phone',row.source)
+        self.assertNotIn('supplier_email',row.source)
+        self.assertNotIn('supplier_trade_name',row.source)
         supplier_data=dict(legal_name='Fornecedor importado',document=document,phone='4500000000',email='teste@example.com')
         with self.assertRaises(ValidationError):self.draft(row,supplier=None,supplier_data=supplier_data,freight=D('1'),installments=[])
         self.assertFalse(Supplier.objects.exists())
