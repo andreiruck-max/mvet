@@ -37,7 +37,7 @@ def recover_sale(*, actor, sale_id, revision, key, fees, reason):
     if FinancialTitle.objects.filter(sale=sale).exists():
         raise ValidationError('Venda com financeiro histórico exige revisão específica; nenhuma alteração foi feita.')
     imported=getattr(sale,'bling_import',None)
-    if imported and (imported.discrepancy or imported.source_status!='5'):
+    if imported and (imported.discrepancy or imported.source_status not in ('5', '6')):
         raise ValidationError('Nota com divergência ou situação externa diferente de autorizada. Confira o Bling antes de recuperar.')
     returned=sale.return_operation
     if returned.kind!='SALE_RETURN' or returned.reversal_of_id!=sale.stock_operation_id or StockOperation.objects.filter(reversal_of=returned).exists():

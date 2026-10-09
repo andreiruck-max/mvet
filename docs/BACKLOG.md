@@ -1,3 +1,6 @@
+# Correção Bling — Emitida DANFE (09/10/2026)
+Busca padrão por Autorizada + Emitida DANFE; confirmação e recuperação aceitam status 6. Impressão não gera divergência comercial nem duplicação. ADR 0033. Busca direta vazia na API ainda em diagnóstico; sem instalação local automática.
+
 # Backlog
 Novo pacote (ADR 0029): calendário, notas por série/valor/cliente, regra tributária sugerida e estoque negativo. Usuário autorizou em 08/10/2026 integrar cada alteração à main após validação. Instalação local/PowerShell somente ao fim do pacote, após OK. Validação PostgreSQL e Chromium em andamento.
 Recuperação de venda cancelada por engano e correção de Taxas: implementação em validação, com auditoria, preservação de snapshots e nova saída do estoque. Sem alteração automática de venda real por migration. ADR 0028.

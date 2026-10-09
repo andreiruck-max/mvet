@@ -11,7 +11,7 @@ class QueryForm(forms.Form):
     start = forms.DateField(label='Emissão de', initial=timezone.localdate, widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'))
     end = forms.DateField(label='Até', initial=timezone.localdate, widget=forms.DateInput(attrs={'type': 'date'}, format='%Y-%m-%d'))
     page = forms.IntegerField(label='Página do Bling', min_value=1, max_value=10000, initial=1, widget=forms.HiddenInput)
-    source_status = forms.TypedChoiceField(label='Situação no Bling', coerce=int, choices=[(5, 'Autorizadas'), (2, 'Canceladas — conferir divergências')])
+    source_status = forms.TypedChoiceField(label='Situação no Bling', coerce=int, choices=[(56, 'Autorizadas + Emitida DANFE'), (5, 'Autorizadas'), (6, 'Emitida DANFE'), (2, 'Canceladas — conferir divergências')], initial=56)
 
 
 class ReviewForm(SaleForm):

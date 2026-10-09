@@ -116,6 +116,7 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
         from django.utils import timezone
         pages = []
         def batch(**kwargs):
+            self.assertEqual(kwargs['source_status'], 56)
             number = kwargs['page']; pages.append(number)
             return SimpleNamespace(page=number, processed=5 if number <= 12 else 0,
                 errors=1 if number == 2 else 0, has_more=number <= 12, message='')
@@ -126,7 +127,7 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
             page = context.new_page(); page.goto(self.live_server_url + '/integracoes/bling/')
             page.locator('#id_start').fill(str(timezone.localdate()))
             page.locator('#id_end').fill(str(timezone.localdate()))
-            page.locator('#id_source_status').select_option('5')
+            self.assertEqual(page.locator('#id_source_status').input_value(), '56')
             self.assertFalse(page.locator('#id_page').is_visible())
             page.get_by_role('button', name='Buscar notas do período', exact=True).click()
             page.get_by_text('Busca concluída. 60 notas consultadas; 1 pendências. Nenhuma venda foi confirmada.', exact=True).wait_for()

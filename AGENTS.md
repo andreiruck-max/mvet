@@ -5,6 +5,7 @@ Monólito Django 5.2 LTS, PostgreSQL, templates, CSS/JS locais. Código em ingl�
 ## Regras invioláveis
 - Decimal/NUMERIC: quantidade 4 casas, custo e valorização 6 casas, dinheiro 2 casas.
 - Finalidade ausente no Bling é conferida pela ação explícita de confirmar a venda, com aviso e auditoria, sem checkbox adicional (ADR 0026, substitui essa exigência do ADR 0017). Preservar finalidade externa e bloqueios para finalidade conhecida não normal.
+- Bling: Autorizada (5) e Emitida DANFE (6) são elegíveis para conferência de vendas. Impressão não é divergência comercial; preservar status externo e snapshots (ADR 0033).
 - Bling é fonte de pré-preenchimento com conferência; não importar custo médio externo (preço de aquisição da NF pode preencher rascunho de compra, ADR 0023), sobrescrever escolhas locais ou propagar cancelamentos. Preservar vínculos para idempotência mesmo após cancelamento. Ver ADR 0015.
 - Venda manual independe de Bling/NF. Master pode salvar rascunhos incompletos e ajustar receita/imposto, mas confirmação preserva estoque e snapshots. Ajuste de receita deve refletir DRE e exportações. Novas vendas não geram contas a receber; títulos históricos e suas proteções são preservados (ADR 0022). Ver ADR 0016.
 - MVet 1.5: quantidade, valor e custo médio por depósito; vendas/saídas usam o local escolhido. Product agrega saldos locais. Migração preserva livro e CMV antigos (ADR 0019).
