@@ -48,7 +48,7 @@ class ItemForm(forms.Form):
     product=forms.ModelChoiceField(required=False,queryset=Product.objects.filter(active=True,kind='SIMPLE'),widget=forms.HiddenInput(attrs={'data-product-lookup':'true'}),label='Produto')
     quantity=forms.DecimalField(label='Quantidade',max_digits=18,decimal_places=4,min_value=Decimal('0.0001'),initial=1)
     unit_cost=forms.DecimalField(label='Preço unitário (R$)',max_digits=24,decimal_places=6,min_value=0)
-    discount=forms.DecimalField(label='Desconto total deste item (R$)',max_digits=18,decimal_places=2,min_value=0,initial=0,required=False)
+    discount=forms.DecimalField(label='Desconto total deste item (R$)',max_digits=18,decimal_places=2,min_value=0,initial=Decimal('0.00'),required=False)
 
     def clean(self):
         data=super().clean();data['mode']=data.get('mode') or 'STOCK'

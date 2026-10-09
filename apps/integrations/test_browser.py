@@ -305,6 +305,7 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
             self.assertEqual(page.locator('#id_new_supplier-document').input_value(),SUPPLIER)
             self.assertEqual(page.locator('#id_new_supplier-email').input_value(),'fornecedor@example.com')
             page.locator('#id_new_supplier-legal_name').fill('Fornecedor conferido')
+            self.assertEqual(page.locator('#id_products-1-discount').input_value(),'0,00')
             page.locator('#id_location').select_option(str(self.location.pk))
             for i in range(2):page.locator(f'#id_products-{i}-product').select_option(str(self.product.pk))
             page.locator('#id_products-0-discount').click();page.locator('#id_products-0-discount').press_sequentially('1000')
