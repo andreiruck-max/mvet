@@ -148,7 +148,16 @@ class SaleCorrection(Immutable):
     @property
     def display_changes(self):
         from django.utils.formats import number_format
-        return [(Sale._meta.get_field(name).verbose_name,number_format(Decimal(value),2,force_grouping=True),number_format(Decimal(self.after[name]),2,force_grouping=True)) for name,value in self.before.items() if name!='tax_snapshot' and value!=self.after.get(name)]
+        rows = []
+        for name, value in self.before.items():
+            if name in ('tax_snapshot','channel_name','location_name','stock_operation_id') or value == self.after.get(name): continue
+            if name in ('channel_id','location_id'):
+                field = name.removesuffix('_id')
+                rows.append((Sale._meta.get_field(field).verbose_name, self.before.get(field+'_name',str(value)), self.after.get(field+'_name',str(self.after[name]))))
+            else:
+                rows.append((Sale._meta.get_field(name).verbose_name, number_format(Decimal(value),2,force_grouping=True), number_format(Decimal(self.after[name]),2,force_grouping=True)))
+        return rows
+
     class Meta:
         constraints=[models.UniqueConstraint(fields=['sale','before_revision'],name='sales_unique_correction_revision')]
 

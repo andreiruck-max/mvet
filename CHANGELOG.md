@@ -1,3 +1,6 @@
+# Correção de canal e depósito da venda — 09/10/2026
+Master pode usar Corrigir venda para alterar canal e depósito junto aos valores. Troca de depósito registra estorno e nova saída auditados; CMV histórico preservado e diferenças de estoque no resultado da data atual. Migration 0012; ADR 0034. Sem alteração automática de vendas existentes ou instalação local.
+
 # Correção Bling — Emitida DANFE (09/10/2026)
 Busca padrão por Autorizada + Emitida DANFE; confirmação e recuperação aceitam status 6. Impressão não gera divergência comercial nem duplicação. ADR 0033. Busca direta vazia na API ainda em diagnóstico; sem instalação local automática.
 
