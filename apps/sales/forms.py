@@ -14,7 +14,16 @@ class CorrectionForm(forms.ModelForm):
     reason=forms.CharField(label='Motivo da correção',max_length=500,widget=forms.Textarea(attrs={'rows':2}))
     class Meta:
         model=Sale
-        fields=['products_amount','discount','shipping_received','shipping_paid','fees','difal','commission','other_costs']
+        fields=['channel','location','products_amount','discount','shipping_received','shipping_paid','fees','difal','commission','other_costs']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from django.db.models import Q
+        self.fields['channel'].queryset = SalesChannel.objects.filter(Q(active=True)|Q(pk=self.instance.channel_id))
+        self.fields['location'].queryset = StockLocation.objects.filter(Q(active=True)|Q(pk=self.instance.location_id))
+        self.fields['channel'].required = self.fields['location'].required = True
+        self.fields['location'].label = 'Estoque da venda'
+        self.fields['location'].help_text = 'A troca devolve a saída ao depósito anterior e registra a saída no novo, preservando o CMV histórico.'
 
 class RecoveryForm(forms.Form):
     key=forms.UUIDField(widget=forms.HiddenInput,initial=uuid.uuid4)

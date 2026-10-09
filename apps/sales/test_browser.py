@@ -27,7 +27,7 @@ class RecoveryBrowser(Fixture,StaticLiveServerTestCase):
             browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1000},locale='pt-BR')
             context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
             page=context.new_page();page.goto(self.live_server_url+reverse('sale_detail',args=[sale.pk]))
-            page.get_by_role('link',name='Corrigir valores da venda').click()
+            page.get_by_role('link',name='Corrigir venda').click()
             fees=page.get_by_label('Taxas (R$):',exact=True);fees.click();fees.press_sequentially('2081')
             self.assertEqual(fees.input_value(),'20.81')
             shipping=page.get_by_label('Frete pago (R$):',exact=True);shipping.click();shipping.press_sequentially('23500')
@@ -37,10 +37,36 @@ class RecoveryBrowser(Fixture,StaticLiveServerTestCase):
             Path('artifacts').mkdir(exist_ok=True)
             page.screenshot(path='artifacts/sale-correction-desktop.png',full_page=True)
             page.get_by_role('button',name='Salvar correção').click()
-            page.get_by_text('Valores corrigidos. Relatórios atualizados e histórico preservado, sem nova baixa de estoque.',exact=True).wait_for()
+            page.get_by_text('Venda corrigida. Canal, estoque e relatórios atualizados; histórico preservado.',exact=True).wait_for()
             browser.close()
         sale.refresh_from_db();self.assertEqual(sale.fees,Decimal('20.81'));self.assertEqual(sale.shipping_paid,Decimal('23.50'))
         self.assertEqual(StockMovement.objects.count(),moves)
+
+    def test_correct_channel_and_stock_from_sale(self):
+        from playwright.sync_api import sync_playwright
+        from django.urls import reverse
+        from django.utils import timezone
+        from apps.inventory.models import StockBalance
+        sale=self.confirmed()
+        location=StockLocation.objects.create(name='Full correção')
+        channel=SalesChannel.objects.create(name='Canal corrigido')
+        execute(actor=self.actor,key=uuid4(),kind='RECEIPT',date=timezone.localdate(),reason='Destino',product_id=self.product.pk,location_id=location.pk,quantity=Decimal(10),cost=Decimal(8))
+        client=Client();client.force_login(self.actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1000},locale='pt-BR')
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page();page.goto(self.live_server_url+reverse('sale_correct',args=[sale.pk]))
+            page.get_by_label('Canal:',exact=True).select_option(str(channel.pk))
+            page.get_by_label('Estoque da venda:',exact=True).select_option(str(location.pk))
+            page.get_by_label('Motivo da correção:',exact=True).fill('Venda lançada no depósito incorreto')
+            Path('artifacts').mkdir(exist_ok=True)
+            page.screenshot(path='artifacts/sale-context-correction.png',full_page=True)
+            page.get_by_role('button',name='Salvar correção').click()
+            page.get_by_text('Venda corrigida. Canal, estoque e relatórios atualizados; histórico preservado.',exact=True).wait_for()
+            browser.close()
+        sale.refresh_from_db()
+        self.assertEqual((sale.channel_id,sale.location_id),(channel.pk,location.pk))
+        self.assertEqual(StockBalance.objects.get(product=self.product,location=location).quantity,8)
 
     def test_recover_cancelled_sale_from_details(self):
         from playwright.sync_api import sync_playwright, expect

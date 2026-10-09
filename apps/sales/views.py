@@ -86,8 +86,8 @@ def sale_correct(request,pk):
     form=CorrectionForm(request.POST or None,instance=sale,initial={'revision':sale.revision})
     if request.method=='POST' and form.is_valid():
         try:
-            correct_sale(actor=request.user,sale_id=pk,revision=form.cleaned_data['revision'],key=form.cleaned_data['key'],reason=form.cleaned_data['reason'],values={name:form.cleaned_data[name] for name in FIELDS})
-            messages.success(request,'Valores corrigidos. Relatórios atualizados e histórico preservado, sem nova baixa de estoque.')
+            correct_sale(actor=request.user,sale_id=pk,revision=form.cleaned_data['revision'],key=form.cleaned_data['key'],reason=form.cleaned_data['reason'],values={name:form.cleaned_data[name] for name in FIELDS},channel_id=form.cleaned_data['channel'].pk,location_id=form.cleaned_data['location'].pk)
+            messages.success(request,'Venda corrigida. Canal, estoque e relatórios atualizados; histórico preservado.')
             return redirect('sale_detail',pk=pk)
         except ValidationError as exc:form.add_error(None,exc)
     return render(request,'sales/correct.html',{'sale':sale,'form':form})
