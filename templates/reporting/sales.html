@@ -1,7 +1,7 @@
 {% extends 'base.html' %}{% block title %}Vendas em tabela{% endblock %}{% block content %}
 <div class="sales-report compact-page">
 <header class="page-heading"><h1>Vendas em tabela</h1><div>{% include 'reporting/export_buttons.html' with kind='sales' allowed=perms.core.export_sales %}</div></header>
-{% include 'reporting/nav.html' %}{% include 'reporting/filter.html' %}
+{% include 'reporting/nav.html' %}{% include 'reporting/filter.html' with auto_apply=True %}
 {% if company_totals %}<div class="report-cards">
 {% for card in channels %}<section class="panel"><strong>{{ card.name }}</strong><b class="{% if card.revenue < 0 %}result-negative{% endif %}">R$ {{ card.revenue|floatformat:2 }}</b><small>{{ card.count }} vendas{% if perms.core.view_margins %} · <span class="{% if card.contribution < 0 %}result-negative{% endif %}">Contribuição R$ {{ card.contribution|floatformat:2 }}</span>{% endif %}</small></section>{% endfor %}
 <section class="panel company-total"><strong>Total da empresa</strong><b>R$ {{ company_totals.revenue|floatformat:2 }}</b><small>{{ company_totals.count }} vendas{% if perms.core.view_margins %} · <span class="{% if company_totals.contribution < 0 %}result-negative{% endif %}">Contribuição R$ {{ company_totals.contribution|floatformat:2 }}</span>{% endif %}</small></section></div>

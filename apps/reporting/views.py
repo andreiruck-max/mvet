@@ -66,7 +66,9 @@ def sales_sheet(request):
         company_data = {**d, 'channel': None, 'q': '', 'status': 'CONFIRMED'}
         ctx['company_totals'] = metrics_for(request.user, selectors.sales_summary(selectors.sale_rows(company_data)))
         ctx['channels'] = [metrics_for(request.user, row) for row in selectors.channel_summary(company_data)]
-        rows = selectors.sale_rows(d).order_by('channel__name', d.get('sort') or '-date', '-pk').prefetch_related('items__product')
+        rows = selectors.sale_rows(d).order_by(
+            'channel__name', 'channel_id', d.get('sort') or '-date',
+            'invoice_length', 'invoice_number', 'invoice_series', 'pk').prefetch_related('items__product')
         page = Paginator(rows, 50).get_page(request.GET.get('page'))
         groups = []
         for sale in page:

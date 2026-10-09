@@ -96,7 +96,7 @@ class CashForm(forms.Form):
 
 class AccountEntryForm(forms.Form):
     key=forms.UUIDField(initial=uuid4,widget=forms.HiddenInput)
-    direction=forms.ChoiceField(label='Movimento',choices=[('RECEIVE','Entrada'),('PAY','Saída')])
+    direction=forms.ChoiceField(label='Movimento',choices=[('RECEIVE','Crédito — entrada'),('PAY','Débito — saída')])
     date=forms.DateField(label='Data efetiva',widget=DateInput(),initial=timezone.localdate)
     description=forms.CharField(label='Descrição',max_length=240)
     amount=forms.DecimalField(label='Valor (R$)',max_digits=18,decimal_places=2,min_value=Decimal('.01'),initial=Decimal('0.00'),localize=True)

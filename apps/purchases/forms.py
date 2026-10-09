@@ -32,6 +32,7 @@ class PurchaseForm(forms.ModelForm):
             company=Company.objects.filter(pk=1).first()
             if company and company.default_stock_location_id and company.default_stock_location.active:self.initial['location']=company.default_stock_location_id
         for field in ['discount','freight','other_costs','acquisition_kind']:self.fields[field].required=False
+        self.fields['discount'].help_text='Desconto geral adicional. Não repita os descontos informados por item.'
     def clean(self):
         data=super().clean()
         data['acquisition_kind']=data.get('acquisition_kind') or 'NORMAL'
@@ -47,9 +48,11 @@ class ItemForm(forms.Form):
     product=forms.ModelChoiceField(required=False,queryset=Product.objects.filter(active=True,kind='SIMPLE'),widget=forms.HiddenInput(attrs={'data-product-lookup':'true'}),label='Produto')
     quantity=forms.DecimalField(label='Quantidade',max_digits=18,decimal_places=4,min_value=Decimal('0.0001'),initial=1)
     unit_cost=forms.DecimalField(label='Preço unitário (R$)',max_digits=24,decimal_places=6,min_value=0)
+    discount=forms.DecimalField(label='Desconto total deste item (R$)',max_digits=18,decimal_places=2,min_value=0,initial=0,required=False)
 
     def clean(self):
         data=super().clean();data['mode']=data.get('mode') or 'STOCK'
+        data['discount']=data.get('discount') or Decimal('0')
         if data['mode']=='STOCK':
             if not data.get('product'):self.add_error('product','Selecione um produto.')
             data['category']=None

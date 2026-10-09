@@ -281,3 +281,40 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
         p=Purchase.objects.get();self.assertEqual(p.total,110)
         self.assertEqual(p.items.get(moves_stock=False).nonstock_total,10)
         self.assertTrue(Product.objects.filter(sku='NEW-BROWSER',name='Produto com nome local').exists())
+
+    def test_purchase_inline_supplier_and_targeted_item_discount(self):
+        from pathlib import Path
+        from decimal import Decimal
+        from playwright.sync_api import sync_playwright
+        from django.urls import reverse
+        from apps.purchases.models import Supplier, Purchase
+        from .test_purchase_import import incoming, SUPPLIER
+        from .purchase_services import stage as stage_purchase
+        connection=BlingConnection.objects.create(pk=1,issuer=ISSUER)
+        data=incoming(valorNota='190',parcelas=[])
+        data['contato'].update(telefone='4500000000',email='fornecedor@example.com')
+        data['itens'].append(dict(data['itens'][0],codigo='PROMO',descricao='Outro produto'))
+        invoice=stage_purchase(actor=self.actor,connection=connection,payload=data)
+        client=Client();client.force_login(self.actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1050},locale='pt-BR')
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page();page.goto(self.live_server_url+reverse('bling_purchase_detail',args=[invoice.pk]))
+            page.locator('#id_create_supplier').check()
+            self.assertEqual(page.locator('#id_new_supplier-legal_name').input_value(),'Fornecedor sintético')
+            self.assertEqual(page.locator('#id_new_supplier-document').input_value(),SUPPLIER)
+            self.assertEqual(page.locator('#id_new_supplier-email').input_value(),'fornecedor@example.com')
+            page.locator('#id_new_supplier-legal_name').fill('Fornecedor conferido')
+            page.locator('#id_location').select_option(str(self.location.pk))
+            for i in range(2):page.locator(f'#id_products-{i}-product').select_option(str(self.product.pk))
+            page.locator('#id_products-0-discount').click();page.locator('#id_products-0-discount').press_sequentially('1000')
+            page.locator('#id_reviewed').check()
+            Path('artifacts').mkdir(exist_ok=True)
+            page.screenshot(path='artifacts/purchase-supplier-discount.png',full_page=True)
+            page.get_by_role('button',name='Importar rascunho de compra',exact=True).click()
+            page.get_by_text('Rascunho importado.',exact=False).wait_for()
+            browser.close()
+        purchase=Purchase.objects.get()
+        self.assertEqual(purchase.total,Decimal('190'))
+        self.assertEqual(list(purchase.items.values_list('allocated_total',flat=True)),[Decimal('90'),Decimal('100')])
+        self.assertEqual(Supplier.objects.get().legal_name,'Fornecedor conferido')

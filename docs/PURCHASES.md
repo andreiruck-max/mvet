@@ -1,5 +1,11 @@
 # Compras e fornecedores — Fase 4
 
+## Atualização 09/10/2026 — desconto por item e cadastro na importação
+
+Cada linha tem **Desconto total deste item (R$)**, aplicado somente àquela linha. Na promoção de um único produto, informe ali o total do desconto para toda a quantidade comprada. Não repita esse valor no desconto geral. O subtotal exibido é bruto; total financeiro deduz descontos dos itens e desconto geral, somando frete/custos. Encargos e desconto geral remanescentes são rateados sobre as bases líquidas (ADR 0032), substituindo a base bruta descrita na regra original abaixo. Preço externo já líquido não deve receber o desconto novamente. Compras confirmadas e seu histórico não são recalculados pela atualização.
+
+Na conferência Bling, marque **Cadastrar novo fornecedor com os dados da nota**, revise os campos preenchidos e importe. Cadastro e compra são salvos juntos; erro desfaz ambos. CPF/CNPJ já existente exige selecionar o fornecedor cadastrado. Telefone/e-mail só são sugeridos quando vierem no documento consultado; notas antigas podem precisar de Atualizar dados do Bling para receber esses campos.
+
 ## Evolução de 06/10/2026 — ver ADR 0025
 
 - Nas filas de notas Bling: marcar notas ou escolher todas as não importadas do filtro, abrir **Ignorar / modificar em massa**, revisar e aplicar. Reabrir desfaz a retirada da fila. Documentos vinculados não são alterados.

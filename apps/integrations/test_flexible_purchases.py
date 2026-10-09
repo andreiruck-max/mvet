@@ -125,3 +125,50 @@ class FlexiblePurchaseTests(Fixture, TestCase):
         for changes in ({'moves_stock':False},{'category_snapshot':{'nature':'OPERATING'}}):
             with self.assertRaises(DatabaseError),transaction.atomic():p.items.update(**changes)
         with self.assertRaises(DatabaseError),transaction.atomic():Purchase.objects.filter(pk=p.pk).update(acquisition_kind='BONUS')
+
+    def test_item_discount_only_reduces_its_product_and_matches_payable(self):
+        other=Product.objects.create(sku='PROMO',name='Produto promocional',unit='UN')
+        data=incoming(valorNota='180',parcelas=[])
+        data['itens'].append(dict(data['itens'][0],codigo='PROMO',quantidade=1,valor=100))
+        row=s.stage(actor=self.actor,connection=self.connection,payload=data)
+        p=self.draft(row,products=[self.product,other],treatments=[{},dict(discount=D('20'))],installments=[(timezone.localdate(),D('180'),'')])
+        self.assertEqual(list(p.items.values_list('allocated_total',flat=True)),[D('100'),D('80')])
+        self.assertEqual(p.item_discounts,D('20'))
+        p=self.posted(p)
+        self.product.refresh_from_db();other.refresh_from_db()
+        self.assertEqual(self.product.value,D('150'));self.assertEqual(other.value,D('80'))
+        self.assertEqual(FinancialTitle.objects.get().amount,D('180'))
+        if connection.vendor=='postgresql':
+            with self.assertRaises(DatabaseError),transaction.atomic():p.items.update(discount=0)
+
+    def test_item_discount_limits_and_general_discount_use_net_base(self):
+        row=self.stage()
+        for discount in (D('-1'),D('100.01')):
+            with self.assertRaises(ValidationError):self.draft(row,treatments=[dict(discount=discount)],installments=[])
+        with self.assertRaises(ValidationError):self.draft(row,treatments=[dict(discount=D('99'))],discount=D('2'),installments=[])
+        # Total still must reconcile with the fiscal document (no double deduction).
+        with self.assertRaises(ValidationError):self.draft(row,treatments=[dict(discount=D('10'))],installments=[])
+        self.assertFalse(Purchase.objects.exists())
+        p=purchases.save_draft(actor=self.actor,key=uuid4(),data=dict(supplier=self.supplier,location=self.location,document='net',series='',date=timezone.localdate(),discount=D('1'),freight=D('3'),other_costs=D('0'),notes=''),
+            items=[dict(product_id=self.product.pk,quantity=D('1'),unit_cost=D('20'),discount=D('10')),dict(product_id=None,name='Caixas',quantity=D('1'),unit_cost=D('10'),moves_stock=False)],installments=[])
+        self.assertEqual(p.total,D('22'))
+        self.assertEqual(p.items.get(moves_stock=True).allocated_total,D('11'))
+        self.assertEqual(p.items.get(moves_stock=False).nonstock_total,D('11'))
+
+    def test_supplier_created_with_draft_atomic_permissions_and_idempotence(self):
+        from apps.purchases.models import Supplier
+        document=self.supplier.document;self.supplier.delete()
+        row=self.stage()
+        supplier_data=dict(legal_name='Fornecedor importado',document=document,phone='4500000000',email='teste@example.com')
+        with self.assertRaises(ValidationError):self.draft(row,supplier=None,supplier_data=supplier_data,freight=D('1'),installments=[])
+        self.assertFalse(Supplier.objects.exists())
+        self.operator.user_permissions.add(Permission.objects.get(codename='operate_purchases'))
+        from apps.accounts.models import AccessPolicy
+        AccessPolicy.objects.create(user=self.operator,rules={'core.manage_suppliers':False})
+        with self.assertRaises(PermissionDenied):self.draft(row,actor=self.operator,supplier=None,supplier_data=supplier_data)
+        self.assertFalse(Supplier.objects.exists())
+        p=self.draft(row,supplier=None,supplier_data=supplier_data)
+        self.assertEqual(p.supplier.document,document);self.assertEqual(p.supplier.email,'teste@example.com')
+        self.assertTrue(p.supplier.active)
+        self.assertEqual(self.draft(row,supplier=None,supplier_data=supplier_data).pk,p.pk)
+        self.assertEqual(Supplier.objects.count(),1)

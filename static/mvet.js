@@ -44,3 +44,24 @@ document.querySelectorAll('form[method="get"]').forEach(form => {
     input.addEventListener('change', () => { period.value = ''; });
   });
 });
+
+document.querySelectorAll('form[data-auto-filter]').forEach(form => {
+  let timer;
+  const apply = () => {
+    clearTimeout(timer);
+    const start=form.elements.namedItem('start')?.value;
+    const end=form.elements.namedItem('end')?.value;
+    if (!form.elements.namedItem('period')?.value && start && end && start>end) return;
+    if (form.checkValidity()) form.requestSubmit();
+  };
+  form.addEventListener('change', event => {
+    if (event.target.matches('select,input[type="date"],input[type="checkbox"]')) apply();
+  });
+  form.querySelectorAll('input[type="text"],input[type="search"]').forEach(input => {
+    input.addEventListener('input', () => {
+      clearTimeout(timer);
+      timer = setTimeout(apply, 700);
+    });
+  });
+  form.addEventListener('submit', () => clearTimeout(timer));
+});

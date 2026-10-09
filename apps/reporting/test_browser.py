@@ -128,3 +128,23 @@ class ReportingBrowser(ReportingFixture,StaticLiveServerTestCase):
             page.locator('#theme-toggle').click()
             self.assertEqual(page.locator('html').get_attribute('data-theme'),'dark')
             self.assertEqual(errors,[]);browser.close()
+
+    def test_sales_filters_apply_without_consult_and_invoice_numeric_order(self):
+        from playwright.sync_api import sync_playwright, expect
+        for number in ('100','9','10'):self.confirmed(invoice_number=number)
+        client=Client();client.force_login(self.actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1000})
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page();page.goto(self.live_server_url+reverse('sales_sheet'))
+            self.assertEqual(page.locator('.sales-sheet tbody td:nth-child(2) a').all_text_contents(),['NF 9','NF 10','NF 100'])
+            with page.expect_navigation():page.locator('#id_sort').select_option('date')
+            self.assertIn('sort=date',page.url)
+            with page.expect_navigation():page.locator('#id_q').fill('100')
+            expect(page.locator('.sales-sheet tbody tr')).to_have_count(1)
+            self.assertIn('q=100',page.url)
+            with page.expect_navigation():page.locator('#id_start').fill(str(self.today))
+            self.assertEqual(page.locator('#id_period').input_value(),'')
+            with page.expect_navigation():page.locator('#id_status').select_option('DRAFT')
+            expect(page.locator('.sales-sheet tbody tr')).to_have_count(0)
+            browser.close()

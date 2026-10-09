@@ -13,15 +13,31 @@ class PurchaseQueryForm(QueryForm):
 
 class PurchaseReviewForm(forms.Form):
     revision = forms.IntegerField(widget=forms.HiddenInput)
-    supplier = forms.ModelChoiceField(label='Fornecedor', queryset=Supplier.objects.filter(active=True))
+    supplier = forms.ModelChoiceField(label='Fornecedor cadastrado', queryset=Supplier.objects.filter(active=True),required=False)
+    create_supplier=forms.BooleanField(label='Cadastrar novo fornecedor com os dados da nota',required=False)
     location = forms.ModelChoiceField(label='Estoque de destino', queryset=StockLocation.objects.filter(active=True))
-    discount = forms.DecimalField(label='Desconto (R$)', max_digits=18, decimal_places=2, min_value=0, initial=Decimal('0'), localize=True, widget=MoneyInput)
+    discount = forms.DecimalField(label='Desconto geral adicional (R$)', max_digits=18, decimal_places=2, min_value=0, initial=Decimal('0'), localize=True, widget=MoneyInput)
     freight = forms.DecimalField(label='Frete de aquisição (R$)', max_digits=18, decimal_places=2, min_value=0, initial=Decimal('0'), localize=True, widget=MoneyInput)
     other_costs = forms.DecimalField(label='Outros custos de aquisição (R$)', max_digits=18, decimal_places=2, min_value=0, initial=Decimal('0'), localize=True, widget=MoneyInput)
     acquisition_kind=forms.ChoiceField(label='Tipo de entrada',choices=Purchase._meta.get_field('acquisition_kind').choices,initial='NORMAL',required=False)
     reviewed = forms.BooleanField(label='Conferi o documento: a Mercadovet é a destinatária, a finalidade fiscal é normal (não devolução, ajuste ou complemento) e o tipo de entrada, produtos e quantidades estão corretos.')
 
     def clean_acquisition_kind(self):return self.cleaned_data['acquisition_kind'] or 'NORMAL'
+
+    def clean(self):
+        data=super().clean()
+        if not data.get('supplier') and not data.get('create_supplier'):
+            self.add_error('supplier','Selecione um fornecedor ou marque cadastrar novo fornecedor.')
+        if data.get('supplier') and data.get('create_supplier'):
+            self.add_error('supplier','Limpe o fornecedor cadastrado para criar um novo.')
+        return data
+
+
+from apps.purchases.forms import SupplierForm
+
+class ImportSupplierForm(SupplierForm):
+    class Meta(SupplierForm.Meta):
+        fields=['legal_name','trade_name','document','contact','phone','email','notes']
 
 
 class LocalProductChoice(forms.ModelChoiceField):
@@ -30,6 +46,7 @@ class LocalProductChoice(forms.ModelChoiceField):
 
 
 class PurchaseProductForm(forms.Form):
+    discount=forms.DecimalField(label='Desconto total deste item (R$)',max_digits=18,decimal_places=2,min_value=0,initial=0,required=False,localize=True,widget=MoneyInput)
     mode=forms.ChoiceField(label='Destino do item',choices=[('STOCK','Movimentar estoque'),('NEW','Cadastrar produto e movimentar estoque'),('NONSTOCK','Somente financeiro — sem estoque')],initial='STOCK',required=False)
     product = LocalProductChoice(label='Produto MVet', required=False, queryset=Product.objects.filter(active=True, kind='SIMPLE').order_by('name'))
     category=forms.ModelChoiceField(label='Categoria sem estoque',required=False,queryset=ChartOfAccount.objects.filter(active=True,postable=True).exclude(nature='REVENUE'))
@@ -39,6 +56,7 @@ class PurchaseProductForm(forms.Form):
 
     def clean(self):
         data=super().clean();mode=data.get('mode') or 'STOCK';data['mode']=mode
+        data['discount']=data.get('discount') or Decimal('0')
         if mode=='STOCK' and not data.get('product'):self.add_error('product','Selecione o produto ou escolha cadastrar um novo.')
         if mode=='NEW':
             for field in ('new_sku','new_name','new_unit'):

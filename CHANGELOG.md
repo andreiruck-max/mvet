@@ -1,4 +1,8 @@
 # Novo pacote — aguardando OK para instalação
+- Vendas em tabela: filtros aplicados automaticamente e NF numericamente crescente dentro da data, mantendo datas recentes/antigas.
+- Compras: desconto total por item, sem repassar a promoção aos demais produtos; base líquida para rateios gerais e conferência de total/parcelas. ADR 0032.
+- Fornecedor pode ser cadastrado junto com o rascunho importado, com dados disponíveis na nota e permissões preservadas.
+- Conta bancária: botões Novo crédito e Novo débito com direção previamente selecionada, utilizando o livro financeiro existente.
 - Correção auditada dos valores de venda confirmada pelo master, sem nova baixa de estoque; recuperação de canceladas destacada e orientação para NF já cadastrada. ADR 0031.
 - Consulta Bling por número/série, inclusive sem loja externa, sem restringir data/situação quando o número é informado.
 - Digitação monetária por centavos, cartões de indicadores com links e navegação de conferência no topo.

@@ -33,7 +33,7 @@ def allocation(subtotals,total):
     return [value*CENT for value in whole]
 
 def snapshot(purchase):
-    return {**{field:str(getattr(purchase,field)) for field in FIELDS},'status':purchase.status,'total':str(purchase.total),'revision':purchase.revision,'items':list(purchase.items.values('product_id','sku_snapshot','name_snapshot','moves_stock','category_snapshot')),'quantities_costs':[(str(i.quantity),str(i.unit_cost),str(i.allocated_total),str(i.nonstock_total)) for i in purchase.items.all()],'installments':[(i.number,str(i.due_date),str(i.amount),i.notes) for i in purchase.installments.all()]}
+    return {**{field:str(getattr(purchase,field)) for field in FIELDS},'status':purchase.status,'total':str(purchase.total),'revision':purchase.revision,'items':list(purchase.items.values('product_id','sku_snapshot','name_snapshot','moves_stock','category_snapshot')),'quantities_costs':[(str(i.quantity),str(i.unit_cost),str(i.allocated_total),str(i.nonstock_total),str(i.discount)) for i in purchase.items.all()],'installments':[(i.number,str(i.due_date),str(i.amount),i.notes) for i in purchase.installments.all()]}
 
 def validate_active(purchase):
     if not Supplier.objects.filter(pk=purchase.supplier_id,active=True).exists():raise ValidationError('Fornecedor inativo.')
@@ -85,7 +85,7 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
     # Legacy callers retain stock movement by default. Extended rows carry explicit treatment.
     items=[dict(product_id=i[0],quantity=i[1],unit_cost=i[2],moves_stock=True) if not isinstance(i,dict) else dict(i) for i in items]
     products={p.pk:p for p in Product.objects.filter(pk__in=[i.get('product_id') for i in items],active=True,kind='SIMPLE')}
-    subtotals=[]
+    subtotals=[];net_subtotals=[]
     from apps.expenses.models import ChartOfAccount
     from apps.expenses.services import category_path
     for item in items:
@@ -104,15 +104,20 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
                 item['category_snapshot']=category_path(category,expense=False)
         number(qty,QTY);number(cost,MONEY,zero=True)
         if (stock or pid is not None) and pid not in products:raise ValidationError('Compra exige produtos simples ativos. Kits virtuais não são recebidos.')
-        subtotals.append((qty*cost).quantize(CENT,rounding=ROUND_HALF_UP))
+        subtotal=(qty*cost).quantize(CENT,rounding=ROUND_HALF_UP)
+        item['discount']=number(item.get('discount',Decimal('0')),CENT,zero=True)
+        if item['discount']>subtotal:raise ValidationError('Desconto do item não pode exceder seu subtotal.')
+        subtotals.append(subtotal)
+        net_subtotals.append(subtotal-item['discount'])
     purchase.products_total=sum(subtotals,Decimal('0'))
-    if purchase.discount>purchase.products_total:raise ValidationError('Desconto não pode exceder o total dos produtos.')
-    purchase.total=purchase.products_total-purchase.discount+purchase.freight+purchase.other_costs
+    net_total=sum(net_subtotals,Decimal('0'))
+    if purchase.discount>net_total:raise ValidationError('Desconto geral não pode exceder o total após os descontos dos itens.')
+    purchase.total=net_total-purchase.discount+purchase.freight+purchase.other_costs
     if purchase.acquisition_kind=='BONUS':
         if purchase.discount or purchase.freight or purchase.other_costs or installments:raise ValidationError('Bonificação não gera parcelas nem custos pagos. Registre custos cobrados separadamente.')
         if any(not i['moves_stock'] for i in items):raise ValidationError('Bonificação exige itens destinados ao estoque.')
         purchase.total=Decimal('0.00')
-    allocated=allocation(subtotals,purchase.total)
+    allocated=allocation(net_subtotals,purchase.total)
     for due,amount,notes in installments:
         number(amount,CENT)
         if due<purchase.date:raise ValidationError('Vencimento anterior à compra.')
@@ -124,7 +129,7 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
     purchase.save();purchase.items.all().delete();purchase.installments.all().delete()
     for item,subtotal,value in zip(items,subtotals,allocated):
         p=products.get(item.get('product_id'));stock=item['moves_stock'];qty=item['quantity']
-        obj=PurchaseItem(purchase=purchase,product=p,quantity=qty,unit_cost=item['unit_cost'],subtotal=subtotal,
+        obj=PurchaseItem(purchase=purchase,product=p,quantity=qty,unit_cost=item['unit_cost'],subtotal=subtotal,discount=item['discount'],
             moves_stock=stock,allocated_total=value if stock else Decimal('0'),nonstock_total=Decimal('0') if stock else value,
             category_id=item.get('category_id'),category_snapshot=item['category_snapshot'],
             landed_unit_cost=quant(value/qty) if stock else Decimal('0'),sku_snapshot=p.sku if p else '',name_snapshot=p.name if p else item['name'])

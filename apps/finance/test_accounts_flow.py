@@ -10,6 +10,14 @@ from .models import FinancialEntry, FinancialTitle
 
 
 class AccountFlowTests(Fixture, TestCase):
+    def test_credit_and_debit_shortcuts_preselect_direction(self):
+        self.client.force_login(self.admin)
+        page=self.client.get(reverse('financial_account',args=[self.a.pk]))
+        self.assertContains(page,'Novo crédito');self.assertContains(page,'Novo débito')
+        for direction in ('RECEIVE','PAY'):
+            form=self.client.get(reverse('financial_account_entry',args=[self.a.pk]),{'direction':direction}).context['form']
+            self.assertEqual(form['direction'].value(),direction)
+
     def entry(self, **changes):
         data=dict(actor=self.admin,account_id=self.a.pk,key=uuid4(),direction='PAY',date=self.today,
                   description='Teste de caixa',amount=D('25'),category='PRINCIPAL',notes='')
