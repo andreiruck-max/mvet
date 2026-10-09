@@ -14,7 +14,7 @@ class Command(BaseCommand):
         parser.add_argument('--end', required=True, type=date.fromisoformat)
         parser.add_argument('--page', type=int, default=1)
         parser.add_argument('--pages', type=int, default=1, help='Máximo de páginas, até 100')
-        parser.add_argument('--status', type=int, choices=[2, 5], default=5)
+        parser.add_argument('--status', type=int, choices=[2, 5, 6, 56], default=56)
 
     def handle(self, *args, **options):
         if not 1 <= options['pages'] <= 100: raise CommandError('Informe de 1 a 100 páginas.')

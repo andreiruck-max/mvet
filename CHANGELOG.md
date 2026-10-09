@@ -1,3 +1,6 @@
+# Correção Bling — Emitida DANFE (09/10/2026)
+Busca padrão por Autorizada + Emitida DANFE; confirmação e recuperação aceitam status 6. Impressão não gera divergência comercial nem duplicação. ADR 0033. Busca direta vazia na API ainda em diagnóstico; sem instalação local automática.
+
 # Novo pacote — aguardando OK para instalação
 - Vendas em tabela: filtros aplicados automaticamente e NF numericamente crescente dentro da data, mantendo datas recentes/antigas.
 - Compras: desconto total por item, sem repassar a promoção aos demais produtos; base líquida para rateios gerais e conferência de total/parcelas. ADR 0032.

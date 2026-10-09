@@ -68,8 +68,8 @@ def normalize(payload, issuer):
 
 
 def eligibility(source, *, purpose_reviewed=False):
-    if source['status'] != '5' or source['type'] != '1':
-        raise ValidationError('Somente NF autorizada e de saída pode gerar venda.')
+    if source['status'] not in ('5', '6') or source['type'] != '1':
+        raise ValidationError('Somente NF autorizada ou com DANFE emitida, de saída, pode gerar venda.')
     purpose = source.get('purpose', '')
     if purpose not in ('', '1'):
         raise ValidationError('Finalidade externa diferente de normal. Nota bloqueada.')

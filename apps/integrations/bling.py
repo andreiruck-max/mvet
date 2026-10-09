@@ -145,7 +145,7 @@ def sync_page(*, actor, start, end, page=1, source_status=5, kind="SALE", number
     if kind not in ('SALE', 'PURCHASE'): raise BlingError('Tipo de consulta inválido.')
     if number is not None and (not isinstance(number,int) or not 1<=number<=999999999):raise BlingError('Número de NF inválido.')
     if series is not None and (not isinstance(series,int) or not 0<=series<=999):raise BlingError('Série inválida.')
-    if start > end or (end - start).days > 366 or page < 1 or page > 10000 or source_status not in ((2, 5, 7) if kind == "PURCHASE" else (2, 5)):
+    if start > end or (end - start).days > 366 or page < 1 or page > 10000 or source_status not in ((2, 5, 7) if kind == "PURCHASE" else (2, 5, 6, 56)):
         raise BlingError('Período, situação ou página inválidos.')
     connection = BlingConnection.objects.filter(pk=1).first()
     if not connection or not connection.tokens: raise BlingError('Conecte o Bling antes de consultar.')
@@ -156,19 +156,29 @@ def sync_page(*, actor, start, end, page=1, source_status=5, kind="SALE", number
         from .services import stage
     deadline = time.monotonic() + 40
     try:
-        params={'pagina':page,'limite':PAGE_SIZE,'tipo':0 if kind=='PURCHASE' else 1}
-        if number is not None:params['numero']=number
-        else:params.update(situacao=source_status,dataEmissaoInicial=f'{start} 00:00:00',dataEmissaoFinal=f'{end} 23:59:59')
-        if series is not None:params['serie']=series
-        result = read('/nfe?' + urlencode(params))
-        rows = result.get('data')
-        if not isinstance(rows, list) or len(rows) > PAGE_SIZE: raise BlingError('Página inválida recebida do Bling.')
-        run.has_more = len(rows) == PAGE_SIZE
+        # 56 is a local combined selection, never an API status. Each status
+        # retains its own page; stop only when both lists have ended.
+        statuses = (5, 6) if source_status == 56 and number is None else (source_status,)
+        rows = []
+        run.has_more = False
+        for status in statuses:
+            params={'pagina':page,'limite':PAGE_SIZE,'tipo':0 if kind=='PURCHASE' else 1}
+            if number is not None:params['numero']=number
+            else:params.update(situacao=status,dataEmissaoInicial=f'{start} 00:00:00',dataEmissaoFinal=f'{end} 23:59:59')
+            if series is not None:params['serie']=series
+            result = read('/nfe?' + urlencode(params))
+            batch = result.get('data')
+            if not isinstance(batch, list) or len(batch) > PAGE_SIZE: raise BlingError('Página inválida recebida do Bling.')
+            run.has_more = run.has_more or len(batch) == PAGE_SIZE
+            rows.extend(batch)
+        seen = set()
         for row in rows:
             if time.monotonic() >= deadline:
                 raise BlingError('Consulta parcial por demora do Bling. Reexecute esta página; notas anteriores estão preservadas.')
             external_id = str(row.get('id', '')) if isinstance(row, dict) else ''
             if not external_id.isascii() or not external_id.isdecimal(): raise BlingError('Identificador inválido na listagem.')
+            if external_id in seen: continue
+            seen.add(external_id)
             try:
                 payload = read('/nfe/' + external_id).get('data')
                 if not isinstance(payload, dict) or str(payload.get('id')) != external_id:

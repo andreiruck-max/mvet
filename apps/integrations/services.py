@@ -45,7 +45,11 @@ def stage(*, actor, connection, payload):
         return obj
     # Display-only customer names do not invalidate a commercial review or flag
     # old imports when the field is fetched for the first time.
-    commercial = lambda value: {k: v for k, v in value.items() if k != 'customer_name'}
+    def commercial(value):
+        result = {k: v for k, v in value.items() if k != 'customer_name'}
+        # Printing changes the external status, not the commercial document.
+        if result.get('status') == '6': result['status'] = '5'
+        return result
     fingerprint = _fingerprint(commercial(source))
     if obj is None:
         obj = InvoiceImport(connection=connection, external_id=external_id)

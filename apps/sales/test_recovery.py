@@ -79,7 +79,7 @@ class RecoveryTests(Fixture,TestCase):
         sale=self.cancelled();connection_obj=BlingConnection.objects.create(pk=1,issuer='00000000000000')
         imported=InvoiceImport.objects.create(connection=connection_obj,external_id='synthetic-recovery',number=sale.invoice_number,series=sale.invoice_series,issued_on=sale.date,source_status='5',source={},fingerprint='test',status='IMPORTED',sale=sale,discrepancy=True)
         with self.assertRaises(ValidationError):self.recover(sale)
-        imported.discrepancy=False;imported.save(update_fields=['discrepancy'])
+        imported.discrepancy=False;imported.source_status='6';imported.save(update_fields=['discrepancy','source_status'])
         self.recover(sale);imported.refresh_from_db()
         self.assertEqual(imported.sale_id,sale.pk);self.assertEqual(imported.status,'IMPORTED')
 

@@ -42,6 +42,32 @@ class ImportTests(Fixture, TestCase):
     def approve(self, row, **changes):
         return approve(actor=self.actor, invoice_id=row.pk, revision=row.revision, data=self.data(**changes), extra_costs=[('MDR', D('2'))], reviewed=True)
 
+    def test_issued_danfe_approval_and_printing_do_not_duplicate_sale(self):
+        row = self.staged(situacao=6, loja=None)
+        self.assertEqual(row.status, 'PENDING')
+        sale = self.approve(row)
+        moves = StockMovement.objects.count()
+        fingerprint = row.fingerprint
+        for status in (5, 6):
+            row = self.staged(situacao=status, loja=None)
+            self.assertFalse(row.discrepancy)
+            self.assertEqual(row.fingerprint, fingerprint)
+            self.assertEqual(row.source_status, str(status))
+            self.assertEqual(self.approve(row).pk, sale.pk)
+        self.assertEqual(StockMovement.objects.count(), moves)
+        self.assertEqual(Sale.objects.count(), 1)
+        self.assertEqual(row.approved_source['status'], '6')
+        row = self.staged(situacao=2, loja=None)
+        self.assertTrue(row.discrepancy)
+
+    def test_issued_danfe_does_not_relax_other_validation(self):
+        for changes in ({'tipo': 0}, {'finalidade': 4}, {'chaveAcesso': ''}):
+            with self.subTest(changes=changes):
+                row = self.staged(situacao=6, **changes)
+                self.assertEqual(row.status, 'ERROR')
+                with self.assertRaises(ValidationError): self.approve(row)
+        self.assertFalse(Sale.objects.exists())
+
     def test_preview_has_no_effect_and_costs_are_not_retained(self):
         moves = StockMovement.objects.count(); row = self.staged()
         self.assertEqual(row.status, 'PENDING'); self.assertEqual(StockMovement.objects.count(), moves)
