@@ -29,6 +29,10 @@ def normalize_purchase(payload, issuer):
         raise ValidationError('Fornecedor diverge do emitente da chave fiscal.')
     source['supplier_document'] = document or (key[6:20] if key[6:20] != issuer else '')
     source['supplier_name'] = text(contact.get('nome'), 200)
+    # Do not flag legacy imports as divergent merely by adding empty metadata.
+    for local,external,limit in [('supplier_phone','telefone',40),('supplier_email','email',254),('supplier_trade_name','fantasia',240)]:
+        value=text(contact.get(external),limit)
+        if value:source[local]=value
     parcels = payload.get('parcelas') or []
     if not isinstance(parcels, list) or len(parcels) > 120: raise ValidationError('Parcelas inválidas.')
     source['installments'] = []
@@ -91,7 +95,7 @@ def stage(*, actor, connection, payload):
 
 
 @transaction.atomic
-def create_draft(*, actor, invoice_id, revision, supplier, location, products, discount, freight, other_costs, installments, reviewed, acquisition_kind='NORMAL', treatments=None):
+def create_draft(*, actor, invoice_id, revision, supplier, location, products, discount, freight, other_costs, installments, reviewed, acquisition_kind='NORMAL', treatments=None, supplier_data=None):
     require(actor, 'core.operate_purchases'); domain_lock()
     invoice = PurchaseInvoiceImport.objects.select_for_update().get(pk=invoice_id)
     if invoice.purchase_id: return invoice.purchase
@@ -100,6 +104,10 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
     reviewable=invoice.error in legacy_errors or invoice.error.startswith('CFOP incompatível com o tipo de entrada.')
     if invoice.revision != revision or (invoice.error and not reviewable): raise ValidationError('Nota mudou ou possui erro. Reabra a conferência.')
     eligible(invoice.source, reviewed=reviewed,acquisition_kind=acquisition_kind)
+    if supplier_data is not None:
+        if supplier is not None:raise ValidationError('Selecione fornecedor existente ou cadastre um novo, não ambos.')
+        supplier=purchases.save_supplier(actor=actor,data=supplier_data)
+    if supplier is None:raise ValidationError('Selecione ou cadastre o fornecedor.')
     supplier.refresh_from_db()
     if invoice.source['supplier_document'] and supplier.document != invoice.source['supplier_document']:
         raise ValidationError('CPF/CNPJ do fornecedor selecionado não corresponde à nota. Corrija o cadastro.')
@@ -115,13 +123,13 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
         if mode=='NEW':
             product=save_product(actor=actor,data=dict(sku=treatment.get('new_sku',''),name=treatment.get('new_name',''),unit=treatment.get('new_unit','UN'),kind='SIMPLE',active=True))
         if mode!='NONSTOCK' and not product:raise ValidationError('Selecione ou cadastre o produto que entrará no estoque.')
-        items.append(dict(product_id=product.pk if product else None,quantity=Decimal(row['quantity']),unit_cost=Decimal(row['price']),
+        items.append(dict(product_id=product.pk if product else None,quantity=Decimal(row['quantity']),unit_cost=Decimal(row['price']),discount=treatment.get('discount',Decimal('0')),
             moves_stock=mode!='NONSTOCK',name=row['name'],category_id=treatment.get('category').pk if treatment.get('category') else None))
     purchase = purchases.save_draft(actor=actor, key=uuid4(), data=dict(supplier=supplier, location=location,
         document=invoice.number, series=invoice.series, date=invoice.issued_on, acquisition_kind=acquisition_kind,discount=discount,
         freight=freight, other_costs=other_costs, notes='Importada do Bling; conferir parcelas e recebimento.'), items=items, installments=installments)
     # Financial composition must reconcile; no hidden inference for discount/tax.
-    fiscal_composition=purchase.products_total-discount+freight+other_costs
+    fiscal_composition=purchase.products_total-purchase.item_discounts-discount+freight+other_costs
     if fiscal_composition != Decimal(invoice.source['total']):
         raise ValidationError('Total dos itens, desconto, frete e outros custos não fecha o valor da nota. Confira os valores antes de importar.')
     purchase.source='bling';purchase.external_id=invoice.external_id;purchase.save(update_fields=['source','external_id'])

@@ -16,7 +16,9 @@ def sale_rows(d):
     if d.get('q'):rows=rows.filter(invoice_number__icontains=d['q'])
     status=d.get('status') or 'CONFIRMED'
     if status!='all':rows=rows.filter(status=status)
-    return rows.order_by(d.get('sort') or '-date','-pk')
+    from django.db.models.functions import Length
+    return rows.annotate(invoice_length=Length('invoice_number')).order_by(
+        d.get('sort') or '-date','invoice_length','invoice_number','invoice_series','pk')
 
 def metrics(values):
     result={f:values.get(f) or ZERO for f in FIELDS}

@@ -10,7 +10,7 @@
  function total(){
   if(form.elements.namedItem('acquisition_kind')?.value==='BONUS')return 0n;
   let sum=0n;const count=Number(form.elements.namedItem('form-TOTAL_FORMS').value);
-  for(let i=0;i<count;i++){if(form.elements.namedItem(`form-${i}-DELETE`)?.checked)continue;sum+=(value(`form-${i}-quantity`,4)*value(`form-${i}-unit_cost`,6)+50000000n)/100000000n;}
+  for(let i=0;i<count;i++){if(form.elements.namedItem(`form-${i}-DELETE`)?.checked)continue;const gross=(value(`form-${i}-quantity`,4)*value(`form-${i}-unit_cost`,6)+50000000n)/100000000n;const discount=value(`form-${i}-discount`,2);if(discount>gross)throw new Error();sum+=gross-discount;}
   return sum-value('discount',2)+value('freight',2)+value('other_costs',2);
  }
  function update(){try{const t=total();document.getElementById('purchase-total').textContent=t<0n?'Confira o desconto: total negativo.':'Total previsto da compra: R$ '+format(t)+'. Confira o rateio ao salvar.';}catch{document.getElementById('purchase-total').textContent='Confira os valores e casas decimais para calcular o total.';}}

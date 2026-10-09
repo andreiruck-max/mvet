@@ -238,3 +238,15 @@ class DashboardLayoutTests(ReportingFixture, TestCase):
         actual,_=cash_matrix(rows,[self.today],'actual')
         self.assertEqual(actual[0]['cells'][0]['balance'],D('1000'))
         self.assertEqual(actual[0]['cells'][0]['debits'],D('0'))
+
+class SalesOrderingTests(ReportingFixture,TestCase):
+    def test_date_direction_and_numeric_invoice_tiebreaker(self):
+        yesterday=self.today-timedelta(days=1)
+        for number,day in [('100',self.today),('9',self.today),('10',self.today),('2',yesterday),('11',yesterday)]:
+            self.draft(invoice_number=number,date=day)
+        self.client.force_login(self.actor)
+        for sort,expected in [('-date',['9','10','100','2','11']),('date',['2','11','9','10','100'])]:
+            data=dict(start=yesterday,end=self.today,sort=sort,status='all')
+            response=self.client.get(reverse('sales_sheet'),data)
+            self.assertEqual([sale.invoice_number for sale in response.context['page']],expected)
+            self.assertEqual(list(s.sale_rows(data).values_list('invoice_number',flat=True)),expected)

@@ -1,1 +1,1 @@
-<form method="get" class="panel filter-bar">{{ form.as_p }}<div class="actions"><button>Consultar</button><a href="{{ request.path }}">Limpar filtros</a></div></form>
+<form method="get" class="panel filter-bar" {% if auto_apply %}data-auto-filter{% endif %}>{{ form.as_p }}<div class="actions"><button>Consultar</button><a href="{{ request.path }}">Limpar filtros</a></div></form>

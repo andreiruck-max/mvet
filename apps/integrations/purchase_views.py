@@ -13,7 +13,7 @@ from apps.purchases.models import Supplier
 from apps.purchases.forms import Installments
 from apps.products.models import Product
 from .models import PurchaseInvoiceImport, BlingConnection, ImportRun
-from .purchase_forms import PurchaseQueryForm, PurchaseReviewForm, PurchaseProducts
+from .purchase_forms import PurchaseQueryForm, PurchaseReviewForm, PurchaseProducts, ImportSupplierForm
 from . import bling, purchase_services as services
 
 
@@ -46,6 +46,8 @@ def query(request):
 @permission_required('core.operate_purchases', raise_exception=True)
 def detail(request, pk):
     invoice = get_object_or_404(PurchaseInvoiceImport.objects.select_related('purchase'), pk=pk)
+    if request.method=='POST' and invoice.purchase_id:
+        return redirect('purchase_detail',pk=invoice.purchase_id)
     source = invoice.source
     supplier = Supplier.objects.filter(document=source.get('supplier_document'), active=True).first() if source.get('supplier_document') else None
     company = Company.objects.filter(pk=1).first()
@@ -54,6 +56,10 @@ def detail(request, pk):
     initial.update({k:v for k,v in invoice.review_overrides.items() if k in ('location','discount','freight','other_costs','acquisition_kind')})
     post = request.POST if request.method == 'POST' else None
     form = PurchaseReviewForm(post, initial=initial)
+    if not request.user.has_perm('core.manage_suppliers'):form.fields.pop('create_supplier')
+    new_supplier=ImportSupplierForm(post if post is not None and post.get('create_supplier') else None,
+        prefix='new_supplier',initial=dict(legal_name=source.get('supplier_name',''),document=source.get('supplier_document',''),
+            phone=source.get('supplier_phone',''),email=source.get('supplier_email',''),trade_name=source.get('supplier_trade_name','')))
     item_initial = [{'product': Product.objects.filter(sku=row['code'], active=True, kind='SIMPLE').first(),
         'new_sku':row['code'] if len(row['code'])<=60 else '', 'new_name':row['name'],'new_unit':'UN',
         'mode':invoice.review_overrides.get('item_mode','STOCK'),'category':invoice.review_overrides.get('category')} for row in source.get('items', [])]
@@ -65,17 +71,20 @@ def detail(request, pk):
     installments = Installments(None if bonus else post, initial=schedule, prefix='installments')
     if request.method == 'POST':
         valid = form.is_valid(); valid_items = items.is_valid(); valid_dates = True if bonus else installments.is_valid()
-        if valid and valid_items and valid_dates:
+        valid_supplier=new_supplier.is_valid() if form.cleaned_data.get('create_supplier') else True
+        if valid and valid_items and valid_dates and valid_supplier:
             try:
-                data = form.cleaned_data
+                data = dict(form.cleaned_data)
+                creating=data.pop('create_supplier',False)
+                if creating:data['supplier_data']=new_supplier.cleaned_data
                 purchase = services.create_draft(actor=request.user, invoice_id=pk, products=[f.cleaned_data.get('product') for f in items],treatments=[f.cleaned_data for f in items],
                     installments=[] if bonus else [(f.cleaned_data['due_date'], f.cleaned_data['amount'], f.cleaned_data['notes']) for f in installments if f.cleaned_data and not f.cleaned_data.get('DELETE')], **data)
                 messages.success(request, 'Rascunho importado. Confira parcelas, confirme a compra e registre o recebimento físico separadamente.')
                 return redirect('purchase_detail', pk=purchase.pk)
-            except ValidationError as exc: form.add_error(None, exc)
+            except ValidationError as exc: form.add_error(None, '; '.join(exc.messages))
             except IntegrityError: form.add_error(None, 'Documento/série já existe para o fornecedor. Confira a compra existente.')
     return render(request, 'integrations/purchase_detail.html', dict(invoice=invoice, form=form, items=items,
-        rows=list(zip(source.get('items', []), items)), installments=installments))
+        rows=list(zip(source.get('items', []), items)), installments=installments, new_supplier=new_supplier))
 
 
 @login_required

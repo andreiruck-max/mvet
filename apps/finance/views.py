@@ -220,7 +220,8 @@ def account_detail(request,pk):
 @permission_required(['core.view_finance','core.operate_finance','core.create_financial_titles'],raise_exception=True)
 def account_entry(request,pk):
     account=get_object_or_404(Account,pk=pk,active=True)
-    form=forms.AccountEntryForm(request.POST or None)
+    direction=request.GET.get('direction')
+    form=forms.AccountEntryForm(request.POST or None,initial={'direction':direction} if direction in ('PAY','RECEIVE') else {})
     if request.method=='POST' and form.is_valid():
         try:
             services.account_entry(actor=request.user,account_id=pk,**form.cleaned_data)
