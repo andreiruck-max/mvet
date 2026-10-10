@@ -54,6 +54,9 @@ class CRMTests(Fixture,TestCase):
         self.client.force_login(self.master)
         self.assertContains(self.client.get(reverse('crm_contacts')),obj.name)
         self.assertEqual(self.client.get(reverse('crm_report')).status_code,200)
+        self.worker.user_permissions.clear()
+        report=self.client.get(reverse('crm_report'))
+        self.assertIn(obj,list(report.context['inactive_owners']))
 
     def test_recurrence_history_waiting_and_opt_out(self):
         obj=self.contact();item=self.record(obj)
@@ -81,6 +84,8 @@ class CRMTests(Fixture,TestCase):
     def test_request_reject_approve_reactivate_and_dnc(self):
         obj=self.contact();s.change_state(actor=self.worker,pk=obj.pk,revision=obj.revision,action='request',reason='NO_REPLY',justification='Várias tentativas')
         req=InactivationRequest.objects.get();obj.refresh_from_db();self.assertEqual(obj.state,'APPROVAL')
+        self.client.force_login(self.master)
+        self.assertContains(self.client.get(reverse('crm_approvals')),'Analisar solicitação')
         with self.assertRaises(PermissionDenied):s.decide(actor=self.worker,request_id=req.pk,approve=True)
         s.decide(actor=self.master,request_id=req.pk,approve=False,date=self.today+timedelta(days=3),note='Tentar novamente')
         obj.refresh_from_db();self.assertEqual(obj.state,'ACTIVE')
@@ -96,6 +101,7 @@ class CRMTests(Fixture,TestCase):
         obj=self.contact();key=uuid4();first=s.record(actor=self.worker,pk=obj.pk,revision=obj.revision,key=key,data=self.data())
         second=s.record(actor=self.worker,pk=obj.pk,revision=obj.revision,key=key,data=self.data());self.assertEqual(first.pk,second.pk)
         with self.assertRaises(ValidationError):s.record(actor=self.worker,pk=obj.pk,revision=obj.revision,key=key,data=self.data(sent='Changed'))
+        with self.assertRaises(ValidationError):s.record(actor=self.worker,pk=obj.pk,revision=obj.revision,key=key,data=self.data(next_date=self.today))
         with self.assertRaises(ValidationError):s.save_contact(actor=self.worker,pk=obj.pk,revision=obj.revision,data={'name':'Changed'})
         obj.refresh_from_db()
         with self.assertRaises(ValidationError):self.record(obj,occurred_at=self.now+timedelta(days=1))

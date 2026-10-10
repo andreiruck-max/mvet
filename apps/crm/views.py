@@ -91,7 +91,7 @@ def approvals(request,pk=None):
         except ValidationError as exc:error(form,exc)
         else:messages.success(request,'Decisão registrada.');return redirect('crm_approvals')
     from django.db.models import Prefetch
-    rows=InactivationRequest.objects.filter(decision='PENDING').select_related('contact__owner','actor').annotate(attempts=Count('contact__interactions',filter=Q(contact__interactions__kind='ATTEMPT'))).order_by('created_at','pk').prefetch_related(Prefetch('contact__interactions',queryset=Interaction.objects.order_by('-occurred_at','-pk')[:3]))
+    rows=InactivationRequest.objects.filter(decision='PENDING').select_related('contact__owner','actor').annotate(attempts=Count('contact__interactions',filter=Q(contact__interactions__kind='ATTEMPT'))).order_by('created_at','pk').prefetch_related(Prefetch('contact__interactions',queryset=Interaction.objects.order_by('-occurred_at','-pk')[:3],to_attr='recent_interactions'))
     return render(request,'crm/approvals.html',{'page':Paginator(rows,30).get_page(request.GET.get('page')),'approval':req,'form':form})
 
 @login_required
@@ -104,7 +104,7 @@ def report(request):
     activities=Interaction.objects.filter(contact__in=rows)
     metrics={'today':activities.filter(occurred_at__date=today).count(),'period':activities.filter(occurred_at__date__range=(start,end)).count(),'overdue':rows.filter(state__in=['ACTIVE','WAITING','PAUSED'],next_date__lt=today).count(),'due':rows.filter(state__in=['ACTIVE','WAITING','PAUSED'],next_date=today).count(),'waiting':rows.filter(state='WAITING').count(),'new':rows.filter(created_at__date__range=(start,end)).count(),'requests':rows.filter(state='APPROVAL').count()}
     missing=rows.filter(state__in=['ACTIVE','WAITING','PAUSED'],next_date__isnull=True)
-    return render(request,'crm/report.html',{'form':form,'metrics':metrics,'start':start,'end':end,'owners':rows.values('owner__username').annotate(count=Count('pk')).order_by('-count'),'missing':missing,'inactive_owners':rows.filter(owner__is_active=False).exclude(state__in=['INACTIVE','DNC']),'activity_owners':activities.filter(occurred_at__date__range=(start,end)).values('actor__username').annotate(count=Count('pk')).order_by('-count')},status=200 if form.is_valid() else 400)
+    return render(request,'crm/report.html',{'form':form,'metrics':metrics,'start':start,'end':end,'owners':rows.values('owner__username').annotate(count=Count('pk')).order_by('-count'),'missing':missing,'inactive_owners':rows.exclude(owner__in=services.owners()).exclude(state__in=['INACTIVE','DNC']),'activity_owners':activities.filter(occurred_at__date__range=(start,end)).values('actor__username').annotate(count=Count('pk')).order_by('-count')},status=200 if form.is_valid() else 400)
 
 @login_required
 @require_http_methods(['GET','POST'])

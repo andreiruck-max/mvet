@@ -102,6 +102,8 @@ def record(*,actor,pk,revision,key,data):
         if prior.actor_id!=actor.pk or prior.contact_id!=pk:raise PermissionDenied
         if any(getattr(prior,k)!=data.get(k,'') for k in ('occurred_at','channel','kind','sent','received','read_state','result','internal_note')):
             raise ValidationError('Envio já utilizado com outro conteúdo. Reabra o formulário.')
+        if prior.manual_date!=bool(data.get('next_date')) or (prior.manual_date and prior.next_date!=data['next_date']) or (data.get('next_reason') and prior.next_reason!=data['next_reason']):
+            raise ValidationError('Envio já utilizado com outra próxima ação. Reabra o formulário.')
         return prior
     obj=locked(actor,pk,revision)
     if obj.state in ('DNC','INACTIVE','APPROVAL'):raise ValidationError('Contato fora da rotina. Resolva a aprovação ou reativação antes de registrar uma abordagem.')
