@@ -45,7 +45,7 @@ class PurchasesBrowser(StaticLiveServerTestCase):
             page.get_by_role('searchbox',name='Produto',exact=True).nth(1).fill('PUR-02')
             page.get_by_role('button',name='PUR-02 · Segundo produto de demonstração',exact=True).click()
             page.get_by_label('Preço unitário (R$):',exact=True).nth(1).fill('20')
-            page.get_by_text('Total previsto da compra: R$ 42,00. Confira o rateio ao salvar.',exact=True).wait_for()
+            page.get_by_text('Total previsto: R$ 42,00 · Parcelas: R$ 0,00 · Divergência: R$ 42,00 a menos nas parcelas.',exact=True).wait_for()
             page.get_by_role('button',name='Adicionar parcela',exact=True).click()
             page.get_by_label('Valor da parcela (R$):',exact=True).fill('21')
             page.get_by_role('button',name='Adicionar parcela',exact=True).click()
