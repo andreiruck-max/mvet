@@ -67,6 +67,11 @@ class CommissionTests(Fixture,TestCase):
         s.configure_default(actor=self.actor,rate=D('4'),reason='Padrão')
         plan=self.plan();self.assertEqual(plan.total,36);self.assertEqual(plan.rate_source,'DEFAULT')
 
+    def test_unconfigured_rate_does_not_silently_replace_sale_cost_with_zero(self):
+        self.payee.default_rate=None;self.payee.save()
+        with self.assertRaises(ValidationError):self.plan()
+        self.sale.refresh_from_db();self.assertEqual(self.sale.commission,2)
+
     def test_create_and_receipt_replays_do_not_duplicate(self):
         key=uuid4();plan=self.plan(key=key);self.assertEqual(self.plan(key=key).pk,plan.pk)
         key=uuid4();e=self.receipt(plan,key=key);self.assertEqual(self.receipt(plan,key=key).pk,e.pk)

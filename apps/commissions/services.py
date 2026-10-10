@@ -106,7 +106,9 @@ def create_plan(*,actor,sale_id,payee_id,customer,rate,installments,key,reason):
     if not 1<=len(rows)<=60 or any(d<sale.date for d,a in rows):raise ValidationError('Informe de 1 a 60 parcelas, com vencimentos a partir da venda.')
     face=sale.products_amount-sale.discount+sale.shipping_received
     if sum((a for d,a in rows),ZERO)!=face:raise ValidationError(f'As parcelas devem somar produtos − desconto + frete: R$ {face:.2f}. Ajuste a diferença antes de salvar.')
-    default,_=CommissionSettings.objects.get_or_create(pk=1)
+    default=CommissionSettings.objects.filter(pk=1).first()
+    if rate is None and payee.default_rate is None and default is None:
+        raise ValidationError('Informe um percentual na venda ou configure o percentual do comissionado / padrão global.')
     source='MANUAL' if rate is not None else 'PAYEE' if payee.default_rate is not None else 'DEFAULT'
     selected=rate if rate is not None else payee.default_rate if payee.default_rate is not None else default.default_rate
     plan=CommissionPlan(sale=sale,payee=payee,customer=customer.strip(),rate=selected,rate_source=source,

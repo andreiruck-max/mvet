@@ -81,6 +81,7 @@ class Entry(Immutable):
         return super().save(*args,**kwargs)
     class Meta:
         ordering = ['date','pk']
+        constraints = [models.CheckConstraint(condition=~models.Q(received=0,released=0),name='commission_entry_nonzero')]
 
 class Payment(Immutable):
     payee = models.ForeignKey(Payee, on_delete=models.PROTECT, related_name='payments')
@@ -92,10 +93,12 @@ class Payment(Immutable):
     reversal_of = models.OneToOneField('self', null=True, blank=True, on_delete=models.PROTECT, related_name='reversal')
     class Meta:
         ordering = ['-date','-pk']
+        constraints = [models.CheckConstraint(condition=models.Q(amount__gt=0,reversal_of__isnull=True)|models.Q(amount__lt=0,reversal_of__isnull=False),name='commission_payment_sign')]
 
 class Allocation(Immutable):
     payment = models.ForeignKey(Payment, on_delete=models.PROTECT, related_name='allocations')
     entry = models.ForeignKey(Entry, on_delete=models.PROTECT, related_name='allocations')
     amount = money()
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['payment','entry'], name='commission_payment_entry')]
+        constraints = [models.UniqueConstraint(fields=['payment','entry'], name='commission_payment_entry'),
+            models.CheckConstraint(condition=~models.Q(amount=0),name='commission_allocation_nonzero')]

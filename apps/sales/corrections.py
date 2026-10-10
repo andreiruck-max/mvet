@@ -58,7 +58,7 @@ def correct_sale(*,actor,sale_id,revision,key,reason,values,channel_id=None,loca
     location_id = sale.location_id if location_id is None else int(location_id)
     prior=SaleCorrection.objects.filter(key=key).first()
     if prior:
-        if prior.sale_id!=sale.pk or prior.actor_id!=actor.pk or prior.before_revision!=revision or prior.reason!=reason or any(Decimal(prior.after[name])!=value for name,value in values.items()):
+        if prior.sale_id!=sale.pk or prior.actor_id!=actor.pk or prior.before_revision!=revision or prior.reason!=reason or any(Decimal(prior.after[name])!=value and not (name=='commission' and hasattr(sale,'commission_plan') and Decimal(prior.before[name])==value) for name,value in values.items()):
             raise ValidationError('Envio já utilizado com outros dados.')
         if prior.after.get('channel_id', sale.channel_id) != channel_id or prior.after.get('location_id', sale.location_id) != location_id:
             raise ValidationError('Envio já utilizado com outro canal ou depósito.')

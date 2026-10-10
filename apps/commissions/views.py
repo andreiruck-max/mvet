@@ -33,6 +33,21 @@ def detail(request,pk):
     events=Entry.objects.filter(installment__plan=plan).select_related('installment','command__actor','reversal').order_by('-date','-pk')
     from apps.core.models import AuditLog
     history=AuditLog.objects.filter(entity='commissions.CommissionPlan',entity_id=str(plan.pk)).select_related('actor')
+    from django.utils.formats import number_format
+    labels={'base':'Base de comissão','rate':'Percentual','total':'Comissão prevista','override_total':'Total manual','cancelled':'Cancelada'}
+    operations={'commission_create':'Definição da comissão','commission_adjust':'Ajuste da comissão','commission_sale_values':'Correção dos valores da venda','commission_sale_state':'Cancelamento / recuperação','commission_receipt':'Recebimento registrado','commission_receipt_reversal':'Recebimento estornado'}
+    for log in history:
+        log.description=operations.get(log.operation,'Atualização da comissão')
+        log.changes=[]
+        for name,label in labels.items():
+            old=log.before.get(name);new=log.after.get(name)
+            if old==new:continue
+            def display(value):
+                if value is None:return '—'
+                if isinstance(value,bool):return 'Sim' if value else 'Não'
+                from decimal import Decimal
+                return number_format(Decimal(value),4 if name=='rate' else 2,force_grouping=True)
+            log.changes.append((label,display(old),display(new)))
     return render(request,'commissions/detail.html',{'plan':plan,'events':events,'history':history})
 
 @login_required
@@ -46,7 +61,7 @@ def create(request,sale_id=None):
     if sale_id:
         sale=get_object_or_404(Sale,pk=sale_id)
         imported=getattr(sale,'bling_import',None)
-        if imported:initial['customer']=getattr(imported,'customer_name','')
+        if imported:initial['customer']=imported.source.get('customer_name','')
     form=forms.PlanForm(request.POST if request.method=='POST' else None,initial=initial)
     if request.method=='POST' and form.is_valid():
         d=form.cleaned_data

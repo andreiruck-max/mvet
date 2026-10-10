@@ -25,6 +25,7 @@ def decorate(plan):
         part.state='Cancelada' if plan.cancelled else 'Recebida' if part.received==part.amount else 'Parcialmente recebida' if part.received else 'Estornada' if any(e.received<0 for e in events) else 'Em aberto'
         plan.released+=part.released;plan.paid+=part.paid;plan.received+=part.received;plan.face+=part.amount
         plan.received_count+=int(part.received==part.amount)
+    plan.last_received=max((i.last_received for i in parts if i.last_received),default=None)
     plan.pending=plan.released-plan.paid
     plan.receipt_state='FULL' if plan.received==plan.face else 'PARTIAL' if plan.received else 'OPEN'
     plan.state='CANCELLED' if plan.cancelled else 'NEGATIVE' if plan.pending<0 else 'PAID' if plan.paid and plan.paid>=plan.total else 'PART_PAID' if plan.paid else 'RELEASED' if plan.released==plan.total and plan.total else 'PARTIAL' if plan.released else 'FORECAST'
