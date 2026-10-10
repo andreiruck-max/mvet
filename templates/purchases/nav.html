@@ -1,0 +1,6 @@
+<nav class="purchase-tabs" aria-label="Compras">
+{% if perms.core.operate_purchases or perms.core.view_purchase_reports %}<a class="button {% if request.resolver_match.url_name == 'purchases' %}primary{% endif %}" href="{% url 'purchases' %}">Notas de compra</a>{% endif %}
+{% if perms.core.view_finance %}<a class="button {% if request.resolver_match.url_name == 'purchase_payables' %}primary{% endif %}" href="{% url 'purchase_payables' %}">Parcelas a pagar</a>{% endif %}
+{% if perms.core.operate_purchases %}<a class="button" href="{% url 'bling_purchase_queue' %}">Importar do Bling</a>{% endif %}
+{% if perms.core.operate_purchases or perms.core.view_purchase_reports %}<a class="button" href="{% url 'suppliers' %}">Fornecedores</a>{% endif %}
+</nav>

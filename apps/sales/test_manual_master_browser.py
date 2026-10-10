@@ -22,7 +22,7 @@ class ManualMasterBrowser(Fixture, StaticLiveServerTestCase):
             page.locator('#id_revenue_target').fill('80')
             page.get_by_role('searchbox',name='Produto',exact=True).fill('TEST-1')
             page.get_by_role('button',name='TEST-1 · Produto teste',exact=True).click()
-            page.locator('summary').click()
+            page.locator('main summary').click()
             page.locator('#id_tax_override').fill('0')
             page.get_by_role('button',name='Salvar e revisar',exact=True).click()
             page.get_by_text('Rascunho salvo. Revise e confirme para baixar o estoque.',exact=True).wait_for()

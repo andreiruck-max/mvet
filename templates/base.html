@@ -20,22 +20,31 @@
     <span class="nav-group">Visão geral</span>
     {% if perms.core.view_dashboard %}<a href="{% url 'dashboard' %}">Indicadores</a>{% else %}<a href="{% url 'home' %}">Início</a>{% endif %}
     <a href="{% url 'notifications' %}">Notificações</a>
-    <span class="nav-group">Operação</span>
-    {% if perms.core.view_sales %}<a href="{% url 'sales' %}">Vendas</a>{% endif %}
-    {% if perms.core.review_bling %}<a href="{% url 'bling_queue' %}">Notas do Bling</a>{% endif %}
-    {% if perms.core.operate_purchases or perms.core.view_purchase_reports %}<a href="{% url 'purchases' %}">Compras</a>{% endif %}
-    {% if perms.core.view_stock %}{% if perms.core.operate_purchases or perms.core.view_purchase_reports %}<a href="{% url 'purchase_planning' %}">Planejar compra</a>{% endif %}{% endif %}
-    {% if perms.core.view_stock %}<a href="{% url 'products' %}">Produtos e estoque</a>{% endif %}
-    {% if perms.core.operate_stock %}<a href="{% url 'operations' %}">Movimentações</a>{% endif %}
-    {% if perms.core.view_finance or perms.core.operate_finance or perms.core.view_dre or perms.core.operate_expenses or perms.core.view_expense_reports %}<span class="nav-group">Financeiro e resultados</span>{% endif %}
-    {% if perms.core.view_finance %}<a href="{% url 'finance' %}">Saldos e fluxo de caixa</a>{% endif %}
-    {% if perms.core.operate_finance and not perms.core.view_finance %}<a href="{% url 'financial_titles' %}">Pagar e receber</a>{% endif %}
-    {% if perms.core.operate_expenses or perms.core.view_expense_reports %}<a href="{% url 'expenses' %}">Despesas</a>{% endif %}
+    {% if perms.core.view_sales or perms.core.operate_sales or perms.core.view_sales_report or perms.core.review_bling or perms.core.manage_channels or perms.core.manage_taxes %}<details class="nav-submenu" data-menu="sales"><summary>Vendas</summary>
+    {% if perms.core.view_sales_report %}<a href="{% url 'sales_sheet' %}">Análise por canal</a>{% endif %}
+    {% if perms.core.view_sales %}<a href="{% url 'sales' %}">Lançamentos de vendas</a>{% endif %}
+    {% if perms.core.operate_sales %}<a href="{% url 'sale_new' %}">Cadastrar venda</a>{% endif %}
+    {% if perms.core.review_bling %}<a href="{% url 'bling_queue' %}">Conferir notas de venda</a>{% endif %}
+    {% if perms.core.manage_channels %}<a href="{% url 'sales_configuration' 'canais' %}">Gerenciar canais</a>{% endif %}
+    {% if perms.core.manage_taxes %}<a href="{% url 'sales_configuration' 'impostos' %}">Tributação das vendas</a>{% endif %}
+    </details>{% endif %}
+    {% if perms.core.operate_purchases or perms.core.view_purchase_reports or perms.core.view_finance %}<details class="nav-submenu" data-menu="purchases"><summary>Compras</summary>
+    {% if perms.core.operate_purchases or perms.core.view_purchase_reports %}<a href="{% url 'purchases' %}">Notas de compra</a><a href="{% url 'suppliers' %}">Cadastro de fornecedores</a>{% if perms.core.view_stock %}<a href="{% url 'purchase_planning' %}">Planejamento de compras</a>{% endif %}{% endif %}
+    {% if perms.core.view_finance %}<a href="{% url 'purchase_payables' %}">Parcelas a pagar</a>{% endif %}
+    {% if perms.core.operate_purchases %}<a href="{% url 'bling_purchase_queue' %}">Conferir notas de compra</a><a href="{% url 'purchase_new' %}">Cadastrar compra</a>{% endif %}
+    </details>{% endif %}
+    {% if perms.core.view_stock or perms.core.operate_stock %}<details class="nav-submenu" data-menu="stock"><summary>Estoque</summary>
+    {% if perms.core.view_stock %}<a href="{% url 'products' %}">Produtos e saldos</a>{% endif %}
+    {% if perms.core.operate_stock %}<a href="{% url 'operations' %}">Movimentações de estoque</a>{% endif %}</details>{% endif %}
+    {% if perms.core.view_finance or perms.core.operate_finance or perms.core.operate_expenses or perms.core.view_expense_reports %}<details class="nav-submenu" data-menu="finance"><summary>Financeiro</summary>
+    {% if perms.core.view_finance %}<a href="{% url 'finance' %}">Saldos e fluxo de caixa</a><a href="{% url 'financial_accounts' %}">Bancos e contas</a>{% endif %}
+    {% if perms.core.view_finance or perms.core.operate_finance %}<a href="{% url 'financial_titles' %}">Títulos financeiros</a>{% endif %}
+    {% if perms.core.operate_expenses or perms.core.view_expense_reports %}<a href="{% url 'expenses' %}">Despesas</a>{% endif %}</details>{% endif %}
     {% if perms.core.view_dre %}<a href="{% url 'dre' %}">DRE gerencial</a>{% endif %}
-    {% if perms.core.manage_configuration or user.is_staff or user.is_superuser %}<span class="nav-group">Configuração</span>{% endif %}
-    {% if perms.core.manage_configuration %}<a href="{% url 'configuration' %}">Configurações</a>{% endif %}
+    {% if perms.core.manage_configuration or user.is_staff or user.is_superuser %}<details class="nav-submenu" data-menu="settings"><summary>Configurações</summary>
+    {% if perms.core.manage_configuration %}<a href="{% url 'configuration' %}">Configurações gerais</a>{% endif %}
     {% if user.is_superuser %}<a href="{% url 'bling_connection' %}">Conexão Bling</a><a href="{% url 'user_access_list' %}">Usuários e acessos</a>{% endif %}
-    {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administração</a>{% endif %}
+    {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administração</a>{% endif %}</details>{% endif %}
   </nav>
   <div class="sidebar-foot">Gestão interna<br>Mercadovet Produtos Agroveterinários</div>
 </aside>

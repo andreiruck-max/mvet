@@ -65,9 +65,11 @@ def sales_sheet(request):
         # Company cards describe the period, independently of the selected channel/NF.
         company_data = {**d, 'channel': None, 'q': '', 'status': 'CONFIRMED'}
         ctx['company_totals'] = metrics_for(request.user, selectors.sales_summary(selectors.sale_rows(company_data)))
-        ctx['channels'] = [metrics_for(request.user, row) for row in selectors.channel_summary(company_data)]
+        from apps.sales.models import SalesChannel
+        channel_values = {row['id']:row for row in selectors.channel_summary(company_data)}
+        ctx['channels'] = [metrics_for(request.user, channel_values.get(channel.pk, dict(id=channel.pk,name=channel.name,**selectors.metrics({})))) for channel in SalesChannel.objects.filter(active=True)]
         rows = selectors.sale_rows(d).order_by(
-            'channel__name', 'channel_id', d.get('sort') or '-date',
+            'channel__name', 'channel_id', d.get('sort') or 'date',
             'invoice_length', 'invoice_number', 'invoice_series', 'pk').prefetch_related('items__product')
         page = Paginator(rows, 50).get_page(request.GET.get('page'))
         groups = []

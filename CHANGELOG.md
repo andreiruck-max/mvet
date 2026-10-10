@@ -1,3 +1,6 @@
+# Navegação, compras a pagar e relatório de vendas — 09/10/2026
+Submenus por domínio; imposto na Dashboard; cartões de canais ativos clicáveis; ordem padrão data/NF crescente. Compras e parcelas com abas, resumos legíveis por mês/fornecedor (saldo, quantidade e média), fornecedores por maior saldo, ação Pagar / antecipar e divergências exatas. Sem migration ou alteração automática dos lançamentos existentes.
+
 # Correção de canal e depósito da venda — 09/10/2026
 Master pode usar Corrigir venda para alterar canal e depósito junto aos valores. Troca de depósito registra estorno e nova saída auditados; CMV histórico preservado e diferenças de estoque no resultado da data atual. Migration 0012; ADR 0034. Sem alteração automática de vendas existentes ou instalação local.
 

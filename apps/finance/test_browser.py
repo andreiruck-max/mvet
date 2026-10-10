@@ -72,7 +72,7 @@ class FinanceBrowser(StaticLiveServerTestCase):
             page.get_by_label('Valor principal (R$):',exact=True).fill('100')
             page.get_by_label('Conta prevista:',exact=True).select_option(label='Conta A')
             page.get_by_role('button',name='Registrar título',exact=True).click()
-            page.get_by_role('heading',name='Marcar como pago',exact=True).wait_for()
+            page.get_by_role('heading',name='Pagar / antecipar parcela',exact=True).wait_for()
             page.get_by_label('Principal a baixar (R$):',exact=True).fill('40')
             page.get_by_label('Valor efetivamente pago / recebido (R$):',exact=True).fill('40')
             page.get_by_role('button',name='Confirmar liquidação',exact=True).click()
