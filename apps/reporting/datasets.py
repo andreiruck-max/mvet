@@ -49,10 +49,20 @@ def sales_dataset(user, d, *, page_rows=None):
         if margins: row += [sale.revenue-sale.cmv-sale.shipping_paid if confirmed else None]
         row += [sale.tax_amount if sale.status != 'DRAFT' else None,sale.fees]
         if margins: row += [sale.contribution if confirmed else None]
-        row += [' + '.join(f'{i.quantity} × {i.name_snapshot or i.product.name}' for i in sale.items.all()),sale.invoice_series,str(sale.channel),str(sale.location),sale.get_status_display(),sale.extra_costs_total,sale.difal,sale.commission,sale.other_costs,sale.revenue_adjustment]
+        row += ['\n'.join(f'{i.quantity:,.4f}'.replace(',', 'X').replace('.', ',').replace('X', '.') + f' × {i.name_snapshot or i.product.name}' for i in sale.items.all()),sale.invoice_series,str(sale.channel),str(sale.location),sale.get_status_display(),sale.extra_costs_total,sale.difal,sale.commission,sale.other_costs,sale.revenue_adjustment]
         if margins: row += [sale.margin_percent/100 if confirmed and sale.margin_percent is not None else None,sale.margin_label if confirmed else 'Fora do resultado']
         values.append(row)
-    return Dataset('Vendas', headers, values, 'CMV histórico preservado. Totais consideram somente vendas confirmadas. EBITDA/LUCRO da planilha foram substituídos por margens com definição correta.', metrics_for(user, selectors.sales_summary(all_rows)))
+    # Complete rows in each channel; pagination and collapsed HTML sections never apply.
+    channel_index=headers.index('CANAL')
+    values.sort(key=lambda row: (row[channel_index], row[0], len(str(row[1])), str(row[1])))
+    result=Dataset('Vendas', headers, values, 'Totais incluem somente confirmadas. Valores em R$. CMV histórico preservado.', metrics_for(user, selectors.sales_summary(all_rows)))
+    result.groups=[]
+    for channel_id, name in all_rows.order_by('channel__name').values_list('channel_id','channel__name').distinct():
+        name=name or 'None'
+        group=Dataset('Canal '+str(channel_id or 0), headers, [row for row in values if row[channel_index]==name], name,
+                      metrics_for(user, selectors.sales_summary(all_rows.filter(channel_id=channel_id))))
+        result.groups.append(group)
+    return result
 
 
 def build(kind, user, query):
@@ -69,7 +79,9 @@ def build(kind, user, query):
         form = form_class(query or {'period':'future' if kind == 'payables' else 'month'})
         if not form.is_valid(): raise ValidationError('; '.join(f'{key}: {", ".join(errors)}' for key,errors in form.errors.items()))
         d = form.cleaned_data
-    if kind == 'sales': result = sales_dataset(user,d)
+    if kind == 'sales':
+        if query.get('scope') != 'channel': d['channel'] = None
+        result = sales_dataset(user,d)
     elif kind == 'dashboard':
         rows = [metrics_for(user,x) for x in selectors.channel_summary(d)]
         keys = ['name','count','products_amount','discount','shipping_received','revenue_adjustment','revenue','ticket']
@@ -105,7 +117,7 @@ def build(kind, user, query):
         def historical_category(e):
             path=e.category_snapshot.get('path',[])
             return f"{path[-1]['code']} · {path[-1]['name']}" if path else 'A classificar'
-        result = Dataset('Despesas',['Competência','Descrição','Favorecido','Categoria','Valor','Vencimento','Situação'],[[e.competence,e.description,e.counterparty,historical_category(e),e.amount,e.title.due_date,e.title.display_status if e.status=='ACTIVE' else 'Cancelada'] for e in bound(expenses(d))])
+        result = Dataset('Despesas',['Competência','Descrição','Favorecido','Categoria','Valor','Vencimento','Situação'],[[e.competence,e.description,e.counterparty,historical_category(e),e.amount,e.title.due_date if e.title_id else None,(e.title.display_status if e.title_id else 'Sem movimento financeiro') if e.status=='ACTIVE' else 'Cancelada'] for e in bound(expenses(d))])
     elif kind in ('purchases','payables'):
         from apps.purchases.selectors import purchases
         from apps.purchases.models import PurchaseInstallment
@@ -128,11 +140,12 @@ def build(kind, user, query):
         data += [('Margem de contribuição',s['contribution'])]
         data += [('Despesa operacional · '+g['label'],-g['amount']) for g in r['groups'] if g['nature']=='OPERATING']
         if not r['channel_only']:data += [('EBITDA gerencial',r['ebitda'])]
+        data += [('Depreciação / amortização',-r['expenses']['DEPRECIATION'])]
         data += [('Despesa financeira · '+g['label'],-g['amount']) for g in r['groups'] if g['nature']=='FINANCIAL']
         data += [('Receitas financeiras adicionais',r['financial']['income']),('Despesas financeiras adicionais',-r['financial']['expense'])]
         if not r['channel_only']:data += [('Resultado gerencial',r['result'])]
         pending=f" Resultado PARCIAL: despesas a classificar R$ {r['expenses']['NONE']:.2f}; títulos a conferir R$ {r['financial']['unresolved']:.2f}; abatimentos R$ {r['financial']['discounts']:.2f}. Não incluídos automaticamente no resultado."
-        result=Dataset('DRE gerencial',['Descrição','Valor'],data,'Regime de competência. Sem depreciação/amortização.'+(pending if r['provisional'] else '')+(' Canal: despesas corporativas sem rateio; resultado da empresa não calculado.' if r['channel_only'] else ''))
+        result=Dataset('DRE gerencial',['Descrição','Valor'],data,'Regime de competência. Depreciação/amortização conforme registros manuais, sem caixa.'+(pending if r['provisional'] else '')+(' Canal: despesas corporativas sem rateio; resultado da empresa não calculado.' if r['channel_only'] else ''))
     if form_class:
         labels=[]
         for key,value in d.items():

@@ -89,13 +89,13 @@ def dre(d):
         label=(f"{path[-1]['code']} · {path[-1]['name']}" if path else 'A classificar')+' · compras sem estoque'
         groups.append(dict(label=label,nature=nature,amount=row['amount'],count=row['count'],source_kind='purchase',snapshot=snap))
         expenses[nature]+=row['amount']
-    for group in groups:group['nature_label']={'OPERATING':'Operacional','FINANCIAL':'Financeira','NONE':'A classificar'}[group['nature']]
+    for group in groups:group['nature_label']={'OPERATING':'Operacional','FINANCIAL':'Financeira','NONE':'A classificar','DEPRECIATION':'Depreciação / amortização'}[group['nature']]
     financial=financial_result(d)
     provisional=bool(expenses['NONE'] or financial['unresolved'] or financial['discounts'])
     # A channel report has contribution only. Unassigned corporate expenses are
     # shown separately, never subtracted from each channel.
     ebitda=None if d.get('channel') else sales['contribution']-expenses['OPERATING']
-    result=None if ebitda is None else ebitda-expenses['FINANCIAL']+financial['income']-financial['expense']
+    result=None if ebitda is None else ebitda-expenses['DEPRECIATION']-expenses['FINANCIAL']+financial['income']-financial['expense']
     return dict(sales=sales,groups=groups,expenses=expenses,financial=financial,ebitda=ebitda,result=result,provisional=provisional,channel_only=bool(d.get('channel')))
 
 

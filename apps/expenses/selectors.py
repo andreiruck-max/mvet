@@ -30,14 +30,14 @@ def expenses(data):
         if status=='paid':rows=rows.filter(title__settled=F('title__amount'))
         elif status in ['pending','overdue']:rows=rows.filter(title__settled__lt=F('title__amount'))
         if status=='overdue':rows=rows.filter(title__due_date__lt=today)
-        if status=='unclassified':rows=rows.filter(category__isnull=True)
+        if status=='unclassified':rows=rows.filter(Q(category__isnull=True)|Q(category_snapshot__nature='NONE'))
         if status=='future':rows=rows.filter(competence__gt=today)
     return rows.order_by('-competence','-pk')
 
 
 def expense_report(data):
     rows=expenses(data).filter(status='ACTIVE').order_by()
-    groups=[];totals={'OPERATING':Decimal('0'),'FINANCIAL':Decimal('0'),'NONE':Decimal('0')}
+    groups=[];totals={'OPERATING':Decimal('0'),'FINANCIAL':Decimal('0'),'NONE':Decimal('0'),'DEPRECIATION':Decimal('0')}
     for row in rows.values('category_snapshot').annotate(total=Sum('amount'),count=Count('pk')).order_by('category_snapshot'):
         snapshot=row['category_snapshot'];path=snapshot.get('path',[])
         nature=snapshot.get('nature','NONE')

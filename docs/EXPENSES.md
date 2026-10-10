@@ -37,3 +37,8 @@ Usar Expense ativo por competência e natureza histórica. FinancialTitle associ
 
 ## Integridade
 Decimal/NUMERIC 18,2, chave idempotente/fingerprint, mutex transacional comum, título/despesa/auditoria atômicos e revisão otimista. PostgreSQL impede edição de valores/datas de despesa, exclusão, reclassificação sem revisão correspondente e edição de revisões. Sem CRUD transacional no admin. Testes incluem concorrência, rollback, histórico, permissões, CSRF, recorrência e interface Chromium.
+
+## Plano Mercadovet — 10/10/2026
+O atualizador instala o plano por `install_mercadovet_chart`; repetir não duplica. Códigos conflitantes recebem alternativa livre e categorias já utilizadas são preservadas. A instalação não reclassifica despesas históricas. Grupo patrimonial permite filhos de naturezas diversas; nunca lançar principal de financiamento como despesa. Juros são financeiros. Tributos, taxas, fretes e comissões já computados nas vendas não devem ser repetidos em Despesas.
+
+Depreciação/amortização: selecione a categoria específica em Nova despesa e informe a competência. Não gera título nem banco. A DRE deduz após o EBITDA. Registro é manual por competência, sem recorrência financeira. Categoria Pendente de classificação mantém resultado parcial, sem dedução automática do operacional. ADR 0037 prevalece sobre as limitações de naturezas descritas acima.

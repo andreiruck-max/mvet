@@ -44,7 +44,7 @@ class ItemForm(forms.Form):
     mode=forms.ChoiceField(label='Destino do item',choices=[('STOCK','Movimentar estoque'),('NONSTOCK','Somente financeiro — sem estoque')],initial='STOCK',required=False)
     name=forms.CharField(label='Descrição sem estoque',max_length=240,required=False)
     from apps.expenses.models import ChartOfAccount
-    category=forms.ModelChoiceField(label='Categoria sem estoque',required=False,queryset=ChartOfAccount.objects.filter(active=True,postable=True).exclude(nature='REVENUE'))
+    category=forms.ModelChoiceField(label='Categoria sem estoque',required=False,queryset=ChartOfAccount.objects.filter(active=True,postable=True).exclude(nature__in=['REVENUE','DEPRECIATION','GROUP']))
     product=forms.ModelChoiceField(required=False,queryset=Product.objects.filter(active=True,kind='SIMPLE'),widget=forms.HiddenInput(attrs={'data-product-lookup':'true'}),label='Produto')
     quantity=forms.DecimalField(label='Quantidade',max_digits=18,decimal_places=4,min_value=Decimal('0.0001'),initial=1)
     unit_cost=forms.DecimalField(label='Preço unitário (R$)',max_digits=24,decimal_places=6,min_value=0)

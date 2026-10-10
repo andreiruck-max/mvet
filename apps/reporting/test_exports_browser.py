@@ -12,7 +12,13 @@ from .tests import ReportingFixture
 class ExportBrowser(ReportingFixture,StaticLiveServerTestCase):
     def test_master_changes_permissions_and_both_downloads(self):
         from playwright.sync_api import sync_playwright
-        self.confirmed();client=Client();client.force_login(self.actor)
+        from pathlib import Path
+        from decimal import Decimal
+        from apps.sales.models import SalesChannel
+        self.confirmed()
+        other=SalesChannel.objects.create(name='Canal de exemplo')
+        self.confirmed(invoice_number='999',channel=other,products_amount=Decimal('300'))
+        client=Client();client.force_login(self.actor)
         with sync_playwright() as pw:
             browser=pw.chromium.launch();context=browser.new_context(accept_downloads=True)
             context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
@@ -22,9 +28,19 @@ class ExportBrowser(ReportingFixture,StaticLiveServerTestCase):
             page.get_by_role('button',name='Salvar acessos',exact=True).click()
             page.get_by_text('Acessos salvos.',exact=False).wait_for()
             page.goto(self.live_server_url+reverse('sales_sheet'))
+            self.assertIn('Total da empresa',page.locator('.channel-card').first.inner_text())
+            page.get_by_role('button',name='Ocultar valores dos cartões').click()
+            self.assertNotIn('R$',page.locator('.report-cards').inner_text())
+            page.reload()
+            self.assertNotIn('R$',page.locator('.report-cards').inner_text())
+            page.get_by_role('button',name='Mostrar valores dos cartões').click()
+            Path('artifacts').mkdir(exist_ok=True)
+            page.screenshot(path='artifacts/report-cards-privacy.png',full_page=True)
+            page.goto(self.live_server_url+reverse('sales_sheet')+'?channel='+str(other.pk))
             for label,extension in [('Exportar Excel','.xlsx'),('Exportar PDF','.pdf')]:
-                with page.expect_download() as info:page.get_by_role('link',name=label,exact=True).click()
+                with page.expect_download() as info:page.get_by_role('link',name=label+' · todos os canais',exact=True).click()
                 download=info.value
+                download.save_as('artifacts/sales-organized'+extension)
                 self.assertTrue(download.suggested_filename.endswith(extension));self.assertIsNone(download.failure())
             browser.close()
         policy=AccessPolicy.objects.get(user=self.operator)
