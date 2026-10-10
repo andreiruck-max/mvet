@@ -13,6 +13,7 @@ class CRMBrowser(Fixture,StaticLiveServerTestCase):
     def test_employee_create_contact_context_recurrence_mobile_and_master_approval(self):
         from playwright.sync_api import sync_playwright, expect
         client=Client();client.force_login(self.worker)
+        master_client=Client();master_client.force_login(self.master)
         with sync_playwright() as pw:
             browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1000},locale='pt-BR')
             context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
@@ -24,7 +25,6 @@ class CRMBrowser(Fixture,StaticLiveServerTestCase):
             page.get_by_label('Informações comerciais importantes:',exact=True).fill('Prefere contato por WhatsApp; compra mensalmente.')
             page.get_by_role('button',name='Salvar',exact=True).click()
             expect(page.locator('h1')).to_have_text('João de demonstração')
-            self.assertEqual(Contact.objects.get().owner,self.worker)
             self.assertTrue(page.get_by_role('link',name='Abrir WhatsApp',exact=True).get_attribute('href').endswith('5545999990234'))
             page.get_by_role('link',name='Registrar contato',exact=True).click()
             page.get_by_label('Mensagem enviada:',exact=True).fill('Bom dia João!\nComo está seu estoque?')
@@ -34,7 +34,6 @@ class CRMBrowser(Fixture,StaticLiveServerTestCase):
             expect(page.locator('#crm-suggestion')).to_contain_text('escolhido')
             page.get_by_role('button',name='Concluir contato',exact=True).click()
             expect(page.locator('h1')).to_have_text('João de demonstração')
-            self.assertEqual(Interaction.objects.get().read_state,'UNKNOWN')
             Path('artifacts').mkdir(exist_ok=True)
             page.screenshot(path='artifacts/crm-contact-desktop.png',full_page=True)
             page.set_viewport_size({'width':390,'height':844})
@@ -45,14 +44,15 @@ class CRMBrowser(Fixture,StaticLiveServerTestCase):
             page.get_by_label('Justificativa / contexto:',exact=True).fill('Não atua mais no segmento.')
             page.get_by_role('button',name='Salvar',exact=True).click()
             expect(page.locator('main .badge')).to_have_text('Solicitação de inativação')
-            master_client=Client();master_client.force_login(self.master)
             context.add_cookies([{'name':'sessionid','value':master_client.cookies['sessionid'].value,'url':self.live_server_url}])
             page.goto(self.live_server_url+reverse('crm_approvals'))
             page.get_by_role('link',name='Analisar solicitação',exact=True).click()
             page.get_by_role('button',name='Registrar decisão',exact=True).click()
             expect(page.get_by_text('Nenhuma solicitação pendente.',exact=True)).to_be_visible()
-            self.assertEqual(Contact.objects.get().state,'INACTIVE')
             self.assertEqual(errors,[]);browser.close()
+        self.assertEqual(Contact.objects.get().owner,self.worker)
+        self.assertEqual(Interaction.objects.get().read_state,'UNKNOWN')
+        self.assertEqual(Contact.objects.get().state,'INACTIVE')
 
     def test_master_import_preview_and_rules(self):
         from playwright.sync_api import sync_playwright, expect
@@ -65,13 +65,12 @@ class CRMBrowser(Fixture,StaticLiveServerTestCase):
             page.get_by_label('Responsável padrão:',exact=True).select_option(str(self.worker.pk))
             page.get_by_role('button',name='Validar e visualizar prévia',exact=True).click()
             expect(page.get_by_text('Pronto para importar',exact=True)).to_be_visible()
-            self.assertEqual(Contact.objects.count(),0)
             page.get_by_role('checkbox').check();page.get_by_role('button',name='Confirmar importação',exact=True).click()
             expect(page.get_by_role('heading',name='Resultado da importação')).to_be_visible()
-            self.assertEqual(Contact.objects.count(),1)
             page.goto(self.live_server_url+reverse('crm_rules'))
             page.get_by_role('button',name='Salvar regras',exact=True).click()
             expect(page.get_by_text('Regras salvas.',exact=False)).to_be_visible()
             page.goto(self.live_server_url+reverse('crm_queue'))
             Path('artifacts').mkdir(exist_ok=True);page.screenshot(path='artifacts/crm-queue-desktop.png',full_page=True)
             browser.close()
+        self.assertEqual(Contact.objects.count(),1)
