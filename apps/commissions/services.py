@@ -207,6 +207,31 @@ def balance(payee,through=None):
     if through:entries=entries.filter(date__lte=through);payments=payments.filter(date__lte=through)
     return total(entries,'released')-total(payments,'amount')
 
+def available_credits(payee,through=None):
+    """Apply negative events to their own installment before allocating a payout.
+
+    A zero-net cancelled installment must never absorb a payment owed by another
+    sale. Targeted reversals consume their original credit first; remaining
+    adjustments consume oldest unpaid credits within the same installment.
+    """
+    events=Entry.objects.filter(installment__plan__payee=payee).prefetch_related('allocations').order_by('date','pk')
+    if through:events=events.filter(date__lte=through)
+    groups={}
+    for event in events:groups.setdefault(event.installment_id,[]).append(event)
+    result={}
+    for group in groups.values():
+        credits={e.pk:max(ZERO,e.released-sum((a.amount for a in e.allocations.all()),ZERO)) for e in group if e.released>0}
+        for event in group:
+            if event.released>=0:continue
+            debt=-event.released
+            order=list(credits)
+            if event.reversal_of_id in credits:order=[event.reversal_of_id]+[pk for pk in order if pk!=event.reversal_of_id]
+            for pk in order:
+                consume=min(debt,credits[pk]);credits[pk]-=consume;debt-=consume
+                if not debt:break
+        result.update(credits)
+    return result
+
 @transaction.atomic
 def pay(*,actor,payee_id,amount,date,period,method,key,reason):
     manage(actor);domain_lock();payee=Payee.objects.select_for_update().get(pk=payee_id)
@@ -219,9 +244,10 @@ def pay(*,actor,payee_id,amount,date,period,method,key,reason):
     available=min(balance(payee),balance(payee,cutoff))
     if amount>available:raise ValidationError(f'Pagamento excede saldo disponível (já descontadas compensações): R$ {available:.2f}.')
     entries=Entry.objects.filter(installment__plan__payee=payee,released__gt=0,date__lte=cutoff).order_by('date','pk')
+    current_credits=available_credits(payee);period_credits=available_credits(payee,cutoff)
     allocations=[];remaining=amount
     for entry in entries:
-        outstanding=entry.released-total(entry.allocations,'amount')
+        outstanding=min(current_credits.get(entry.pk,ZERO),period_credits.get(entry.pk,ZERO))
         take=min(remaining,max(ZERO,outstanding))
         if take:allocations.append((entry,take));remaining-=take
         if not remaining:break

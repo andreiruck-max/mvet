@@ -96,6 +96,21 @@ class CommissionTests(Fixture,TestCase):
         self.assertEqual(s.total(payment.allocations,'amount'),10);self.assertEqual(s.balance(self.payee),D('12.50'))
         self.assertEqual(Payment.objects.count(),1)
 
+    def test_payment_never_allocates_to_cancelled_credit_from_another_sale(self):
+        cancelled=self.plan();self.receipt(cancelled)
+        sales.cancel(actor=self.actor,sale_id=self.sale.pk,reason='Cancelamento sem comissão paga')
+        sale2=self.confirmed(invoice_number='101',products_amount=D('1000'),discount=D('100'),shipping_received=D('50'))
+        live=self.plan(sale_id=sale2.pk);entry=self.receipt(live)
+        payment=self.payment('22.50')
+        self.assertEqual(payment.allocations.get().entry_id,entry.pk)
+        self.assertEqual(q.decorate(q.plans(self.actor).get(pk=cancelled.pk)).pending,0)
+
+    def test_reversed_receipt_cannot_absorb_new_receipt_payment(self):
+        plan=self.plan();original=self.receipt(plan)
+        s.reverse_receipt(actor=self.actor,entry_id=original.pk,date=self.today,key=uuid4(),reason='Recebimento equivocado')
+        actual=self.receipt(plan);payment=self.payment('22.50')
+        self.assertEqual(payment.allocations.get().entry_id,actual.pk)
+
     def test_paid_receipt_reversal_clawback_and_payment_reversal(self):
         plan=self.plan();e=self.receipt(plan);p=self.payment('22.50')
         s.reverse_receipt(actor=self.actor,entry_id=e.pk,date=self.today,key=uuid4(),reason='Recebimento desfeito')
