@@ -58,7 +58,7 @@ def correct_sale(*,actor,sale_id,revision,key,reason,values,channel_id=None,loca
     location_id = sale.location_id if location_id is None else int(location_id)
     prior=SaleCorrection.objects.filter(key=key).first()
     if prior:
-        if prior.sale_id!=sale.pk or prior.actor_id!=actor.pk or prior.before_revision!=revision or prior.reason!=reason or any(Decimal(prior.after[name])!=value for name,value in values.items()):
+        if prior.sale_id!=sale.pk or prior.actor_id!=actor.pk or prior.before_revision!=revision or prior.reason!=reason or any(Decimal(prior.after[name])!=value and not (name=='commission' and hasattr(sale,'commission_plan') and Decimal(prior.before[name])==value) for name,value in values.items()):
             raise ValidationError('Envio já utilizado com outros dados.')
         if prior.after.get('channel_id', sale.channel_id) != channel_id or prior.after.get('location_id', sale.location_id) != location_id:
             raise ValidationError('Envio já utilizado com outro canal ou depósito.')
@@ -71,6 +71,9 @@ def correct_sale(*,actor,sale_id,revision,key,reason,values,channel_id=None,loca
         raise ValidationError('Selecione um canal ativo.')
     if not location or (location_id != sale.location_id and not location.active):
         raise ValidationError('Selecione um depósito ativo.')
+    managed_plan = getattr(sale, 'commission_plan', None)
+    if managed_plan and values['commission'] != sale.commission:
+        raise ValidationError('Comissão controlada por parcelas: use Comissões → Ajustar comissão.')
     before=snapshot(sale)
     for name,value in values.items():setattr(sale,name,value)
     if sale.discount>sale.products_amount or sale.revenue<0:raise ValidationError('Desconto ou receita inválidos.')
@@ -88,6 +91,9 @@ def correct_sale(*,actor,sale_id,revision,key,reason,values,channel_id=None,loca
         sale.stock_operation = relocate(sale, location, actor, key, reason)
     sale.channel = channel
     sale.location = location
+    if managed_plan:
+        from apps.commissions.services import sync_sale_values
+        sync_sale_values(sale,actor,reason)
     after=snapshot(sale)
     if before==after:raise ValidationError('Nenhum valor, canal ou depósito foi alterado.')
     entry=SaleCorrection.objects.create(key=key,sale=sale,actor=actor,reason=reason,before_revision=revision,before=before,after=after)

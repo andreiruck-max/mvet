@@ -1,3 +1,6 @@
+## Comissões — 10/10/2026
+Implementado: controle por venda/parcela, recebimentos e pagamentos manuais, apuração mensal, conferência, acesso próprio/gestor e livro auditável. Integração com banco/Bling de recebimentos, conciliação automática e divisão da mesma venda entre vários comissionados permanecem futuras.
+
 ## 10/10/2026 — CRM / Comercial
 Primeira versão implementada com carteira, recorrência, histórico, aprovação master, importação validada e indicadores. Validação PostgreSQL/Chromium/Windows registrada no PR. Instalação local e liberação de usuários pelo Master permanecem etapas operacionais. Sem WhatsApp automático, IA, funil de oportunidades ou cadastro fiscal; extensões futuras separadas. Ver docs/CRM.md.
 

@@ -1,0 +1,1 @@
+<div class="actions"><span>Página {{ page.number }} de {{ page.paginator.num_pages }} · {{ page.paginator.count }} registros</span>{% if page.has_previous %}<a href="{% querystring page=page.previous_page_number %}">Anterior</a>{% endif %}{% if page.has_next %}<a href="{% querystring page=page.next_page_number %}">Próxima</a>{% endif %}</div>

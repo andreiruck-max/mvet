@@ -1,5 +1,7 @@
 """Independent capabilities. Legacy aliases preserve existing roles until edited."""
 CAPABILITIES = {
+    'view_own_commissions': ('Comissões: consultar somente as próprias comissões', ()),
+    'manage_commissions': ('Comissões: gerenciar todas, registrar recebimentos e pagamentos', ()),
     'operate_crm': ('CRM: acessar e operar a própria carteira comercial', ()),
     'review_bling': ('Consultar notas do Bling para conferência', ()),
     'fetch_bling': ('Buscar e atualizar notas do Bling', ()),

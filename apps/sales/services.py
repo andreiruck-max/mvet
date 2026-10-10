@@ -169,6 +169,8 @@ def cancel(*,actor,sale_id,reason):
             _apply(operation,products[movement.product_id],movement.location,-movement.quantity,-(movement.value+movement.cost_variance),unit_cost=movement.unit_cost)
         sale.return_operation=operation
     sale.status='CANCELLED';sale.cancelled_by=actor;sale.cancelled_at=timezone.now();sale.cancellation_reason=reason.strip();sale.revision+=1;sale.save()
+    from apps.commissions.services import sale_state_changed
+    sale_state_changed(sale,actor,reason)
     audit(actor,sale,'cancel_sale',{'status':previous},{'status':sale.status,'reason':reason,'stock_operation':sale.return_operation_id})
     return sale
 

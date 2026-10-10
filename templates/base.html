@@ -23,6 +23,8 @@
     {% if perms.core.operate_crm %}<details class="nav-submenu" data-menu="crm"><summary>CRM / Comercial</summary>
     <a href="{% url 'crm_queue' %}">Minhas pendências</a><a href="{% url 'crm_contacts' %}">Carteira de contatos</a><a href="{% url 'crm_new' %}">Cadastrar contato</a>
     {% if user.is_superuser %}<a href="{% url 'crm_report' %}">Visão comercial</a><a href="{% url 'crm_approvals' %}">Aprovações</a><a href="{% url 'crm_import' %}">Importar contatos</a><a href="{% url 'crm_rules' %}">Regras de retorno</a>{% endif %}</details>{% endif %}
+    {% if perms.core.view_own_commissions or perms.core.manage_commissions %}<details class="nav-submenu" data-menu="commissions"><summary>Comissões</summary>
+    <a href="{% url 'commissions' %}">Visão geral</a><a href="{% url 'commission_monthly' %}">Apuração mensal</a><a href="{% url 'commission_review' %}">Conferência</a><a href="{% url 'commission_payments' %}">Pagamentos</a>{% if perms.core.manage_commissions %}<a href="{% url 'commission_settings' %}">Comissionados e percentuais</a>{% endif %}</details>{% endif %}
     {% if perms.core.view_sales or perms.core.operate_sales or perms.core.view_sales_report or perms.core.review_bling or perms.core.manage_channels or perms.core.manage_taxes %}<details class="nav-submenu" data-menu="sales"><summary>Vendas</summary>
     {% if perms.core.view_sales_report %}<a href="{% url 'sales_sheet' %}">Análise por canal</a>{% endif %}
     {% if perms.core.view_sales %}<a href="{% url 'sales' %}">Lançamentos de vendas</a>{% endif %}

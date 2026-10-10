@@ -15,6 +15,8 @@ def home(request):
         return redirect("dashboard")
     if request.user.has_perm("core.operate_crm"):
         return redirect("crm_queue")
+    if request.user.has_perm("core.view_own_commissions") or request.user.has_perm("core.manage_commissions"):
+        return redirect("commissions")
     return render(request, "core/home.html", {"company": get_company()})
 
 @login_required
