@@ -59,7 +59,9 @@ def sales_dataset(user, d, *, page_rows=None):
     result.groups=[]
     for channel_id, name in all_rows.order_by('channel__name').values_list('channel_id','channel__name').distinct():
         name=name or 'None'
-        group=Dataset('Canal '+str(channel_id or 0), headers, [row for row in values if row[channel_index]==name], name,
+        import re
+        sheet_name=re.sub(r'[\\/*?:\[\]]',' ',name).strip()[:20]+' · '+str(channel_id or 0)
+        group=Dataset(sheet_name[:31], headers, [row for row in values if row[channel_index]==name], name,
                       metrics_for(user, selectors.sales_summary(all_rows.filter(channel_id=channel_id))))
         result.groups.append(group)
     return result
