@@ -11,5 +11,6 @@ urlpatterns=[
     path('nova/',views.create,name='commission_new'),
     path('venda/<int:sale_id>/',views.create,name='commission_sale'),
     path('<int:pk>/',views.detail,name='commission_detail'),
+    path('<int:pk>/parcelas/',views.schedule,name='commission_schedule'),
     path('acao/<str:kind>/<int:pk>/',views.action,name='commission_action'),
 ]

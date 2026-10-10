@@ -38,7 +38,7 @@ def filtered(actor,d):
     if d.get('payee'):rows=rows.filter(payee=d['payee'])
     if d.get('q'):
         q=d['q'];condition=Q(customer__icontains=q)|Q(sale__invoice_number__icontains=q)
-        if q.isdecimal():condition|=Q(sale_id=int(q))
+        if q.isdecimal() and len(q)<=18:condition|=Q(sale_id=int(q))
         rows=rows.filter(condition)
     for key,field in [('start','sale__date__gte'),('end','sale__date__lte')]:
         if d.get(key):rows=rows.filter(**{field:d[key]})

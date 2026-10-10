@@ -77,7 +77,8 @@ class Entry(Immutable):
         if self._state.adding:
             plan=self.installment.plan
             self.terms={'base':str(plan.base),'rate':str(plan.rate),'source':plan.rate_source,
-                'total':str(plan.total),'installment_forecast':str(self.installment.forecast)}
+                'total':str(plan.total),'installment_forecast':str(self.installment.forecast),
+                'installment_amount':str(self.installment.amount)}
         return super().save(*args,**kwargs)
     class Meta:
         ordering = ['date','pk']

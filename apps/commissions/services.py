@@ -127,6 +127,31 @@ def rebalance(plan,cmd,date):
         if target!=current:Entry.objects.create(installment=item,command=cmd,date=date,released=target-current)
 
 @transaction.atomic
+def revise_schedule(*,actor,plan_id,revision,rows,key,reason):
+    manage(actor);domain_lock();plan=CommissionPlan.objects.select_for_update().select_related('sale').get(pk=plan_id)
+    items=list(plan.installments.all())
+    before={'schedule':[{'id':i.pk,'amount':str(i.amount),'due_date':str(i.due_date)} for i in items]}
+    payload=[plan_id,revision,[(r['installment_id'],str(r['due_date']),str(r['amount'])) for r in rows]]
+    cmd,fresh=command(actor,key,'SCHEDULE',reason,payload,before=before)
+    if not fresh:return plan
+    if plan.cancelled or plan.revision!=revision:raise ValidationError('Registro alterado ou cancelado. Reabra a página.')
+    if len(rows)!=len(items) or {r['installment_id'] for r in rows}!={i.pk for i in items}:
+        raise ValidationError('Preserve as parcelas existentes; histórico não pode ser removido.')
+    data={r['installment_id']:r for r in rows}
+    for i in items:
+        r=data[i.pk];amount=number(r['amount'],CENT)
+        if amount<total(i.entries,'received'):raise ValidationError(f'Parcela {i.number}: valor menor que o já recebido. Estorne o recebimento incorreto antes de ajustar.')
+        if r['due_date']<plan.sale.date:raise ValidationError('Vencimento anterior à venda.')
+        i.amount=amount;i.due_date=r['due_date']
+    face=plan.sale.products_amount-plan.sale.discount+plan.sale.shipping_received
+    if sum((i.amount for i in items),ZERO)!=face:raise ValidationError(f'As parcelas devem somar R$ {face:.2f}.')
+    for i in items:i.save(update_fields=['amount','due_date'])
+    weights(plan.total,items);rebalance(plan,cmd,timezone.localdate())
+    plan.revision+=1;plan.save(update_fields=['revision'])
+    audit(actor,plan,'commission_schedule',before,{'schedule':[{'id':i.pk,'amount':str(i.amount),'due_date':str(i.due_date)} for i in items],'reason':reason})
+    return plan
+
+@transaction.atomic
 def adjust(*,actor,plan_id,revision,rate,override_total,key,reason):
     manage(actor);domain_lock();plan=CommissionPlan.objects.select_for_update().select_related('sale').get(pk=plan_id)
     before=snapshot(plan)

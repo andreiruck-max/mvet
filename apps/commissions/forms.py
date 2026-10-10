@@ -53,6 +53,16 @@ class ReceiptForm(ActionForm):
 class ReverseForm(ActionForm):
     date=forms.DateField(label='Data efetiva do estorno',initial=timezone.localdate,widget=DateInput())
 
+class ScheduleActionForm(ActionForm):
+    revision=forms.IntegerField(widget=forms.HiddenInput)
+
+class ScheduleRow(forms.Form):
+    installment_id=forms.IntegerField(widget=forms.HiddenInput)
+    due_date=forms.DateField(label='Vencimento',widget=DateInput())
+    amount=forms.DecimalField(label='Valor da parcela (R$)',min_value=Decimal('.01'),max_digits=18,decimal_places=2)
+
+ScheduleRows=forms.formset_factory(ScheduleRow,extra=0,max_num=60,validate_max=True,min_num=1,validate_min=True)
+
 class AdjustForm(ActionForm):
     revision=forms.IntegerField(widget=forms.HiddenInput)
     rate=forms.DecimalField(label='Percentual (%)',min_value=0,max_value=100,max_digits=7,decimal_places=4)

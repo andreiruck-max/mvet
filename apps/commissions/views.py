@@ -35,7 +35,7 @@ def detail(request,pk):
     history=AuditLog.objects.filter(entity='commissions.CommissionPlan',entity_id=str(plan.pk)).select_related('actor')
     from django.utils.formats import number_format
     labels={'base':'Base de comissão','rate':'Percentual','total':'Comissão prevista','override_total':'Total manual','cancelled':'Cancelada'}
-    operations={'commission_create':'Definição da comissão','commission_adjust':'Ajuste da comissão','commission_sale_values':'Correção dos valores da venda','commission_sale_state':'Cancelamento / recuperação','commission_receipt':'Recebimento registrado','commission_receipt_reversal':'Recebimento estornado'}
+    operations={'commission_create':'Definição da comissão','commission_adjust':'Ajuste da comissão','commission_sale_values':'Correção dos valores da venda','commission_sale_state':'Cancelamento / recuperação','commission_receipt':'Recebimento registrado','commission_receipt_reversal':'Recebimento estornado','commission_schedule':'Revisão do cronograma'}
     for log in history:
         log.description=operations.get(log.operation,'Atualização da comissão')
         log.changes=[]
@@ -48,6 +48,11 @@ def detail(request,pk):
                 from decimal import Decimal
                 return number_format(Decimal(value),4 if name=='rate' else 2,force_grouping=True)
             log.changes.append((label,display(old),display(new)))
+        old_rows={r['id']:r for r in log.before.get('schedule',[])}
+        for n,row in enumerate(log.after.get('schedule',[]),1):
+            old=old_rows.get(row['id'],{})
+            if row!=old:
+                log.changes.append((f'Parcela {n}',f"R$ {old.get('amount','—')} · {old.get('due_date','—')}",f"R$ {row['amount']} · {row['due_date']}"))
     return render(request,'commissions/detail.html',{'plan':plan,'events':events,'history':history})
 
 @login_required
@@ -104,6 +109,19 @@ def action(request,pk,kind):
             messages.success(request,'Operação registrada com histórico.')
             return redirect('commission_detail',pk=plan.pk) if plan else redirect('commission_payments')
     return render(request,'commissions/form.html',{'form':form,'title':title,'help':help,'plan':plan})
+
+@login_required
+@require_http_methods(['GET','POST'])
+def schedule(request,pk):
+    s.manage(request.user);plan=get_object_or_404(CommissionPlan,pk=pk)
+    data=request.POST if request.method=='POST' else None
+    form=forms.ScheduleActionForm(data,initial={'revision':plan.revision})
+    rows=forms.ScheduleRows(data,initial=[{'installment_id':i.pk,'due_date':i.due_date,'amount':i.amount} for i in plan.installments.all()])
+    if request.method=='POST' and form.is_valid() and rows.is_valid():
+        try:s.revise_schedule(actor=request.user,plan_id=pk,rows=rows.cleaned_data,**form.cleaned_data)
+        except (ValidationError,IntegrityError) as exc:error(form,exc)
+        else:messages.success(request,'Cronograma revisado, com histórico e ajuste da liberação.');return redirect('commission_detail',pk=pk)
+    return render(request,'commissions/schedule.html',{'plan':plan,'form':form,'rows':rows})
 
 @login_required
 @require_http_methods(['GET','POST'])

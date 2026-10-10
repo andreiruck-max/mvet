@@ -128,6 +128,18 @@ class CommissionTests(Fixture,TestCase):
         s.adjust(actor=self.actor,plan_id=plan.pk,revision=plan.revision,rate=D('5'),override_total=None,key=uuid4(),reason='Retomar padrão')
         plan.refresh_from_db();self.assertEqual(plan.total,45)
 
+    def test_schedule_revision_after_sale_correction_preserves_receipts_and_reconciles(self):
+        plan=self.plan();self.receipt(plan);self.sale.refresh_from_db()
+        values={f:getattr(self.sale,f) for f in FIELDS};values['discount']=D('200')
+        correct_sale(actor=self.actor,sale_id=self.sale.pk,revision=self.sale.revision,key=uuid4(),reason='Desconto corrigido',values=values)
+        plan.refresh_from_db();items=list(plan.installments.all())
+        rows=[{'installment_id':i.pk,'due_date':i.due_date,'amount':amount} for i,amount in zip(items,[D('475'),D('375')])]
+        s.revise_schedule(actor=self.actor,plan_id=plan.pk,revision=plan.revision,rows=rows,key=uuid4(),reason='Parcelas conciliadas com a venda')
+        self.receipt(plan,'375',index=1)
+        self.assertEqual(s.total(Entry.objects.all(),'released'),40)
+        plan.refresh_from_db();rows[0]['amount']=D('474');rows[1]['amount']=D('376')
+        with self.assertRaises(ValidationError):s.revise_schedule(actor=self.actor,plan_id=plan.pk,revision=plan.revision,rows=rows,key=uuid4(),reason='Valor menor que recebido')
+
     def test_sale_base_correction_recomputes_commission_without_stock(self):
         plan=self.plan();self.receipt(plan);self.sale.refresh_from_db();cmv=self.sale.cmv
         values={f:getattr(self.sale,f) for f in FIELDS};values['discount']=D('200')

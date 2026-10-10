@@ -13,7 +13,7 @@ ADR 0022 permanece: novas vendas não geram recebíveis. Recebimentos neste mód
 
 ## Correções e estornos
 - Ajustar comissão altera percentual/total manual, com motivo, ator, antes/depois e revisão. Diferença já liberada é lançada hoje, preservando eventos antigos; custo da venda/DRE é corrigido pelo mecanismo auditado existente.
-- Correção de produtos/desconto na venda recalcula base e comissão; cronograma/recebimentos mantêm valores contratados e pesos originais. Divergência com valor atual aparece na ficha. Uma correção de comissão controlada deve usar o módulo, e não editar comissão isoladamente na venda.
+- Correção de produtos/desconto na venda recalcula base e comissão; cronograma/recebimentos mantêm valores contratados e pesos originais. Divergência com valor atual aparece na ficha. Revisar parcelas permite conciliar valores/vencimentos, preservando cada parcela e impedindo reduzir seu valor abaixo do recebido. Diferenças de liberação são registradas hoje. Uma correção de comissão controlada deve usar o módulo, e não editar comissão isoladamente na venda.
 - Cancelar venda zera liberação por contrapartidas; recebimentos e pagamentos permanecem. Recuperar venda restaura liberação correspondente aos recebimentos líquidos. Comissão paga passa a saldo negativo até recuperação ou compensação.
 - Estornar recebimento reduz recebido e liberação proporcional pelo percentual vigente. Estorno de pagamento registra valor e alocações negativos e reabre saldo. Não há exclusão ou alteração direta do livro.
 - Saldo negativo de uma venda compensa saldo positivo de outras vendas da mesma pessoa; não transfere dívida entre pessoas. Detalhamento pode mostrar positivos e negativos que se anulam no resumo.
