@@ -30,10 +30,11 @@ def lines(report,data,master):
     for key,label in SALES:add(label,report['sales'][key],{'kind':'sale','field':key},key in ('revenue','contribution'))
     add('(−) Despesas operacionais da empresa',report['expenses']['OPERATING'],{'kind':'nature','nature':'OPERATING'})
     if not report['channel_only']:add('EBITDA gerencial',report['ebitda'],total=True)
+    add('(−) Depreciação / amortização',report['expenses']['DEPRECIATION'],{'kind':'nature','nature':'DEPRECIATION'})
     add('(−) Despesas financeiras por competência',report['expenses']['FINANCIAL'],{'kind':'nature','nature':'FINANCIAL'})
     add('(+) Receitas financeiras e juros adicionais',report['financial']['income'],{'kind':'financial','direction':'RECEIVE'})
     add('(−) Títulos financeiros e juros adicionais',report['financial']['expense'],{'kind':'financial','direction':'PAY'})
-    if not report['channel_only']:add('Resultado gerencial antes de depreciação/amortização',report['result'],total=True)
+    if not report['channel_only']:add('Resultado gerencial',report['result'],total=True)
     if master:
         for group in report['groups']:
             group['url']=url({'kind':group['source_kind'],'snapshot':group.get('snapshot'),'label':group['label']},data)

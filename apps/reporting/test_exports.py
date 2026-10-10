@@ -138,3 +138,30 @@ class ExportTests(ReportingFixture, TestCase):
         labels=[row[0] for row in ds.rows]
         self.assertGreater(next(i for i,l in enumerate(labels) if l.startswith('Despesa financeira ·')),labels.index('EBITDA gerencial'))
         self.assertIn('despesas a classificar R$ 10.00',ds.notes)
+
+    def test_sales_export_all_channels_despite_screen_filter_and_page(self):
+        from apps.sales.models import SalesChannel
+        other=SalesChannel.objects.create(name='Outro canal')
+        self.confirmed(invoice_number='100')
+        self.confirmed(invoice_number='101',channel=other)
+        query={**self.period,'channel':other.pk,'page':99}
+        dataset=build('sales',self.actor,query)
+        self.assertEqual(len(dataset.rows),2)
+        self.assertEqual(dataset.totals['count'],2)
+        self.assertEqual(len(dataset.groups),2)
+        self.assertEqual(len(build('sales',self.actor,{**query,'scope':'channel'}).rows),1)
+        with ZipFile(BytesIO(xlsx(dataset,'Empresa teste'))) as book:
+            workbook=book.read('xl/workbook.xml').decode()
+            self.assertIn('Resumo por canal',workbook)
+        self.assertTrue(pdf(dataset,'Empresa teste').startswith(b'%PDF-'))
+
+    def test_company_card_first_then_descending_revenue(self):
+        from apps.sales.models import SalesChannel
+        other=SalesChannel.objects.create(name='Maior canal')
+        self.confirmed()
+        self.confirmed(invoice_number='101',channel=other,products_amount=D('500'))
+        self.client.force_login(self.actor)
+        response=self.client.get(reverse('sales_sheet'),self.period)
+        self.assertEqual(response.context['channels'][0]['id'],other.pk)
+        html=response.content.decode()
+        self.assertLess(html.index('Total da empresa'),html.index('<strong>Maior canal'))

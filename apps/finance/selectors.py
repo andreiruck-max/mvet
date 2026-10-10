@@ -43,7 +43,7 @@ def daily_cash(start,end,account_id=None, *, active_only=False):
     forecast_debits=defaultdict(lambda:ZERO)
     opening_dates={a.pk:a.opening_date for a in accounts}
     # Overdue forecasts roll forward to today; history is only actual cash.
-    for row in Entry.objects.filter(account_id__in=ids,operation__status='PLANNED',operation__date__lte=end).values('account_id','operation__date').annotate(total=Sum('amount'),credit=Sum('amount',filter=Q(amount__gt=0)),debit=Sum('amount',filter=Q(amount__lt=0))):
+    for row in Entry.objects.filter(account_id__in=ids,operation__date__lte=end).filter(Q(operation__status='PLANNED') | Q(operation__status='POSTED', operation__date__gt=today)).values('account_id','operation__date').annotate(total=Sum('amount'),credit=Sum('amount',filter=Q(amount__gt=0)),debit=Sum('amount',filter=Q(amount__lt=0))):
         date=max(row['operation__date'],today)
         if date<=end:
             forecast[(row['account_id'],date)]+=row['total']
