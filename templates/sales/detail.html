@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Venda {{ sale.reference }}{% endblock %}
 {% block content %}
+{% if perms.core.manage_commissions and sale.status == 'CONFIRMED' %}<div class="actions"><a class="button" href="{% url 'commission_sale' sale.pk %}">Controle de comissão</a></div>{% endif %}
 {% if user.is_superuser %}<div class="actions sale-correction-actions">{% if sale.status == 'CONFIRMED' %}<a class="button primary" href="{% url 'sale_correct' sale.pk %}">Corrigir venda</a>{% elif sale.status == 'CANCELLED' and sale.return_operation_id %}<a class="button primary" href="{% url 'sale_recover' sale.pk %}">Recuperar venda cancelada</a>{% endif %}</div>{% endif %}
 <div class="page-heading"><div><p class="eyebrow">{{ sale.get_status_display }}</p><h1>Venda {{ sale.reference }}{% if sale.invoice_series %} / {{ sale.invoice_series }}{% endif %}</h1><p>{{ sale.date|date:'d/m/Y' }} · {{ sale.channel }} · {{ sale.location }}</p></div><a href="{% url 'sales' %}">Todas as vendas</a></div>
 {% if sale.status == 'CANCELLED' %}<p class="notice">Cancelada por {{ sale.cancelled_by }} em {{ sale.cancelled_at|date:'d/m/Y H:i' }}. Motivo: {{ sale.cancellation_reason }}. Valores abaixo preservam o histórico; esta venda não compõe o resultado ativo.</p>{% endif %}

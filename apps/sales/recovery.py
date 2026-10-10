@@ -72,5 +72,7 @@ def recover_sale(*, actor, sale_id, revision, key, fees, reason):
     sale.save(update_fields=['status','fees','stock_operation','return_operation','cancelled_by','cancelled_at','cancellation_reason','revision'])
     if connection.vendor=='postgresql':
         with connection.cursor() as cursor: cursor.execute("SELECT set_config('mvet.sale_recovery', '', true)")
+    from apps.commissions.services import sale_state_changed
+    sale_state_changed(sale,actor,reason)
     audit(actor,sale,'recover_cancelled_sale',before,{'status':sale.status,'fees':str(fees),'revision':sale.revision,'recovery_id':recovery.pk,'stock_operation':operation.pk,'reason':reason})
     return sale

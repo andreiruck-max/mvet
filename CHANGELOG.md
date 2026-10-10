@@ -1,3 +1,8 @@
+## 10/10/2026 — Controle de comissões
+- Previsão por venda, rateio por parcela, recebimentos parciais, pagamentos alocados e apuração mensal.
+- Comissionados, percentuais, consulta própria e gestão autorizada; estornos, correções e compensações com histórico.
+- Integração auditada ao custo da venda sem duplicar DRE ou criar recebíveis/bancos. Ver docs/COMMISSIONS.md.
+
 # CRM / Comercial — 10/10/2026
 Carteiras por funcionário, contatos simplificados, histórico separado de mensagens, próxima ação automática, regras master, pausas, aprovação de inativação, não contatar imediato, reativação, importação CSV/XLSX com prévia e validação, indicadores operacionais e telas responsivas. Permissão independente; sem integração WhatsApp/IA ou efeitos em estoque/financeiro. Migrações criam tabelas CRM, regras iniciais, proteções do histórico e permissão. ADR 0035; docs/CRM.md.
 
