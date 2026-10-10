@@ -1,0 +1,10 @@
+TYPES = [('LEAD','Lead'),('PROSPECT','Prospect'),('CLIENT','Cliente'),('FORMER','Ex-cliente'),('PARTNER','Parceiro'),('OTHER','Outro')]
+SEGMENTS = [('SWINE','Suinocultura'),('MILK','Leite'),('BEEF','Corte / confinamento'),('POULTRY','Avicultura'),('OTHER','Outro')]
+ORIGINS = [('BASE','Base Mercadovet'),('WHATSAPP','WhatsApp direto'),('CALL','Ligação'),('STORE','Loja física'),('REFERRAL','Indicação'),('SITE','Site'),('VISIT','Visita comercial'),('EVENT','Evento'),('IMPORT','Importação'),('OTHER','Outro')]
+STATES = [('ACTIVE','Ativo'),('WAITING','Aguardando resposta'),('PAUSED','Pausado'),('APPROVAL','Solicitação de inativação'),('INACTIVE','Inativo'),('DNC','Não contatar')]
+CHANNELS = [('WHATSAPP','WhatsApp'),('CALL','Ligação'),('EMAIL','E-mail'),('PERSON','Presencial'),('OTHER','Outro')]
+ACTIVITY_TYPES = [('ATTEMPT','Tentativa de contato'),('CONVERSATION','Conversa'),('FOLLOWUP','Retorno'),('VISIT','Visita'),('OTHER','Outro')]
+READ_STATES = [('UNKNOWN','Não informado'),('UNSURE','Não sei se visualizou'),('UNREAD','Não visualizou'),('READ','Visualizou'),('REPLIED','Respondeu')]
+RESULTS = [('INTERESTED','Respondeu — interessado'),('NOT_NOW','Respondeu — sem interesse no momento'),('CALLBACK','Pediu retorno'),('QUOTE_REQUEST','Cotação solicitada'),('QUOTE_SENT','Cotação enviada'),('NEGOTIATION','Negociação em andamento'),('SALE','Venda realizada'),('WAITING','Mensagem enviada — aguardando resposta'),('NO_REPLY','Mensagem enviada — não respondeu'),('READ_NO_REPLY','Mensagem enviada — visualizou e não respondeu'),('NO_ANSWER','Ligação — não atendeu'),('INVALID','Contato inválido'),('WRONG_NUMBER','Número incorreto'),('OUTSIDE','Fora do perfil'),('OPT_OUT','Pediu para não ser contatado'),('COLD','Contato frio'),('OTHER','Outro')]
+REASONS = [('NO_INTEREST','Sem interesse'),('OUTSIDE','Fora do perfil'),('INVALID','Número inválido'),('CLOSED','Empresa encerrou'),('OPT_OUT','Pediu para não receber contato'),('NO_REPLY','Muitas tentativas sem retorno'),('COMPETITOR','Perdido para concorrente'),('OTHER','Outro')]
+DEFAULT_DAYS = {'NOT_NOW':30,'QUOTE_SENT':3,'QUOTE_REQUEST':3,'READ_NO_REPLY':15,'COLD':60,'WAITING':3}

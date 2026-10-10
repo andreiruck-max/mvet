@@ -15,6 +15,7 @@ from apps.finance.views import cash_api
 from apps.expenses.views import report_api as expense_report_api
 
 urlpatterns = [
+    path('crm/', include('apps.crm.urls')),
     path('integracoes/bling/', include('apps.integrations.urls')),
     path('relatorios/exportar/<str:kind>/<str:format>/', export, name='report_export'),
     path('usuarios/', user_access, name='user_access_list'),

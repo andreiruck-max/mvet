@@ -1,0 +1,13 @@
+{% extends 'base.html' %}{% block title %}CRM / Comercial{% endblock %}{% block content %}<div class="compact-page crm-page">
+<header class="page-heading"><h1>{% if all_contacts %}Carteira de contatos{% elif user.is_superuser %}Pendências comerciais{% else %}Minhas pendências{% endif %}</h1></header>{% include 'crm/nav.html' %}
+<form method="get" class="panel form-grid">{{ form.as_p }}<div class="actions"><button>Filtrar</button><a href="{% if all_contacts %}{% url 'crm_contacts' %}{% else %}{% url 'crm_queue' %}{% endif %}">Limpar</a></div></form>
+<p class="report-caption">{{ page.paginator.count }} contatos no filtro.{% if not all_contacts %} Primeiro os atrasados, depois hoje e próximos. Pausas futuras ficam fora da rotina até a data escolhida.{% endif %}</p>
+<div class="crm-cards">{% for contact in page %}{% if not all_contacts %}{% ifchanged contact.bucket %}<h2 class="crm-section-heading">{{ contact.bucket }}</h2>{% endifchanged %}{% endif %}<article class="panel crm-contact">
+<div class="crm-contact-title"><h2><a href="{% url 'crm_detail' contact.pk %}">{{ contact.name }}</a></h2><span class="badge">{% if all_contacts %}{{ contact.get_state_display }}{% elif contact.overdue_days %}Atrasados · {{ contact.overdue_days }} dias{% elif contact.days == 0 %}Hoje{% else %}Próximos{% endif %}</span></div>
+<p>{{ contact.company|default:'—' }} · {{ contact.city|default:'Cidade não informada' }}{% if contact.uf %}/{{ contact.uf }}{% endif %} · {{ contact.get_segment_display|default:'Sem segmento' }}</p>
+<p>{{ contact.phone|default:contact.email }} · Responsável: {{ contact.owner.get_full_name|default:contact.owner.username }}</p>
+<p><strong>{{ contact.next_date|date:'d/m/Y'|default:'Sem próxima data' }}</strong> · {{ contact.next_reason }}</p>
+<small>Último contato: {{ contact.last_at|date:'d/m/Y H:i'|default:'Ainda não realizado' }} · {{ contact.get_last_result_display }}</small>
+{% if contact.state == 'WAITING' %}<p class="crm-warning">Mensagem enviada há {{ contact.wait_days }} dias e ainda aguardando retorno.</p>{% endif %}
+<div class="actions"><a class="button" href="{% url 'crm_detail' contact.pk %}">Abrir contato</a>{% if contact.whatsapp_url %}<a class="button" href="{{ contact.whatsapp_url }}" target="_blank" rel="noopener noreferrer">Abrir WhatsApp</a>{% endif %}{% if contact.state == 'ACTIVE' or contact.state == 'WAITING' or contact.state == 'PAUSED' %}<a class="button primary" href="{% url 'crm_interaction' contact.pk %}">Registrar contato</a>{% endif %}</div>
+</article>{% empty %}<p>Nenhum contato neste filtro.</p>{% endfor %}</div>{% include 'finance/pagination.html' %}</div>{% endblock %}

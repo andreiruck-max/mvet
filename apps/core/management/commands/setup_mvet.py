@@ -4,6 +4,7 @@ from django.db import transaction
 from apps.core.models import Company
 
 ROLE_PERMISSIONS = {
+    "COMERCIAL": ["operate_crm"],
     "ADMINISTRADOR": ["view_margins", "view_sales_report", "operate_expenses", "manage_expense_rules", "view_expense_reports", "manage_configuration", "view_dashboard", "view_dre", "view_costs",
                       "view_finance", "operate_purchases", "view_purchase_reports", "operate_sales", "operate_stock", "operate_finance", "view_auditlog"],
     "GERENCIAL": ["view_margins", "view_sales_report", "view_expense_reports", "view_dashboard", "view_dre", "view_costs", "view_purchase_reports"],

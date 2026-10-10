@@ -1,5 +1,6 @@
 """Independent capabilities. Legacy aliases preserve existing roles until edited."""
 CAPABILITIES = {
+    'operate_crm': ('CRM: acessar e operar a própria carteira comercial', ()),
     'review_bling': ('Consultar notas do Bling para conferência', ()),
     'fetch_bling': ('Buscar e atualizar notas do Bling', ()),
     'map_bling_products': ('Vincular códigos externos a produtos MVet', ()),
