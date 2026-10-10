@@ -1,0 +1,4 @@
+<section class="panel crm-context"><h2>Contexto antes do contato</h2>
+<p><strong>Informações comerciais importantes</strong></p><div class="crm-message">{{ contact.commercial_info|default:'Ainda não preenchidas.' }}</div>
+{% if latest %}<p>Último contato: {{ latest.occurred_at|date:'d/m/Y H:i' }} · {{ latest.actor }} · {{ latest.get_result_display }}</p><details open><summary>Última conversa e observação</summary><h3>Mensagem enviada</h3><div class="crm-message">{{ latest.sent|default:'Não registrada.' }}</div><h3>Mensagem recebida</h3><div class="crm-message">{{ latest.received|default:'Não registrada.' }}</div><h3>Observação interna</h3><div class="crm-message">{{ latest.internal_note|default:'Não registrada.' }}</div></details>{% endif %}
+<p><strong>Motivo da próxima ação:</strong> {{ contact.next_reason }}</p></section>

@@ -1,3 +1,6 @@
+## 10/10/2026 — CRM / Comercial
+Primeira versão implementada com carteira, recorrência, histórico, aprovação master, importação validada e indicadores. Validação PostgreSQL/Chromium/Windows registrada no PR. Instalação local e liberação de usuários pelo Master permanecem etapas operacionais. Sem WhatsApp automático, IA, funil de oportunidades ou cadastro fiscal; extensões futuras separadas. Ver docs/CRM.md.
+
 ## 09/10/2026 — Navegação, compras e canais
 Pacote implementado: submenus diretos, imposto no Dashboard, relatório de vendas com canais ativos clicáveis e ordem crescente, abas de compras/parcelas, resumo por fornecedor ordenado com contagem/média, divergência exata e antecipação explícita. Validação PostgreSQL/Chromium/Windows e integração acompanhadas no PR. Dados locais não alterados nesta sessão.
 

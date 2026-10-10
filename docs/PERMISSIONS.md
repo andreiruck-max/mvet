@@ -4,6 +4,7 @@ O master (superusuário ativo) administra `/usuarios/`: selecione uma conta, mar
 
 | Área | Controles independentes |
 |---|---|
+| CRM / Comercial | `operate_crm`: própria carteira; importação, regras, outras carteiras, aprovações e reativação exigem master ativo. Não herda permissões financeiras. |
 | Informação comercial | Faturamento consolidado (`view_dashboard`), vendas individuais (`view_sales`), relatório detalhado (`view_sales_report`) |
 | Informação sensível | Custos/CMV (`view_costs`), margens (`view_margins`), DRE/resultado acumulado (`view_dre`), saldos/caixa (`view_finance`) |
 | Vendas | Rascunhos (`operate_sales`), confirmar, cancelar |

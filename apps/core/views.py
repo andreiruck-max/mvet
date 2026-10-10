@@ -13,6 +13,8 @@ from .services import update_company
 def home(request):
     if request.user.has_perm("core.view_dashboard"):
         return redirect("dashboard")
+    if request.user.has_perm("core.operate_crm"):
+        return redirect("crm_queue")
     return render(request, "core/home.html", {"company": get_company()})
 
 @login_required

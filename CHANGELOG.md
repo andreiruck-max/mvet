@@ -1,3 +1,6 @@
+# CRM / Comercial — 10/10/2026
+Carteiras por funcionário, contatos simplificados, histórico separado de mensagens, próxima ação automática, regras master, pausas, aprovação de inativação, não contatar imediato, reativação, importação CSV/XLSX com prévia e validação, indicadores operacionais e telas responsivas. Permissão independente; sem integração WhatsApp/IA ou efeitos em estoque/financeiro. Migrações criam tabelas CRM, regras iniciais, proteções do histórico e permissão. ADR 0035; docs/CRM.md.
+
 # Navegação, compras a pagar e relatório de vendas — 09/10/2026
 Submenus por domínio; imposto na Dashboard; cartões de canais ativos clicáveis; ordem padrão data/NF crescente. Compras e parcelas com abas, resumos legíveis por mês/fornecedor (saldo, quantidade e média), fornecedores por maior saldo, ação Pagar / antecipar e divergências exatas. Sem migration ou alteração automática dos lançamentos existentes.
 
