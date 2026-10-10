@@ -21,9 +21,10 @@ def index(request,review=False):
     people=q.payees(request.user);month=timezone.localdate().replace(day=1)
     events=Entry.objects.filter(installment__plan__payee__in=people)
     paid=Payment.objects.filter(payee__in=people)
+    balances=[s.balance(p) for p in people]
     cards={'released':s.total(events.filter(date__gte=month),'released'),'paid':s.total(paid.filter(date__gte=month),'amount'),
-        'pending':s.total(events,'released')-s.total(paid,'amount'),'received':events.filter(date__gte=month,received__gt=0).values('installment').distinct().count(),
-        'people':sum(s.balance(p)>0 for p in people)}
+        'pending':sum((max(s.ZERO,b) for b in balances),s.ZERO),'compensation':-sum((min(s.ZERO,b) for b in balances),s.ZERO),'received':events.filter(date__gte=month,received__gt=0).values('installment').distinct().count(),
+        'people':sum(b>0 for b in balances)}
     return render(request,'commissions/index.html',{'form':form,'page':Paginator(rows,50).get_page(request.GET.get('page')),'cards':cards,'review':review},status=200 if form.is_valid() else 400)
 
 @login_required
