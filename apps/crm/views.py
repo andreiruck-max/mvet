@@ -9,8 +9,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from apps.accounts.access import master
-from . import forms, services, selectors, importing
-from .models import Contact, Interaction, RecurrenceRule, InactivationRequest, ImportBatch
+from . import forms, services, selectors, importing, intake
+from .models import Contact, Interaction, RecurrenceRule, InactivationRequest, ImportBatch, FirstContactRelease
 
 def detail_object(request,pk):return get_object_or_404(selectors.contacts(request.user),pk=pk)
 def error(form,exc):form.add_error(None,'; '.join(exc.messages) if isinstance(exc,ValidationError) else 'Cadastro duplicado. Confira telefone/e-mail.')
@@ -18,12 +18,14 @@ def error(form,exc):form.add_error(None,'; '.join(exc.messages) if isinstance(ex
 @login_required
 @require_http_methods(['GET'])
 def queue(request,all_contacts=False):
+    services.access(request.user)
+    if not all_contacts:intake.release_today(actor=request.user)
     form=forms.FilterForm(request.GET,actor=request.user);rows=selectors.filtered(request.user,form.cleaned_data) if form.is_valid() else selectors.contacts(request.user).none()
     today=timezone.localdate()
     if not all_contacts:
-        rows=rows.filter(state__in=['ACTIVE','WAITING','PAUSED']).exclude(state='PAUSED',next_date__gt=today).order_by('next_date','name','pk')
+        rows=rows.filter(awaiting_first_release=False,state__in=['ACTIVE','WAITING','PAUSED']).exclude(state='PAUSED',next_date__gt=today).order_by('next_date','name','pk')
     page=Paginator(rows,50).get_page(request.GET.get('page'));selectors.decorate(page.object_list)
-    return render(request,'crm/queue.html',{'form':form,'page':page,'all_contacts':all_contacts,'today':today},status=200 if form.is_valid() else 400)
+    return render(request,'crm/queue.html',{'form':form,'page':page,'all_contacts':all_contacts,'today':today,'intake_config':intake.settings(),'queued_count':selectors.contacts(request.user).filter(awaiting_first_release=True,state__in=['ACTIVE','PAUSED']).count()},status=200 if form.is_valid() else 400)
 
 @login_required
 @require_http_methods(['GET'])
@@ -102,8 +104,8 @@ def report(request):
     d=form.cleaned_data if form.is_valid() else {};rows=selectors.filtered(request.user,{k:v for k,v in d.items() if k not in ('start','end')}) if form.is_valid() else Contact.objects.none()
     today=timezone.localdate();start=d.get('start') or today.replace(day=1);end=d.get('end') or today
     activities=Interaction.objects.filter(contact__in=rows)
-    metrics={'today':activities.filter(occurred_at__date=today).count(),'period':activities.filter(occurred_at__date__range=(start,end)).count(),'overdue':rows.filter(state__in=['ACTIVE','WAITING','PAUSED'],next_date__lt=today).count(),'due':rows.filter(state__in=['ACTIVE','WAITING','PAUSED'],next_date=today).count(),'waiting':rows.filter(state='WAITING').count(),'new':rows.filter(created_at__date__range=(start,end)).count(),'requests':rows.filter(state='APPROVAL').count()}
-    missing=rows.filter(state__in=['ACTIVE','WAITING','PAUSED'],next_date__isnull=True)
+    metrics={'today':activities.filter(occurred_at__date=today).count(),'period':activities.filter(occurred_at__date__range=(start,end)).count(),'overdue':rows.filter(awaiting_first_release=False,state__in=['ACTIVE','WAITING','PAUSED'],next_date__lt=today).count(),'due':rows.filter(awaiting_first_release=False,state__in=['ACTIVE','WAITING','PAUSED'],next_date=today).count(),'waiting':rows.filter(state='WAITING').count(),'new':rows.filter(created_at__date__range=(start,end)).count(),'requests':rows.filter(state='APPROVAL').count(),'queued':rows.filter(awaiting_first_release=True,state__in=['ACTIVE','PAUSED']).count()}
+    missing=rows.filter(awaiting_first_release=False,state__in=['ACTIVE','WAITING','PAUSED'],next_date__isnull=True)
     return render(request,'crm/report.html',{'form':form,'metrics':metrics,'start':start,'end':end,'owners':rows.values('owner__username').annotate(count=Count('pk')).order_by('-count'),'missing':missing,'inactive_owners':rows.exclude(owner__in=services.owners()).exclude(state__in=['INACTIVE','DNC']),'activity_owners':activities.filter(occurred_at__date__range=(start,end)).values('actor__username').annotate(count=Count('pk')).order_by('-count')},status=200 if form.is_valid() else 400)
 
 @login_required
@@ -123,3 +125,23 @@ def import_contacts(request,batch_id=None):
         except (ValidationError,IntegrityError,ValueError,csv.Error) as exc:
             messages.error(request,'; '.join(exc.messages) if isinstance(exc,ValidationError) else 'Arquivo inválido. Confira o formato e os valores.')
     return render(request,'crm/import.html',{'form':form,'batch':batch,'valid_count':sum(not r['error'] for r in batch.rows) if batch else 0})
+
+
+@login_required
+@require_http_methods(['GET','POST'])
+def intake_settings(request):
+    master(request.user)
+    config=intake.settings()
+    form=forms.IntakeForm(request.POST if request.method=='POST' else None,initial={k:getattr(config,k) for k in ('revision','daily_limit','starts_on','paused')})
+    if request.method=='POST' and form.is_valid():
+        try:intake.configure(actor=request.user,**form.cleaned_data)
+        except ValidationError as exc:error(form,exc)
+        else:
+            messages.success(request,'Distribuição salva. A regra vale para novas liberações; retornos e contatos já liberados foram preservados.')
+            return redirect('crm_intake')
+    today=timezone.localdate()
+    queue=Contact.objects.filter(awaiting_first_release=True,state__in=['ACTIVE','PAUSED'])
+    return render(request,'crm/intake.html',{'form':form,'config':config,'waiting':queue.count(),
+        'eligible':queue.filter(next_date__lte=today,owner__in=services.owners()).count(),
+        'released':FirstContactRelease.objects.filter(day=today).count(),
+        'owners':queue.values('owner__username').annotate(count=Count('pk')).order_by('-count','owner__username')})

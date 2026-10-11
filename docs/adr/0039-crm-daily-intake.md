@@ -1,0 +1,9 @@
+# ADR 0039 — Distribuição diária de primeiros contatos
+
+O volume importado não deve virar mil pendências no mesmo dia. Contatos sem histórico aguardam distribuição; a data inicial é elegibilidade, não promessa de contato. Ao migrar, preservar datas, estados e histórico e marcar como já iniciados contatos com interação, último contato, resultado ou aguardando resposta. Retornos não passam pela cota.
+
+Master define limite **total da equipe por dia**, início e pausa. Inicialmente pausado e limite zero até definição explícita; não inventar produtividade. Selecionar aleatoriamente entre elegíveis sem histórico, ativos/pausados cuja data chegou, de responsáveis ativos com acesso CRM. Ninguém é contatado automaticamente. Cadastros seguem pesquisáveis; pode registrar uma conversa recebida diretamente, retirando o contato da fila e iniciando a recorrência normal.
+
+A liberação ocorre ao abrir Pendências, no dia local, sob mutex transacional e revisão dos contatos. Não há cron nem acúmulo de dias sem uso. O registro de liberação é único por contato, imutável no PostgreSQL, com data, responsável e usuário que acionou a rotina. Contagem é global e independe de filtro/paginação ou carteira de quem abre a tela; conteúdo exibido continua limitado à carteira autorizada. Atualizar a página não sorteia novamente os já liberados; pode preencher vagas restantes se novos elegíveis aparecerem. Concluir, transferir ou inativar um liberado não devolve sua vaga do dia.
+
+Pausa impede novas liberações, nunca retira pendências ou retornos existentes. Reduzir cota não desfaz liberações; aumentar permite completar a diferença no dia. Se a data global for futura, a fila aguarda. Atrasados liberados permanecem visíveis, e novos dias recebem sua própria cota (não é limite de backlog). Configuração master tem revisão otimista e auditoria. Primeiro contato aguardando distribuição não conta como atrasado/para hoje nos indicadores.

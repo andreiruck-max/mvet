@@ -30,3 +30,8 @@ Serviços atômicos, lock de domínio e revisão otimista evitam perda de agenda
 
 ## Limites deliberados
 Sem integração fiscal, pedidos, funil de oportunidades, anexos ou disparos. Histórico comercial contém dados pessoais: restringir acessos e backups. Importações devem vir de base legitimamente mantida pela empresa. Não contatar deve ser respeitado também fora do MVet; o sistema não controla o WhatsApp do funcionário.
+
+## Distribuição diária (ADR 0039)
+CRM → Distribuição diária: master escolhe limite total de novos contatos por dia para a equipe, início e pausa. Instalação começa pausada, com zero, até definir o limite. Cadastros ainda sem interação, inclusive os já importados, passam a aguardar distribuição. Datas anteriores são mantidas como início da elegibilidade. Contatos já iniciados e suas recorrências são preservados.
+
+Ao abrir Pendências, o sistema sorteia até completar a cota de hoje (timezone local). Liberações persistem, não são trocadas ao atualizar. Dias sem acesso não acumulam cotas. Pausar não remove liberados nem retornos; aumentar a cota permite completar hoje, reduzir não desfaz ações. A cota controla novas liberações, não o total de tarefas atrasadas. Carteira de contatos oferece filtro Aguardando distribuição, Primeiro contato liberado e Retornos. Master visualiza fila e volume liberado hoje. Quem recebe conversa espontânea pode registrar diretamente na ficha; recorrência passa a funcionar sem cota.

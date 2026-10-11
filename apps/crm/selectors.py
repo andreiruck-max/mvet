@@ -22,13 +22,16 @@ def filtered(actor,data):
     if data.get('result'):rows=rows.filter(last_result=data['result'])
     if data.get('start'):rows=rows.filter(next_date__gte=data['start'])
     if data.get('end'):rows=rows.filter(next_date__lte=data['end'])
-    if data.get('overdue'):rows=rows.filter(next_date__lt=timezone.localdate(),state__in=['ACTIVE','WAITING','PAUSED'])
+    if data.get('intake')=='queued':rows=rows.filter(awaiting_first_release=True,state__in=['ACTIVE','PAUSED'])
+    elif data.get('intake')=='released':rows=rows.filter(awaiting_first_release=False,last_at__isnull=True,state__in=['ACTIVE','PAUSED'])
+    elif data.get('intake')=='returning':rows=rows.filter(last_at__isnull=False)
+    if data.get('overdue'):rows=rows.filter(awaiting_first_release=False,next_date__lt=timezone.localdate(),state__in=['ACTIVE','WAITING','PAUSED'])
     return rows
 
 def decorate(rows):
     today=timezone.localdate()
     for obj in rows:
-        obj.days=(obj.next_date-today).days if obj.next_date else None
+        obj.days=(obj.next_date-today).days if obj.next_date and not obj.awaiting_first_release else None
         obj.overdue_days=-obj.days if obj.days is not None and obj.days<0 else 0
         obj.wait_days=(today-timezone.localdate(obj.last_at)).days if obj.last_at else 0
         obj.bucket='Atrasados' if obj.overdue_days else ('Hoje' if obj.days==0 else 'Próximos')

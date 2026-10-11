@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 
 urlpatterns=[
+    path('distribuicao/',views.intake_settings,name='crm_intake'),
     path('',views.queue,name='crm_queue'),
     path('contatos/',views.queue,{'all_contacts':True},name='crm_contacts'),
     path('novo/',views.edit,name='crm_new'),

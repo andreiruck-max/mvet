@@ -11,7 +11,7 @@ class DateInput(forms.DateInput):
 
 class ContactForm(forms.ModelForm):
     revision=forms.IntegerField(widget=forms.HiddenInput,initial=0)
-    first_date=forms.DateField(label='Primeiro contato',initial=timezone.localdate,widget=DateInput(),required=False)
+    first_date=forms.DateField(label='Disponível para primeiro contato a partir de',help_text='Entra na fila de distribuição; não agenda todos os contatos para esse dia.',initial=timezone.localdate,widget=DateInput(),required=False)
     class Meta:
         model=Contact
         fields=['name','phone','email','city','uf','company','segment','origin','kind','owner','commercial_info','notes']
@@ -68,6 +68,7 @@ class FilterForm(forms.Form):
     result=forms.ChoiceField(label='Último resultado',choices=[('','Todos')]+c.RESULTS,required=False)
     start=forms.DateField(label='Próxima ação de',required=False,widget=DateInput())
     end=forms.DateField(label='Próxima ação até',required=False,widget=DateInput())
+    intake=forms.ChoiceField(label='Etapa',required=False,choices=[('','Todas'),('queued','Aguardando distribuição'),('released','Primeiro contato liberado'),('returning','Retornos')])
     overdue=forms.BooleanField(label='Somente atrasados',required=False)
     def __init__(self,*args,actor,**kwargs):
         super().__init__(*args,**kwargs)
@@ -88,6 +89,13 @@ Rules=forms.modelformset_factory(RecurrenceRule,form=RuleForm,extra=0)
 class ImportForm(forms.Form):
     file=forms.FileField(label='Lista CSV ou XLSX')
     owner=forms.ModelChoiceField(label='Responsável padrão',queryset=Contact.objects.none())
-    first_date=forms.DateField(label='Primeira pendência',initial=timezone.localdate,widget=DateInput())
+    first_date=forms.DateField(label='Disponíveis para distribuição a partir de',help_text='A liberação seguirá o limite diário e a pausa definidos pelo Master.',initial=timezone.localdate,widget=DateInput())
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs);self.fields['owner'].queryset=owners()
+
+
+class IntakeForm(forms.Form):
+    revision=forms.IntegerField(widget=forms.HiddenInput)
+    daily_limit=forms.IntegerField(label='Novos contatos por dia (total da equipe)',min_value=0,max_value=2000,help_text='Zero não libera novos contatos. Retornos não consomem essa quantidade.')
+    starts_on=forms.DateField(label='Liberar a partir de',widget=DateInput())
+    paused=forms.BooleanField(label='Pausar liberação de novos contatos',required=False)
