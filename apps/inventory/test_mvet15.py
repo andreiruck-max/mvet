@@ -101,7 +101,9 @@ class Mvet15Tests(Fixture, TestCase):
         AccessPolicy.objects.update_or_create(user=self.operator, defaults={'rules':{'core.view_stock':True,'core.view_costs':False}})
         self.client.force_login(self.operator)
         response = self.client.get(reverse('products'))
-        self.assertNotContains(response, 'R$')
+        self.assertContains(response, 'Preço de venda')
+        self.assertNotContains(response, 'Custo médio')
+        self.assertNotContains(response, 'Valor do estoque')
         self.assertNotIn('stock_totals', response.context)
         self.assertNotIn('cost', self.client.get(reverse('product_lookup'), {'q':'31', 'location':self.full.pk}).json()['results'][0])
 

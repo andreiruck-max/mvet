@@ -58,3 +58,6 @@ Fluxo diário → Pagamentos pendentes e futuros → Baixar pagamento. Usar data
 
 ## Atualização 10/10/2026 — baixa com data futura
 ADR 0037 substitui as orientações anteriores que limitavam a data da baixa a hoje. Informe a data desejada: o título mostra Baixa futura, a projeção usa o valor efetivo nessa data e o saldo de hoje não muda. Na data registrada, passa a realizado automaticamente. Não envia pagamento ao banco. Para desfazer antes da data, estorne: a contraparte usa a data original e a obrigação reabre, sem entrada bancária hoje. Pagamentos parciais, juros/descontos, permissões, revisão e idempotência permanecem.
+
+## Janela e lançamentos futuros (ADR 0038)
+Saldos e fluxo abre de hoje até hoje+15 dias, inclusive, com destaque visual em hoje. Novo crédito/débito permite data futura: registrado uma única vez na projeção, sem aumentar/reduzir o saldo realizado antes da data. Estorno mantém regras da baixa futura (ADR 0037).

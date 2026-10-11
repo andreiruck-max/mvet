@@ -1,5 +1,6 @@
 from decimal import Decimal
 from django.db import models
+from django.core.validators import MinValueValidator
 from django.db.models import Q
 
 class NamedActive(models.Model):
@@ -20,6 +21,7 @@ class Product(models.Model):
     kind = models.CharField('Tipo', max_length=10, choices=[('SIMPLE','Produto'),('KIT','Kit virtual')], default='SIMPLE')
     brand = models.ForeignKey(Brand, verbose_name='Marca', null=True, blank=True, on_delete=models.PROTECT)
     category = models.ForeignKey(ProductCategory, verbose_name='Categoria', null=True, blank=True, on_delete=models.PROTECT)
+    markup = models.DecimalField('Markup individual (%)', max_digits=8, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)], help_text='Vazio utiliza o percentual geral definido pelo master.')
     minimum = models.DecimalField('Estoque mínimo', max_digits=18, decimal_places=4, default=0)
     active = models.BooleanField('Ativo', default=True)
     quantity = models.DecimalField(max_digits=18, decimal_places=4, default=0, editable=False)
@@ -27,7 +29,7 @@ class Product(models.Model):
     average_cost = models.DecimalField(max_digits=24, decimal_places=6, default=0, editable=False)
     class Meta:
         ordering = ['name','pk']
-        constraints = [models.CheckConstraint(condition=Q(average_cost__gte=0, minimum__gte=0), name='product_cost_minimum_nonnegative')]
+        constraints = [models.CheckConstraint(condition=Q(markup__isnull=True) | Q(markup__gte=0), name="product_markup_nonnegative"), models.CheckConstraint(condition=Q(average_cost__gte=0, minimum__gte=0), name='product_cost_minimum_nonnegative')]
     def __str__(self): return f'{self.sku} · {self.name}'
 
 class ProductComposition(models.Model):

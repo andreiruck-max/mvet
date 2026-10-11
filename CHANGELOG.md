@@ -210,3 +210,8 @@ Indicadores como início autorizado, mês completo com datas visíveis, cartões
 - Plano Mercadovet instalado de forma aditiva pelo atualizador; principal e juros separados, pendências explícitas e depreciação manual sem conta a pagar.
 - Cartões: total primeiro, demais por valor decrescente e opção persistente de ocultar valores.
 - Vendas exportadas em todos os canais, com resumo e seções/abas por canal, preservando filtros de período/NF/situação e permissões.
+
+## 2026-10-11 — Estoque, preço da loja e caixa
+- Markup inicial 35% apenas loja, geral ou individual exclusivo master, coluna de preço e exportação/consulta sem revelar custos ao operador.
+- Conciliação de posição por depósito: prévia, diferenças auditadas, produtos novos, base completa/parcial, movimentos posteriores preservados e proteção contra duplicação/concorrência.
+- Caixa de hoje até hoje+15, destaque no dia atual e lançamentos manuais futuros sem antecipar saldo realizado.

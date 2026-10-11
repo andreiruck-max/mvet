@@ -28,9 +28,9 @@ class AccountFlowTests(Fixture, TestCase):
         self.client.force_login(self.admin)
         response=self.client.get(reverse('finance'))
         days=response.context['days']
-        self.assertEqual(len(days),15)
-        self.assertEqual(days[0]['date'],self.today-timedelta(days=1))
-        self.assertEqual(days[-1]['date'],self.today+timedelta(days=13))
+        self.assertEqual(len(days),16)
+        self.assertEqual(days[0]['date'],self.today)
+        self.assertEqual(days[-1]['date'],self.today+timedelta(days=15))
         self.assertFalse(response.context['page'].has_other_pages())
         response=self.client.get(reverse('finance'),{'start':self.today,'end':self.today+timedelta(days=60),'page':2})
         self.assertEqual(len(response.context['days']),61)
@@ -55,7 +55,6 @@ class AccountFlowTests(Fixture, TestCase):
         self.assertEqual(FinancialEntry.objects.count(),1)
         self.assertEqual(FinancialTitle.objects.get().remaining,0)
         with self.assertRaises(ValidationError):self.entry(key=key,amount=D(30))
-        with self.assertRaises(ValidationError):self.entry(date=self.today+timedelta(days=1))
         with self.assertRaises(PermissionDenied):self.entry(actor=self.seller)
         self.assertEqual(FinancialTitle.objects.count(),1)
         self.client.force_login(self.seller)
@@ -77,3 +76,17 @@ class AccountFlowTests(Fixture, TestCase):
         self.assertEqual(response.status_code,302)
         self.assertContains(self.client.get(response.url),'Banco novo')
         self.assertContains(self.client.get(reverse('finance')),'Banco novo')
+
+    def test_future_manual_entries_project_once_and_reverse_before_date(self):
+        day=self.today+timedelta(days=4)
+        debit=self.entry(date=day)
+        self.entry(date=day,direction='RECEIVE',amount=D(10))
+        summary=selectors.cash_summary(self.today,day)
+        self.assertEqual(summary['actual'],1000)
+        self.assertEqual(summary['projected'],985)
+        self.assertEqual(FinancialTitle.objects.filter(settled=0).count(),0)
+        services.reverse(actor=self.admin,pk=debit.pk,date=self.today,reason='Cancelar débito futuro')
+        summary=selectors.cash_summary(self.today,day)
+        self.assertEqual(summary['actual'],1000)
+        # Reversal reopens the obligation: it remains projected until cancelled.
+        self.assertEqual(summary['projected'],985)

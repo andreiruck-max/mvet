@@ -169,7 +169,7 @@ def cash(request):
         for row in rows:grouped[row['date']].append(row)
         days=[{'date':date,'rows':values} for date,values in grouped.items()]
         matrix,day_totals=selectors.cash_matrix(rows,page.object_list,data.get('mode') or 'projected')
-    return render(request,'reporting/cash.html',{'form':form,'rows':rows,'days':days,'page':page,'unallocated':unallocated,'summary':summary,'pending':pending,'matrix':matrix,'day_totals':day_totals})
+    return render(request,'reporting/cash.html',{'form':form,'rows':rows,'days':days,'page':page,'unallocated':unallocated,'summary':summary,'pending':pending,'matrix':matrix,'day_totals':day_totals,'today':timezone.localdate()})
 
 
 @login_required

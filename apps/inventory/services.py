@@ -83,13 +83,13 @@ def _apply(operation, product, location, quantity, value, *, average_override=No
     elif operation.kind == 'SALE_OUT' and quantity < 0:
         value = -_value_out(product,-quantity,location,allow_negative=True)
         variance = source_value-value
-    elif quantity > 0 and balance.quantity < 0:
+    elif quantity > 0 and balance.quantity < 0 and operation.kind != 'RECONCILE':
         remaining = balance.quantity+quantity
         target = quant(remaining*(balance.average_cost if remaining<0 else source_value/quantity))
         value = target-balance.value
         variance = source_value-value
     local_q, local_v = balance.quantity + quantity, balance.value + value
-    if quantity<0 and local_q<0 and operation.kind!='SALE_OUT' and variance_override is None:
+    if quantity<0 and local_q<0 and operation.kind not in {'SALE_OUT','RECONCILE'} and variance_override is None:
         raise ValidationError(f'{product.sku}: estoque insuficiente no depósito escolhido.')
     if (local_q>0 and local_v<0) or (local_q<0 and local_v>0) or (local_q == 0 and local_v != 0):
         raise ValidationError(f'{product.sku}: quantidade ou valor inconsistente no depósito.')
@@ -202,6 +202,8 @@ def reverse(*,actor,operation_id,key,date,reason):
     previous=_repeat(key,fingerprint)
     if previous:return previous
     original=StockOperation.objects.get(pk=operation_id)
+    if original.kind == 'RECONCILE':
+        raise ValidationError('Conciliação preservada para auditoria. Corrija por contagem, ajuste de custo ou nova data-base.')
     if original.kind in {'SALE_OUT','SALE_RETURN','PUR_RECEIPT','PUR_RETURN'}:
         raise ValidationError('Operação vinculada a compra ou venda. Utilize o cancelamento na tela correspondente.')
     if original.kind=='REVERSAL' or StockOperation.objects.filter(reversal_of=original).exists():

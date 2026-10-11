@@ -93,17 +93,22 @@ def build(kind, user, query):
         result = Dataset('Faturamento por canal',headers,[[r.get(k) for k in keys] for r in rows],totals=metrics_for(user,selectors.sales_summary(selectors.sale_rows(d))))
     elif kind == 'stock':
         from apps.inventory.selectors import catalog, selected_location, location_values
-        result = Dataset('ESTOQUE MVET',['SKU','PRODUTO','QTD','UNIDADE'],[],'Posição atual. Kits virtuais: quantidade disponível pelos componentes, sem estoque próprio.')
+        from apps.products.pricing import sale_price, retail_location
+        from apps.core.models import Company
+        markup = Company.objects.get(pk=1).default_markup
+        result = Dataset('ESTOQUE MVET',['SKU','PRODUTO','QTD','UNIDADE','PREÇO DE VENDA'],[],'Posição atual. Kits virtuais: quantidade disponível pelos componentes, sem estoque próprio.')
         costs = user.has_perm('core.view_costs')
-        if costs: result.headers = ['SKU','PRODUTO','QTD','CUSTO','VALOR TOTAL','UNIDADE']
+        if costs: result.headers = ['SKU','PRODUTO','QTD','CUSTO','VALOR TOTAL','UNIDADE','PREÇO DE VENDA']
         location, _ = selected_location(query)
+        show_prices = location is not None and location == retail_location()
+        if not show_prices: result.headers.pop()
         result.notes = 'Depósito: ' + (location.name if location else 'Nenhum') + '. Valor pelo custo médio do depósito. Kits sem estoque próprio.'
         rows = bound(catalog(query, location)).prefetch_related('balances__location','components__component')
         for p in rows:
             if p.kind == 'KIT':
                 qty, cost = None, None
             else: qty,cost=p.stock_quantity,p.stock_cost
-            result.rows.append([p.sku,p.name,qty]+([cost,location_values(p).get(location.pk if location else None, Decimal(0)) if p.kind != 'KIT' else None] if costs else [])+[p.unit])
+            result.rows.append([p.sku,p.name,qty]+([cost,location_values(p).get(location.pk if location else None, Decimal(0)) if p.kind != 'KIT' else None] if costs else [])+[p.unit]+([sale_price(p, cost, markup) if cost is not None else None] if show_prices else []))
         # Local balances are a separate sheet; never infer Full from a global total.
         result.locations = Dataset('Estoque por local',['SKU','PRODUTO','LOCAL','QTD'],[[p.sku,p.name,str(b.location),b.quantity] for p in rows for b in p.balances.all() if location and b.location_id == location.pk])
     elif kind == 'cash':

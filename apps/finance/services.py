@@ -102,7 +102,7 @@ def account_entry(*, actor, account_id, key, direction, date, description, amoun
     if direction not in ('PAY','RECEIVE') or category not in dict(Title.CATEGORIES) or category=='OPENING':
         raise ValidationError('Tipo ou classificação inválidos.')
     require(actor,'core.pay_titles' if direction=='PAY' else 'core.receive_titles')
-    domain_lock(); validate_date(date)
+    domain_lock(); validate_date(date, future=True)
     account=account_for(account_id,date)
     title=create_title(actor=actor,key=key,data=dict(direction=direction,description=description,date=date,
         due_date=date,amount=amount,account=account,category=category,opening=False,notes=notes))
