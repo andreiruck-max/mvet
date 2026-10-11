@@ -15,7 +15,8 @@
   const button = document.createElement('button');
   button.type = 'button'; button.className = 'privacy-toggle';
   if (!saved.length) return;
-  groups[0].before(button);
+  const heading = document.querySelector('.page-heading');
+  if (heading) heading.append(button); else groups[0].before(button);
   function render() {
     saved.forEach(({node, original}) => node.replaceChildren(...(hidden ? [document.createTextNode('••••••')] : original)));
     button.textContent = hidden ? 'Mostrar valores dos cartões' : 'Ocultar valores dos cartões';

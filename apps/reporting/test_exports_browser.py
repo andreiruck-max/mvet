@@ -36,7 +36,8 @@ class ExportBrowser(ReportingFixture,StaticLiveServerTestCase):
             page.get_by_role('button',name='Mostrar valores dos cartões').click()
             Path('artifacts').mkdir(exist_ok=True)
             page.screenshot(path='artifacts/report-cards-privacy.png',full_page=True)
-            page.goto(self.live_server_url+reverse('sales_sheet')+'?channel='+str(other.pk))
+            page.locator('.channel-card').filter(has_text='Canal de exemplo').click()
+            self.assertEqual(page.locator('.channel-ledger').count(),1)
             for label,extension in [('Exportar Excel','.xlsx'),('Exportar PDF','.pdf')]:
                 with page.expect_download() as info:page.get_by_role('link',name=label+' · todos os canais',exact=True).click()
                 download=info.value
