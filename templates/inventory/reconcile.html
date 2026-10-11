@@ -1,6 +1,7 @@
 {% extends 'base.html' %}{% block content %}
 <header class="page-heading"><h1>Atualizar posição de estoque</h1><a class="button" href="{% url 'products' %}">Voltar ao estoque</a></header>
 <p>Exclusivo do master. A conciliação registra um ajuste atual a partir da data-base, preserva movimentos posteriores e não altera o CMV das vendas já confirmadas.</p>
+<p class="notice">Finalize os lançamentos de notas até a data-base antes de aplicar. Notas antigas lançadas depois serão novas movimentações, mesmo que já constassem no arquivo.</p>
 <form class="card" method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button>Conferir arquivo</button></form>
 {% if report %}
 <h2>Base {{ report.date }} · {{ report.changes|length }} posições a ajustar</h2>
