@@ -1,0 +1,9 @@
+{% extends 'base.html' %}{% block content %}<div class="compact-page crm-page">{% include 'crm/nav.html' %}
+<header class="page-heading"><h1>Distribuição diária de novos contatos</h1></header>
+<p>Somente primeiros contatos entram nesta fila. Retornos, aguardando resposta e contatos já liberados continuam na rotina, mesmo com novas liberações pausadas.</p>
+<div class="report-cards"><section class="panel"><strong>Aguardando distribuição</strong><b>{{ waiting }}</b></section><section class="panel"><strong>Elegíveis pela data e responsável</strong><b>{{ eligible }}</b></section><section class="panel"><strong>Liberados hoje para a equipe</strong><b>{{ released }}</b></section></div>
+<form method="post" class="panel form-grid">{% csrf_token %}{{ form.as_p }}<button class="primary">Salvar distribuição</button></form>
+<p>Ao abrir as pendências, o MVet sorteia contatos elegíveis até completar o limite diário total da equipe. Atualizar a página não troca os sorteados nem libera além da cota. Dias sem uso não acumulam cotas. A data informada no cadastro/importação é a primeira data em que o contato pode ser sorteado.</p>
+<p>Pausar mantém as pendências já liberadas. Reduzir a quantidade não remove contatos liberados hoje; aumentar permite completar a nova cota. Depois de salvar, <a href="{% url 'crm_queue' %}">abra as pendências</a> para aplicar a liberação do dia.</p>
+<section class="panel"><h2>Fila por responsável</h2>{% for owner in owners %}<p>{{ owner.owner__username }}: <strong>{{ owner.count }}</strong></p>{% empty %}<p>Nenhum primeiro contato aguardando distribuição.</p>{% endfor %}</section>
+</div>{% endblock %}

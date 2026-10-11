@@ -21,6 +21,7 @@ class Contact(models.Model):
     state = models.CharField(max_length=20,choices=c.STATES,default='ACTIVE',db_index=True)
     next_date = models.DateField('Próximo contato',null=True,blank=True,db_index=True)
     next_reason = models.CharField('Motivo da próxima ação',max_length=300,default='Primeiro contato')
+    awaiting_first_release = models.BooleanField(default=True, db_index=True, editable=False)
     last_at = models.DateTimeField(null=True,blank=True)
     last_result = models.CharField(max_length=25,choices=c.RESULTS,blank=True)
     created_at = models.DateTimeField(auto_now_add=True,db_index=True)
@@ -103,3 +104,23 @@ class ImportBatch(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     committed_at = models.DateTimeField(null=True)
     report = models.JSONField(default=list)
+
+
+class IntakeSettings(models.Model):
+    daily_limit = models.PositiveIntegerField('Novos contatos por dia (total da equipe)', default=0, validators=[MaxValueValidator(2000)])
+    paused = models.BooleanField('Pausar liberação de novos contatos', default=True)
+    starts_on = models.DateField('Liberar a partir de')
+    revision = models.PositiveIntegerField(default=0)
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(id=1), name='crm_single_intake_settings'),
+                       models.CheckConstraint(condition=models.Q(daily_limit__lte=2000), name='crm_intake_limit_range')]
+
+
+class FirstContactRelease(models.Model):
+    contact = models.OneToOneField(Contact, on_delete=models.PROTECT, related_name='first_release')
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='+')
+    triggered_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='+')
+    day = models.DateField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        ordering = ['-day','pk']

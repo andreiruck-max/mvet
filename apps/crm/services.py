@@ -41,7 +41,7 @@ def validate_owner(owner):
 
 
 def state_snapshot(contact):
-    return {'state':contact.state,'next_date':str(contact.next_date or ''),'next_reason':contact.next_reason,'owner':contact.owner_id,'revision':contact.revision}
+    return {'state':contact.state,'next_date':str(contact.next_date or ''),'next_reason':contact.next_reason,'owner':contact.owner_id,'revision':contact.revision,'awaiting_first_release':contact.awaiting_first_release}
 
 
 def event(actor,contact,action,before,note=''):
@@ -121,6 +121,7 @@ def record(*,actor,pk,revision,key,data):
     if result=='OPT_OUT':obj.state='DNC';next_date=None;reason='Pedido explícito para não contatar'
     item=Interaction(contact=obj,actor=actor,key=key,next_date=next_date,next_reason=reason,rule_days=rule.days,manual_date=bool(manual),**{k:data.get(k,'') for k in ('occurred_at','channel','kind','sent','received','read_state','result','internal_note')})
     item.full_clean();item.save()
+    obj.awaiting_first_release=False
     obj.last_at=occurred;obj.last_result=result;obj.next_date=next_date;obj.next_reason=reason
     event(actor,obj,'contato_registrado',before)
     return item

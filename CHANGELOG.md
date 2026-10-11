@@ -215,3 +215,8 @@ Indicadores como início autorizado, mês completo com datas visíveis, cartões
 - Markup inicial 35% apenas loja, geral ou individual exclusivo master, coluna de preço e exportação/consulta sem revelar custos ao operador.
 - Conciliação de posição por depósito: prévia, diferenças auditadas, produtos novos, base completa/parcial, movimentos posteriores preservados e proteção contra duplicação/concorrência.
 - Caixa de hoje até hoje+15, destaque no dia atual e lançamentos manuais futuros sem antecipar saldo realizado.
+
+## 2026-10-11 — Distribuição diária no CRM
+- Primeiros contatos aguardam distribuição em vez de lotar pendências futuras; cadastros e histórico preservados.
+- Master define limite diário total, início e pausa. Seleção aleatória persistida, sem duplicar cota em acessos concorrentes.
+- Retornos seguem agenda própria e não consomem o limite; indicadores distinguem fila de novas pendências.
