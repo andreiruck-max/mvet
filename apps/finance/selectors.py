@@ -100,7 +100,7 @@ def cash_matrix(rows, dates, mode='projected'):
         for key in ('credits','debits','balance'):
             totals[row['date']][key] += cell[key]
     return ([{'account': group['account'], 'cells': [group['by_date'].get(day) for day in dates]}
-             for group in accounts.values()], [totals[day] for day in dates])
+             for group in accounts.values()], [dict(totals[day], date=day) for day in dates])
 
 
 def account_statement(account, start, end):

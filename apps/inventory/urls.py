@@ -1,6 +1,9 @@
 from django.urls import path
 from . import views
 urlpatterns=[
+ path("conciliar/", views.reconcile_inventory, name="inventory_reconcile"),
+ path("precos/", views.pricing, name="stock_pricing"),
+ path("produtos/<int:pk>/preco/", views.pricing, name="product_pricing"),
  path('planejar-compra/', views.planning, name='purchase_planning'),
  path('produtos/<int:pk>/contar/<int:location_id>/', views.product_count, name='product_count'),
  path('produtos/<int:pk>/inativar/', views.product_inactivate, name='product_inactivate'),

@@ -17,6 +17,8 @@ from .models import StockLocation, StockOperation, StockMovement, StockBalance
 from .forms import ProductForm, OperationForm, NamedForm, ReversalForm, Components
 from .selectors import catalog, kit_summary, selected_location, location_values, stock_totals, search_products
 from .services import execute, reverse, domain_lock
+from apps.products.pricing import sale_price, retail_location
+from apps.core.models import Company
 
 def can_read(user):
     return user.is_active and user.has_perm('core.view_stock')
@@ -53,7 +55,10 @@ def products(request):
     except ValidationError as exc:
         return HttpResponseBadRequest('; '.join(exc.messages))
     page = Paginator(catalog(request.GET, location).prefetch_related('balances'), 50).get_page(request.GET.get('page'))
-    context = {'page': page, 'location': location, 'locations': locations}
+    default_markup = Company.objects.get(pk=1).default_markup
+    for product in page:
+        product.sale_price = sale_price(product, product.stock_cost, default_markup) if product.kind == 'SIMPLE' else None
+    context = {'page': page, 'location': location, 'locations': locations, 'show_prices': location is not None and location == retail_location()}
     if request.user.has_perm('core.view_costs'):
         for product in page:
             product.stock_value = location_values(product).get(location.pk if location else None, Decimal(0))
@@ -69,6 +74,8 @@ def lookup(request):
     rows=search_products(Product.objects.filter(active=True), query).order_by('name')[:20]
     location=request.GET.get('location')
     if location and not location.isdecimal():return JsonResponse({'results':[]},status=400)
+    default_markup = Company.objects.get(pk=1).default_markup
+    retail = retail_location()
     results=[]
     for p in rows:
         item={'id':p.pk,'label':str(p),'quantity':str(p.quantity),'kind':p.kind}
@@ -86,6 +93,14 @@ def lookup(request):
                 balance = p.balances.filter(location_id=location).first()
                 item['quantity'] = str(balance.quantity if balance else 0)
                 cost = balance.average_cost if balance else Decimal(0)
+        if retail and (not location or str(retail.pk) == location):
+            if p.kind == 'KIT':
+                retail_costs = {b.product_id: b.average_cost for b in StockBalance.objects.filter(location=retail)}
+                price_cost = sum((retail_costs.get(part.component_id, Decimal(0)) * part.quantity for part in p.components.all()), Decimal(0))
+            else:
+                retail_balance = p.balances.filter(location=retail).first()
+                price_cost = retail_balance.average_cost if retail_balance else Decimal(0)
+            item['sale_price'] = str(sale_price(p, price_cost, default_markup))
         if request.user.has_perm('core.view_costs'):item['cost']=str(cost)
         results.append(item)
     return JsonResponse({'results':results})
@@ -95,7 +110,17 @@ def product_detail(request,pk):
     check_read(request.user);p=get_object_or_404(Product,pk=pk)
     parts,available,cost=kit_summary(p)
     moves=Paginator(p.movements.select_related('operation','location').order_by('-pk'),25).get_page(request.GET.get('page'))
-    return render(request,'inventory/product.html',{'product':p,'parts':parts,'available':available,'kit_cost':cost,'page':moves,'balances':p.balances.select_related('location')})
+    balances = list(p.balances.select_related('location'))
+    default_markup = Company.objects.get(pk=1).default_markup
+    retail = retail_location()
+    for balance in balances:
+        balance.show_price = retail is not None and balance.location_id == retail.pk
+        balance.sale_price = sale_price(p, balance.average_cost, default_markup)
+    p.sale_price = None
+    if p.kind == 'KIT' and retail:
+        retail_costs = {b.product_id: b.average_cost for b in StockBalance.objects.filter(location=retail)}
+        p.sale_price = sale_price(p, sum((retail_costs.get(part.component_id, Decimal(0)) * part.quantity for part in parts), Decimal(0)), default_markup)
+    return render(request,'inventory/product.html',{'product':p,'parts':parts,'available':available,'kit_cost':cost,'page':moves,'balances':balances})
 
 @login_required
 @permission_required('core.operate_stock',raise_exception=True)
@@ -222,3 +247,57 @@ def product_count(request, pk, location_id):
         except ValidationError as exc:
             form.add_error(None, '; '.join(exc.messages))
     return render(request, 'inventory/count.html', {'form': form, 'product': product, 'location': location, 'balance': balance})
+
+
+@login_required
+def pricing(request, pk=None):
+    from django import forms
+    from apps.accounts.access import master
+    from apps.products.pricing import configure_pricing
+    master(request.user)
+    product = get_object_or_404(Product, pk=pk) if pk else None
+    class PricingForm(forms.Form):
+        markup = forms.DecimalField(label='Markup individual (%)' if product else 'Markup geral (%)', required=not bool(product), min_value=0, max_digits=8, decimal_places=2,
+            help_text='Vazio usa o markup geral. Zero é um percentual válido.' if product else 'Aplicado aos produtos sem percentual individual. Preço = custo médio da loja Mercadovet × (1 + markup/100).')
+    initial = product.markup if product else Company.objects.get(pk=1).default_markup
+    form = PricingForm(request.POST or None, initial={'markup':initial})
+    if request.method == 'POST' and form.is_valid():
+        configure_pricing(actor=request.user, markup=form.cleaned_data['markup'], product_id=pk)
+        messages.success(request, 'Markup atualizado. Os preços da loja acompanham o custo médio da Mercadovet; vendas anteriores permanecem iguais.')
+        return redirect(return_url(request, url_reverse('products')))
+    return render(request, 'inventory/form.html', {'form':form, 'title':f'Preço de venda · {product}' if product else 'Preços de venda · markup geral'})
+
+
+@login_required
+def reconcile_inventory(request):
+    from django import forms
+    from django.utils.crypto import constant_time_compare
+    from uuid import uuid4
+    from apps.accounts.access import master
+    from .reconciliation import reconcile
+    master(request.user)
+    class UploadForm(forms.Form):
+        file = forms.FileField(label='Arquivo de posição de estoque (.json)')
+    form = UploadForm(request.POST or None, request.FILES or None)
+    report = None
+    token = None
+    try:
+        if request.method == 'POST' and request.POST.get('action') == 'apply':
+            preview = request.session.get('inventory_reconciliation_preview', {})
+            if not preview or not constant_time_compare(request.POST.get('token',''), preview['token']):
+                raise ValidationError('Prévia expirada. Envie o arquivo novamente.')
+            report = reconcile(actor=request.user, raw=preview['raw'], commit=True, expected_revision=preview['revision'])
+            del request.session['inventory_reconciliation_preview']
+            form = UploadForm()
+            messages.success(request, 'Posição de estoque conciliada. Quantidades e valores posteriores à base foram preservados.')
+        elif request.method == 'POST' and form.is_valid():
+            uploaded = form.cleaned_data['file']
+            if uploaded.size > 2_000_000:
+                raise ValidationError('Arquivo excede 2 MB.')
+            raw = uploaded.read().decode('utf-8-sig')
+            report = reconcile(actor=request.user, raw=raw)
+            token = str(uuid4())
+            request.session['inventory_reconciliation_preview'] = dict(raw=raw,revision=report['revision'],token=token)
+    except (ValidationError, UnicodeDecodeError) as exc:
+        form.add_error(None, '; '.join(exc.messages) if isinstance(exc,ValidationError) else 'Arquivo deve usar UTF-8.')
+    return render(request, 'inventory/reconcile.html', {'form':form,'report':report,'token':token})

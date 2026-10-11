@@ -117,3 +117,5 @@ Novo pacote: filtros automáticos em vendas, NF crescente por data/canal, descon
 
 ### Pacote financeiro e relatórios — 10/10/2026
 Implementado: baixa em data futura com projeção/realizado por data e estorno; plano Mercadovet aditivo no instalador; depreciação manual sem obrigação financeira; cartões ordenados e privacidade local; exportação organizada de todos os canais. Fora do escopo: iniciar pagamentos em banco, cálculo automático da vida útil de ativos e reclassificação automática de registros históricos.
+
+- Pacote ADR 0038: preço de loja com markup geral 35% e exceção master; Full sem markup; conciliação privada de estoque por base com prévia/revisão/idempotência; caixa hoje..+15 e crédito/débito futuro. Aplicação dos arquivos reais depende da instalação local e envio pelo master.

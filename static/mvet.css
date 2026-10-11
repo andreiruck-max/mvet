@@ -182,3 +182,9 @@ main.workspace{padding:12px 14px}
 .commission-table .num small{white-space:normal;max-width:130px}.commission-table th{font-size:12px;white-space:normal}
 
 .privacy-toggle { margin: .4rem 0; font-size: .85rem; padding: .4rem .7rem; }
+
+.cash-matrix .cash-today { background: #e6f1ff; box-shadow: inset 0 2px #2767b7, inset 0 -2px #2767b7; }
+.cash-matrix .cash-date.cash-today { background: #174c8d; color: white; }
+.today-label { font-weight: 800; text-transform: uppercase; font-size: .8em; }
+[data-theme="dark"] .cash-matrix .cash-today { background: #20344e; }
+[data-theme="dark"] .cash-matrix .cash-date.cash-today { background: #174c8d; }

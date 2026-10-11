@@ -28,7 +28,7 @@ class Immutable(models.Model):
 class StockOperation(Immutable):
     key = models.UUIDField(default=uuid.uuid4, unique=True)
     fingerprint = models.CharField(max_length=64)
-    kind = models.CharField(max_length=20, choices=[('OPENING','Saldo inicial'),('RECEIPT','Entrada'),('ISSUE','Saída'),('ADJUST_IN','Ajuste: acréscimo'),('ADJUST_OUT','Ajuste: redução'),('TRANSFER','Transferência'),('SPLIT','Fracionamento'),('KIT_ISSUE','Saída de kit'),('REVALUE','Correção de custo'),('REVERSAL','Estorno'),('SALE_OUT','Venda'),('SALE_RETURN','Cancelamento de venda'),('PUR_RECEIPT','Recebimento de compra'),('PUR_RETURN','Cancelamento de compra')])
+    kind = models.CharField(max_length=20, choices=[('RECONCILE','Conciliação de estoque'),('OPENING','Saldo inicial'),('RECEIPT','Entrada'),('ISSUE','Saída'),('ADJUST_IN','Ajuste: acréscimo'),('ADJUST_OUT','Ajuste: redução'),('TRANSFER','Transferência'),('SPLIT','Fracionamento'),('KIT_ISSUE','Saída de kit'),('REVALUE','Correção de custo'),('REVERSAL','Estorno'),('SALE_OUT','Venda'),('SALE_RETURN','Cancelamento de venda'),('PUR_RECEIPT','Recebimento de compra'),('PUR_RETURN','Cancelamento de compra')])
     date = models.DateField(db_index=True)
     reason = models.CharField(max_length=500)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
@@ -60,3 +60,11 @@ class OpeningImport(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     report = models.JSONField(default=dict)
+
+
+class InventoryReconciliation(Immutable):
+    base_date = models.DateField(unique=True)
+    digest = models.CharField(max_length=64, unique=True)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    report = models.JSONField()

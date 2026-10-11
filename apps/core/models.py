@@ -10,6 +10,7 @@ class Company(models.Model):
     cutover_date = models.DateField("Data de corte", default=date(2026, 9, 15), editable=False)
     minimum_margin = models.DecimalField("Alerta de margem (%)", max_digits=6, decimal_places=2,
         default=Decimal("10.00"), validators=[MinValueValidator(0), MaxValueValidator(100)])
+    default_markup = models.DecimalField("Markup padrão (%)", max_digits=8, decimal_places=2, default=Decimal("35.00"), validators=[MinValueValidator(0)])
     default_stock_location = models.ForeignKey("inventory.StockLocation", verbose_name="Estoque padrão das vendas", null=True, blank=True, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -32,6 +33,7 @@ class Company(models.Model):
             ("view_expense_reports", "Visualizar despesas consolidadas por competência"),
         ]
         constraints = [
+            models.CheckConstraint(condition=models.Q(default_markup__gte=0), name="company_markup_nonnegative"),
             models.CheckConstraint(condition=models.Q(id=1), name="single_company"),
             models.CheckConstraint(condition=models.Q(minimum_margin__gte=0, minimum_margin__lte=100),
                                    name="valid_minimum_margin"),
