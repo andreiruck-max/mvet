@@ -137,7 +137,7 @@ def settle(*, actor, key, title_id, account_id, date, principal, interest, disco
     if existing: return existing
     if title.revision != revision: raise ValidationError('Título já foi atualizado. Reabra antes de liquidar.')
     if title.status!='OPEN' or not title.remaining: raise ValidationError('Título encerrado.')
-    validate_date(date)
+    validate_date(date, future=True)
     if not title.opening and date < title.date: raise ValidationError('Liquidação anterior à origem.')
     number(principal,CENT)
     for value in [interest,discount,actual]: number(value,CENT,zero=True)
@@ -200,7 +200,10 @@ def reverse(*, actor, pk, date, reason):
     if op.status=='PLANNED':
         op.status='CANCELLED'; op.save(update_fields=['status'])
         audit(actor,op,'cancel_planned_transfer',{}, {'reason':reason}); return op
-    validate_date(date)
+    # A future settlement is cancelled on its original date: no cash today.
+    if op.kind == 'SETTLEMENT' and op.date > timezone.localdate():
+        date = op.date
+    validate_date(date, future=op.kind == 'SETTLEMENT' and date == op.date)
     if date < op.date: raise ValidationError('Estorno não pode preceder a operação original.')
     reversal=Operation.objects.create(kind='REVERSAL',date=date,description=reason,actor=actor,reversal_of=op,fingerprint=_fingerprint(['reverse',op.pk]),actual=op.actual)
     for entry in op.entries.order_by('account_id'):

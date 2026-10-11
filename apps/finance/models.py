@@ -62,6 +62,8 @@ class FinancialTitle(models.Model):
     @property
     def display_status(self):
         if self.status=='CANCELLED': return 'Cancelado'
+        future = self.operations.filter(kind='SETTLEMENT', date__gt=timezone.localdate(), reversal__isnull=True).exists() if self.settled else False
+        if future: return 'Baixa futura' if not self.remaining else 'Parcial · baixa futura'
         if not self.remaining: return 'Pago' if self.direction=='PAY' else 'Recebido'
         if self.due_date<timezone.localdate(): return 'Vencido (parcial)' if self.settled else 'Vencido'
         return 'Parcial' if self.settled else 'Pendente'
@@ -86,6 +88,13 @@ class FinancialOperation(models.Model):
     class Meta:
         ordering = ['-date','-pk']
         constraints = [models.CheckConstraint(condition=models.Q(principal__gte=0,interest__gte=0,discount__gte=0,actual__gte=0), name='finance_operation_nonnegative')]
+
+
+    @property
+    def display_status(self):
+        if self.status == 'POSTED' and self.date > timezone.localdate():
+            return 'Registrada para data futura'
+        return self.get_status_display()
 
 
 class FinancialEntry(models.Model):

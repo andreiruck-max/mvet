@@ -62,7 +62,7 @@ class ExpenseForm(forms.ModelForm):
         super().__init__(*args,**kwargs)
         self.fields['competence'].initial=timezone.localdate
         self.fields['document_date'].initial=timezone.localdate
-        self.fields['category'].queryset=ChartOfAccount.objects.filter(active=True,postable=True,nature__in=['OPERATING','FINANCIAL'])
+        self.fields['category'].queryset=ChartOfAccount.objects.filter(active=True,postable=True,nature__in=['OPERATING','FINANCIAL','DEPRECIATION','UNCLASSIFIED'])
         self.fields['category'].empty_label='Aplicar regras / deixar a classificar'
         self.fields['supplier'].queryset=Supplier.objects.filter(active=True)
         self.fields['supplier'].label='Fornecedor cadastrado (opcional)'
@@ -72,13 +72,13 @@ class ExpenseForm(forms.ModelForm):
         paths,_=chart_options()
         self.fields['category'].queryset=self.fields['category'].queryset.filter(pk__in=paths)
         self.fields['category'].label_from_instance=lambda obj:paths[obj.pk]
-        self.fields['category'].help_text='Em branco aplica regras; sem regra, fica a classificar.'
+        self.fields['category'].help_text='Em branco aplica regras. Depreciação/amortização não gera conta a pagar. Não repita impostos, taxas ou comissões já registrados nas vendas.'
         self.fields['notes'].widget=forms.Textarea(attrs={'rows':2})
         self.order_fields(['description','amount','counterparty','competence','document_date','due_date','category','account','cost_center','notes','recurrence_enabled','supplier','key'])
 
 
 class ReclassifyForm(forms.Form):
-    category=forms.ModelChoiceField(label='Nova categoria',queryset=ChartOfAccount.objects.filter(active=True,postable=True,nature__in=['OPERATING','FINANCIAL']),required=False)
+    category=forms.ModelChoiceField(label='Nova categoria',queryset=ChartOfAccount.objects.filter(active=True,postable=True,nature__in=['OPERATING','FINANCIAL','DEPRECIATION','UNCLASSIFIED']),required=False)
     automatic=forms.BooleanField(label='Aplicar regras atuais',required=False)
     cost_center=forms.CharField(label='Centro de custo',max_length=120,required=False)
     reason=forms.CharField(label='Motivo da correção',max_length=500)

@@ -58,6 +58,7 @@ def products(request):
         for product in page:
             product.stock_value = location_values(product).get(location.pk if location else None, Decimal(0))
         context['stock_totals'], context['stock_total'] = stock_totals(locations)
+        context['stock_totals'].sort(key=lambda row: (-row['value'], row['location'].name))
     return render(request, 'inventory/products.html', context)
 
 @login_required

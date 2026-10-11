@@ -4,9 +4,9 @@
 {% if perms.core.operate_stock %}<div class="actions">{% if perms.core.manage_products %}<a class="button" href="{% url 'product_new' %}?next={{ request.get_full_path|urlencode }}">Novo produto</a>{% endif %}<a class="button primary" href="{% url 'operation_new' %}?next={{ request.get_full_path|urlencode }}">Movimentar estoque</a></div>{% endif %}</div>
 {% if perms.core.operate_stock and perms.core.manage_stock_catalogs %}<div class="tabs"><a href="{% url 'named' 'locais' %}?next={{ request.get_full_path|urlencode }}">Locais</a><a href="{% url 'named' 'marcas' %}?next={{ request.get_full_path|urlencode }}">Marcas</a><a href="{% url 'named' 'categorias' %}?next={{ request.get_full_path|urlencode }}">Categorias</a></div>{% endif %}
 {% if perms.core.view_costs %}
-<section class="stock-totals" aria-label="Valores de todo o estoque">
+<section class="stock-totals" aria-label="Valores de todo o estoque"><div class="card"><span>Total do estoque</span><strong>R$ {{ stock_total|floatformat:2 }}</strong></div>
 {% for item in stock_totals %}<div class="card"><span>{{ item.location.name }}</span><strong>R$ {{ item.value|floatformat:2 }}</strong></div>{% endfor %}
-<div class="card"><span>Total do estoque</span><strong>R$ {{ stock_total|floatformat:2 }}</strong></div>
+
 </section><p class="muted">Valores de todos os produtos, sem filtros, pelo custo médio de cada depósito. A troca de depósito não altera estes totais.</p>
 {% endif %}
 <nav class="actions stock-locations" aria-label="Selecionar depósito">

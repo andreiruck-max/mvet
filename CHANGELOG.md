@@ -204,3 +204,9 @@ Unidade cadastrada no MVet prevalece; quantidade e preço da nota mantidos sem c
 
 ## 05/10/2026 — Dashboard inicial e revisão visual
 Indicadores como início autorizado, mês completo com datas visíveis, cartões de receita/resultado/compras/bancos/estoque respeitando permissões. Menu por função, filtros e espaçamentos compactos globais, navegação móvel recolhível. Caixa como matriz banco × dia, entradas/saídas/saldo, visões realizado/previsto e totais, mantendo histórico e paginação. Ver docs/DASHBOARD.md.
+
+## 10/10/2026 — financeiro, plano de contas e relatórios
+- Baixas aceitam data futura, reservam o principal e afetam projeção/realizado na data correta. Estorno futuro sem crédito fictício hoje.
+- Plano Mercadovet instalado de forma aditiva pelo atualizador; principal e juros separados, pendências explícitas e depreciação manual sem conta a pagar.
+- Cartões: total primeiro, demais por valor decrescente e opção persistente de ocultar valores.
+- Vendas exportadas em todos os canais, com resumo e seções/abas por canal, preservando filtros de período/NF/situação e permissões.

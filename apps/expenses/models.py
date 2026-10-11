@@ -4,7 +4,8 @@ from django.db import models
 
 
 class ChartOfAccount(models.Model):
-    NATURES = [('OPERATING','Despesa operacional'),('FINANCIAL','Despesa financeira'),('ASSET','Ativo'),('LIABILITY','Passivo'),('EQUITY','Patrimônio'),('REVENUE','Receita')]
+    NATURES = [('OPERATING','Despesa operacional'),('FINANCIAL','Despesa financeira'),('ASSET','Ativo'),('LIABILITY','Passivo'),('EQUITY','Patrimônio'),('REVENUE','Receita'),('DEPRECIATION','Depreciação / amortização'),('UNCLASSIFIED','A classificar'),('GROUP','Grupo de naturezas diversas')]
+    seed_key = models.CharField(max_length=80, null=True, blank=True, unique=True, editable=False)
     code = models.CharField('Código', max_length=47, unique=True)
     name = models.CharField('Nome', max_length=180)
     parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.PROTECT, related_name='children', verbose_name='Categoria superior')
@@ -43,7 +44,7 @@ class Expense(models.Model):
     rule_snapshot = models.JSONField(default=dict,blank=True,editable=False)
     cost_center = models.CharField('Centro de custo',max_length=120,blank=True)
     notes = models.CharField('Observação',max_length=500,blank=True)
-    title = models.OneToOneField('finance.FinancialTitle',on_delete=models.PROTECT,related_name='expense',editable=False)
+    title = models.OneToOneField('finance.FinancialTitle',null=True,blank=True,on_delete=models.PROTECT,related_name='expense',editable=False)
     status = models.CharField(max_length=12,choices=[('ACTIVE','Registrada'),('CANCELLED','Cancelada')],default='ACTIVE',db_index=True)
     recurrence_of = models.ForeignKey('self',null=True,blank=True,on_delete=models.PROTECT,related_name='occurrences',editable=False)
     recurrence_index = models.PositiveIntegerField(default=0,editable=False)
@@ -55,7 +56,7 @@ class Expense(models.Model):
     cancellation_reason = models.CharField(max_length=500,blank=True)
     class Meta:
         ordering=['-competence','-pk']
-        constraints=[models.CheckConstraint(condition=models.Q(amount__gt=0),name='expense_positive'),models.UniqueConstraint(fields=['recurrence_of','recurrence_index'],condition=models.Q(recurrence_of__isnull=False),name='expense_unique_occurrence')]
+        constraints=[models.CheckConstraint(condition=models.Q(title__isnull=False) | (models.Q(category_snapshot__has_key='nature') & models.Q(category_snapshot__nature='DEPRECIATION')), name='expense_noncash_category'),models.CheckConstraint(condition=models.Q(amount__gt=0),name='expense_positive'),models.UniqueConstraint(fields=['recurrence_of','recurrence_index'],condition=models.Q(recurrence_of__isnull=False),name='expense_unique_occurrence')]
         indexes=[models.Index(fields=['status','competence']),models.Index(fields=['category','competence'])]
 
 

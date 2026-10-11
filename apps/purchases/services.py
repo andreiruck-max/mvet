@@ -106,7 +106,7 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
             require(actor,'core.operate_expenses')
             if not str(item.get('name') or (products[pid].name if pid in products else '')).strip():raise ValidationError('Informe a descrição do item sem estoque.')
             if item.get('category_id'):
-                category=ChartOfAccount.objects.filter(pk=item['category_id'],postable=True).exclude(nature='REVENUE').first()
+                category=ChartOfAccount.objects.filter(pk=item['category_id'],postable=True).exclude(nature__in=['REVENUE','DEPRECIATION','GROUP']).first()
                 if not category:raise ValidationError('Categoria inválida para item sem estoque.')
                 item['category_snapshot']=category_path(category,expense=False)
         number(qty,QTY);number(cost,MONEY,zero=True)

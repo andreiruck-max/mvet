@@ -114,3 +114,6 @@ Implementado no novo pacote: grade de vendas por canal com produtos/quantidades,
 Correção auditada de valores de vendas confirmadas, recuperação destacada, busca direta Bling por número/série, digitação monetária por centavos e atalhos dos indicadores implementados. Consulta real das NFs ausentes e correção dos valores empresariais serão realizadas pelo usuário após a instalação; não há acesso ao banco local nesta sessão.
 ## 09/10/2026 — Filtros, desconto de item e cadastros na importação
 Novo pacote: filtros automáticos em vendas, NF crescente por data/canal, desconto de compra por linha, fornecedor novo junto com importação e atalhos explícitos para crédito/débito da conta. Migration adiciona desconto zero sem recalcular histórico; ADR 0032. Validação e integração registradas no PR do pacote. Instalação no PC e preenchimento dos documentos reais são etapas locais, não executadas nesta sessão.
+
+### Pacote financeiro e relatórios — 10/10/2026
+Implementado: baixa em data futura com projeção/realizado por data e estorno; plano Mercadovet aditivo no instalador; depreciação manual sem obrigação financeira; cartões ordenados e privacidade local; exportação organizada de todos os canais. Fora do escopo: iniciar pagamentos em banco, cálculo automático da vida útil de ativos e reclassificação automática de registros históricos.

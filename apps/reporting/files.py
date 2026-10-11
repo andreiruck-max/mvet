@@ -107,6 +107,12 @@ STYLES=f'''<styleSheet xmlns="{NS}"><numFmts count="3"><numFmt numFmtId="164" fo
 def xlsx(dataset, company):
     from .datasets import Dataset
     sheets=[(dataset, bool(dataset.cash))]
+    if hasattr(dataset, 'groups'):
+        keys=['count','revenue'] + (['cmv'] if 'cmv' in dataset.totals else []) + (['tax_amount','contribution','margin'] if 'contribution' in dataset.totals else [])
+        summary=Dataset('Resumo por canal',['Canal']+[METRICS[k] for k in keys],
+            [['Total da empresa']+[dataset.totals.get(k) for k in keys]]+[[g.notes]+[g.totals.get(k) for k in keys] for g in dataset.groups],dataset.notes)
+        sheets.append((summary,False))
+        sheets.extend((group,False) for group in dataset.groups)
     if dataset.cash:sheets.append((Dataset('Caixa detalhado',dataset.headers,dataset.rows,dataset.notes),False))
     if hasattr(dataset,'locations'):sheets.append((dataset.locations,False))
     if dataset.totals:sheets.append((Dataset('Totais confirmados',['Indicador','Valor'],[(METRICS.get(k,k),v) for k,v in dataset.totals.items()]),False))
@@ -139,6 +145,9 @@ def xlsx(dataset, company):
 
 
 def pdf(dataset, company):
+    if hasattr(dataset, 'groups'):
+        from .sales_pdf import render
+        return render(dataset, company)
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.styles import ParagraphStyle

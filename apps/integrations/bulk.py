@@ -65,7 +65,7 @@ class BulkForm(forms.Form):
     channel=forms.ModelChoiceField(label='Canal',required=False,queryset=SalesChannel.objects.filter(active=True))
     acquisition_kind=forms.ChoiceField(label='Tipo de entrada',required=False,choices=[('','Manter'),('NORMAL','Compra com financeiro'),('BONUS','Bonificação sem financeiro')])
     item_mode=forms.ChoiceField(label='Destino de todos os itens',required=False,choices=[('','Manter'),('STOCK','Movimentar estoque'),('NONSTOCK','Somente financeiro — sem estoque')])
-    category=forms.ModelChoiceField(label='Categoria sem estoque',required=False,queryset=ChartOfAccount.objects.filter(active=True,postable=True).exclude(nature='REVENUE'))
+    category=forms.ModelChoiceField(label='Categoria sem estoque',required=False,queryset=ChartOfAccount.objects.filter(active=True,postable=True).exclude(nature__in=['REVENUE','DEPRECIATION','GROUP']))
 
     def __init__(self,*args,kind,**kwargs):
         super().__init__(*args,**kwargs);self.kind=kind

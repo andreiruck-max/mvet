@@ -14,7 +14,7 @@ from apps.finance.services import account_for, repeat, cancel_origin
 from .models import ChartOfAccount as Category, ClassificationRule as Rule, Expense, ExpenseRevision
 
 CENT=Decimal('0.01')
-EXPENSE_NATURES={'OPERATING','FINANCIAL'}
+EXPENSE_NATURES={'OPERATING','FINANCIAL','DEPRECIATION','UNCLASSIFIED'}
 
 
 def category_path(category, *, expense=True):
@@ -28,7 +28,7 @@ def category_path(category, *, expense=True):
         node=node.parent
     if expense and (not leaf.postable or leaf.nature not in EXPENSE_NATURES):
         raise ValidationError('Escolha categoria analítica de despesa operacional ou financeira.')
-    return {'path':list(reversed(path)),'nature':leaf.nature}
+    return {'path':list(reversed(path)),'nature':'NONE' if leaf.nature == 'UNCLASSIFIED' else leaf.nature}
 
 
 @transaction.atomic
@@ -44,12 +44,13 @@ def save_category(*,actor,data,pk=None):
         if obj.parent_id==obj.pk: raise ValidationError('Categoria não pode ser superior a si mesma.')
         path=category_path(obj.parent,expense=False)
         if any(n['id']==obj.pk for n in path['path']):raise ValidationError('Ciclo na hierarquia.')
-        if obj.parent.postable or obj.nature!=obj.parent.nature:raise ValidationError('Categoria superior deve ser agrupadora e possuir a mesma natureza.')
+        if obj.parent.postable or (obj.parent.nature != 'GROUP' and obj.nature!=obj.parent.nature):raise ValidationError('Categoria superior deve ser agrupadora e possuir a mesma natureza.')
         if obj.code.rsplit('.',1)[0]!=obj.parent.code or '.' not in obj.code:raise ValidationError('Código deve ser filho direto do código superior.')
     elif '.' in obj.code:raise ValidationError('Código com subnível exige categoria superior.')
     if pk and (obj.children.exists() or obj.expenses.exists() or obj.purchase_items.exists() or Rule.objects.filter(category=obj).exists()):
         for field in ['code','parent','nature','postable']:
             if str(getattr(obj,field))!=before[field]:raise ValidationError('Estrutura utilizada é histórica; crie outra categoria. Nome e atividade podem ser ajustados.')
+    if obj.nature == 'GROUP' and obj.postable: raise ValidationError('Grupo de naturezas diversas não aceita lançamentos.')
     obj.full_clean();obj.save()
     audit(actor,obj,'save_chart_account',before,{k:str(getattr(obj,k)) for k in allowed});return obj
 
@@ -101,10 +102,12 @@ def create_expense(*,actor,key,data,recurrence_of=None,recurrence_index=0):
     if data.get('account'):account_for(data['account'].pk,data['due_date'])
     category,snapshot,method,rule=classify(data)
     values={k:v for k,v in data.items() if k not in {'account','due_date','category'}}
-    title=FinancialTitle.objects.create(direction='PAY',description=data['description'],counterparty=data.get('counterparty') or str(data.get('supplier') or ''),date=data['document_date'],due_date=data['due_date'],amount=data['amount'],account=data.get('account'),actor=actor,source='expense',category='OTHER')
+    if snapshot.get('nature') == 'DEPRECIATION' and data.get('recurrence_enabled'):
+        raise ValidationError('Depreciação/amortização: registre cada competência sem recorrência financeira.')
+    title=None if snapshot.get('nature') == 'DEPRECIATION' else FinancialTitle.objects.create(direction='PAY',description=data['description'],counterparty=data.get('counterparty') or str(data.get('supplier') or ''),date=data['document_date'],due_date=data['due_date'],amount=data['amount'],account=data.get('account'),actor=actor,source='expense',category='OTHER')
     obj=Expense(key=key,fingerprint=fingerprint,actor=actor,title=title,category=category,category_snapshot=snapshot,classification=method,rule_snapshot=rule,recurrence_of=recurrence_of,recurrence_index=recurrence_index,**values)
     obj.full_clean(exclude=['cancelled_at']);obj.save()
-    audit(actor,obj,'create_expense',{}, {'competence':str(obj.competence),'amount':str(obj.amount),'title':title.pk,**classification_snapshot(obj)})
+    audit(actor,obj,'create_expense',{}, {'competence':str(obj.competence),'amount':str(obj.amount),'title':title.pk if title else None,**classification_snapshot(obj)})
     return obj
 
 
@@ -121,6 +124,8 @@ def reclassify(*,actor,pk,category,cost_center,reason,revision,automatic=False):
     data={'description':obj.description,'counterparty':obj.counterparty,'supplier':obj.supplier,'category':None if automatic else category}
     if not automatic and not category:raise ValidationError('Selecione categoria ou marque Aplicar regras atuais.')
     obj.category,obj.category_snapshot,obj.classification,obj.rule_snapshot=classify(data)
+    if (obj.category_snapshot.get('nature') == 'DEPRECIATION') != (obj.title_id is None):
+        raise ValidationError('Não é possível transformar obrigação financeira em depreciação, ou vice-versa. Cancele e registre corretamente.')
     obj.cost_center=cost_center;obj.revision+=1
     after=classification_snapshot(obj)
     ExpenseRevision.objects.create(expense=obj,number=obj.revision,actor=actor,reason=reason,before=before,after=after)
@@ -134,7 +139,7 @@ def cancel_expense(*,actor,pk,reason):
     require(actor,'core.operate_expenses');domain_lock()
     obj=Expense.objects.select_for_update().get(pk=pk)
     if obj.status=='CANCELLED':return obj
-    cancel_origin(actor,reason,pk=obj.title_id)
+    if obj.title_id: cancel_origin(actor,reason,pk=obj.title_id)
     obj.status='CANCELLED';obj.cancelled_at=timezone.now();obj.cancellation_reason=reason;obj.revision+=1
     obj.save(update_fields=['status','cancelled_at','cancellation_reason','revision'])
     audit(actor,obj,'cancel_expense',{'status':'ACTIVE'},{'reason':reason});return obj
@@ -148,6 +153,7 @@ def month_shift(date,offset):
 def recurrence_preview(expense,months):
     if not 1<=months<=24:raise ValidationError('Gere de 1 a 24 meses por vez.')
     if expense.recurrence_of_id or not expense.recurrence_enabled or expense.status!='ACTIVE':raise ValidationError('Recorrência deve partir de despesa-base ativa e habilitada.')
+    if not expense.title_id: raise ValidationError('Registro sem obrigação financeira não gera recorrência.')
     title=expense.title
     existing=set(expense.occurrences.values_list('recurrence_index',flat=True))
     rows=[]

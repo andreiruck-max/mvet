@@ -106,7 +106,7 @@ class FinanceTests(Fixture,TestCase):
 
     def test_future_realized_and_preopening_rejected(self):
         t=self.title()
-        for date in [self.today+timedelta(days=1),self.cutoff-timedelta(days=1)]:
+        for date in [self.cutoff-timedelta(days=1)]:
             with self.assertRaises(ValidationError):self.settle(t,date=date)
         with self.assertRaises(ValidationError):s.transfer(actor=self.operator,key=uuid4(),source_id=self.a.pk,destination_id=self.b.pk,date=self.today+timedelta(days=1),amount=D('1'))
 
@@ -284,3 +284,33 @@ class FuturePaymentRegression(Fixture, TestCase):
         self.settle(title,date=self.today-timedelta(days=2))
         self.assertEqual(cash_summary(self.today,self.today)['actual'], D('900'))
         self.assertEqual(cash_summary(self.today,self.today+timedelta(days=30))['projected'], D('900'))
+
+
+class FutureSettlementTests(Fixture, TestCase):
+    def test_future_payment_replaces_forecast_and_becomes_actual_on_date(self):
+        future=self.today+timedelta(days=8)
+        t=self.title(due_date=self.today+timedelta(days=20),account=None)
+        op=self.settle(t,date=future,principal=D('60'),actual=D('63'),interest=D('3'),notes='Juros acordados')
+        t.refresh_from_db();self.assertEqual(t.remaining,D('40'))
+        self.assertIn('futura',t.display_status)
+        summary=selectors.cash_summary(self.today,future)
+        self.assertEqual(summary['actual'],D('1000'))
+        self.assertEqual(summary['projected'],D('937'))
+        later=selectors.cash_summary(self.today,self.today+timedelta(days=20))
+        self.assertEqual(later['projected'],D('897'))
+        with patch('django.utils.timezone.localdate',return_value=future):
+            summary=selectors.cash_summary(self.today,future)
+            self.assertEqual(summary['actual'],D('937'))
+            self.assertEqual(summary['projected'],D('937'))
+        self.assertEqual(op.display_status,'Registrada para data futura')
+
+    def test_cancelling_future_payment_does_not_credit_today(self):
+        t=self.title(due_date=self.today+timedelta(days=10))
+        op=self.settle(t,date=self.today+timedelta(days=5))
+        rev=s.reverse(actor=self.admin,pk=op.pk,date=self.today,reason='Cancelar baixa futura')
+        self.assertEqual(rev.date,op.date)
+        t.refresh_from_db();self.assertEqual(t.remaining,D('100'))
+        summary=selectors.cash_summary(self.today,op.date)
+        self.assertEqual(summary['actual'],D('1000'))
+        self.assertEqual(summary['projected'],D('1000'))
+        self.assertEqual(selectors.cash_summary(self.today,t.due_date)['projected'],D('900'))

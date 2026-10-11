@@ -55,3 +55,6 @@ Novas vendas não geram contas a receber; títulos anteriores e liquidações s�
 
 ## Caixa e baixa antecipada — 28/09/2026
 Fluxo diário → Pagamentos pendentes e futuros → Baixar pagamento. Usar data efetiva (até hoje), inclusive antes do vencimento, com conta/valor efetivos. Pagamento parcial reduz somente o principal baixado; juros e descontos seguem explícitos. Reagendar altera previsão; estornar reabre pendência. Resumo do período independe da página: consolidado da empresa inclui títulos sem conta definida, mas quadros por banco não os distribuem arbitrariamente. Novas vendas não geram recebíveis (ADR 0022 prevalece sobre descrições históricas acima).
+
+## Atualização 10/10/2026 — baixa com data futura
+ADR 0037 substitui as orientações anteriores que limitavam a data da baixa a hoje. Informe a data desejada: o título mostra Baixa futura, a projeção usa o valor efetivo nessa data e o saldo de hoje não muda. Na data registrada, passa a realizado automaticamente. Não envia pagamento ao banco. Para desfazer antes da data, estorne: a contraparte usa a data original e a obrigação reabre, sem entrada bancária hoje. Pagamentos parciais, juros/descontos, permissões, revisão e idempotência permanecem.

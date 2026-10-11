@@ -3,6 +3,7 @@
 Monólito Django 5.2 LTS, PostgreSQL, templates, CSS/JS locais. Código em inglês; interface e documentação em português. `apps/<module>`: models para estrutura, services para regras/transações, selectors para consultas, forms para entrada, views para HTTP. Templates não calculam finanças. Group e Permission do Django representam papéis e permissões.
 
 ## Regras invioláveis
+- Baixas futuras são permitidas: principal reservado, caixa realizado somente na data, projeção sem duplicar título; estorno antecipado na data original. Plano Mercadovet aditivo e depreciação manual sem título, abaixo do EBITDA. ADR 0037.
 - Comissões: base produtos − descontos sem frete; liberação por recebimento; pagamento alocado e compensação negativa auditável. Não duplicar Sale.commission na DRE, nem gerar banco/recebível automaticamente. ADR 0036.
 - CRM: carteira própria via operate_crm; governança master. Interações/eventos imutáveis, ativos com próxima data, não contatar imediato sem recorrência. Sem efeitos em estoque/financeiro. ADR 0035.
 - Decimal/NUMERIC: quantidade 4 casas, custo e valorização 6 casas, dinheiro 2 casas.

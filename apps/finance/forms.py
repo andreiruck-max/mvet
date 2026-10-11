@@ -42,7 +42,7 @@ class SettlementForm(forms.Form):
     key=forms.UUIDField(initial=uuid4,widget=forms.HiddenInput)
     revision=forms.IntegerField(widget=forms.HiddenInput)
     account=forms.ModelChoiceField(label='Conta efetiva',queryset=Account.objects.filter(active=True))
-    date=forms.DateField(label='Data efetiva',widget=DateInput(),initial=timezone.localdate)
+    date=forms.DateField(label='Data da baixa',widget=DateInput(),initial=timezone.localdate,help_text='Aceita data futura: afeta a projeção nessa data, sem alterar o saldo realizado hoje.')
     principal=forms.DecimalField(label='Principal a baixar (R$)',max_digits=18,decimal_places=2,min_value=Decimal('0.01'))
     interest=forms.DecimalField(label='Juros / acréscimos (R$)',initial=0,max_digits=18,decimal_places=2,min_value=0)
     discount=forms.DecimalField(label='Desconto / abatimento (R$)',initial=0,max_digits=18,decimal_places=2,min_value=0)

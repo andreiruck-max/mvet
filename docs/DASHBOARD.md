@@ -50,3 +50,6 @@ Caixa substitui cartões por matriz: contas nas linhas, datas nas colunas, entra
 # Vendas em tabela — filtros automáticos (09/10/2026)
 
 Selecionar período, canal, situação ou ordenação aplica a consulta automaticamente. Alterar data seleciona período personalizado; NF é consultada após uma breve pausa na digitação. Consultar permanece como alternativa acessível/sem JavaScript. A consulta reinicia na primeira página. Datas seguem a escolha recentes/antigas, e NFs numéricas ficam crescentes dentro da mesma data e canal; exportação segue o desempate numérico. Não altera dados ou totais.
+
+## 10/10/2026 — cartões e exportações
+Total da empresa/estoque primeiro; canais/depósitos em ordem decrescente de valor. Ocultar valores dos cartões persiste no navegador e não substitui permissões; tabelas e arquivos permanecem com os valores autorizados. Exportações de vendas incluem todos os canais por padrão, conservando período/NF/situação. Excel com aba completa, resumo e abas por canal; PDF com resumo e seções que mantêm produtos, deduções e resultado junto à respectiva NF. Depreciação registrada é deduzida após o EBITDA na DRE e no resultado da dashboard.

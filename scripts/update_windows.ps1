@@ -63,6 +63,7 @@ try {
     Write-Host "Backup restaurado e conferido: $backupFile"
     Get-FileHash -LiteralPath $backupFile -Algorithm SHA256 | Format-List
     Run docker @('compose', 'run', '--rm', '--no-deps', 'web', 'python', 'manage.py', 'migrate', '--noinput')
+    Run docker @('compose', 'run', '--rm', '--no-deps', 'web', 'python', 'manage.py', 'install_mercadovet_chart')
     Run docker @('compose', 'run', '--rm', '--no-deps', 'web', 'python', 'manage.py', 'check')
     Run docker @('compose', 'up', '-d', '--no-deps', 'web')
     $newWebStarted = $true

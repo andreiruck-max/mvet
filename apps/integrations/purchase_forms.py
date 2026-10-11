@@ -49,7 +49,7 @@ class PurchaseProductForm(forms.Form):
     discount=forms.DecimalField(label='Desconto total deste item (R$)',max_digits=18,decimal_places=2,min_value=0,initial=Decimal('0.00'),required=False,localize=True,widget=MoneyInput)
     mode=forms.ChoiceField(label='Destino do item',choices=[('STOCK','Movimentar estoque'),('NEW','Cadastrar produto e movimentar estoque'),('NONSTOCK','Somente financeiro — sem estoque')],initial='STOCK',required=False)
     product = LocalProductChoice(label='Produto MVet', required=False, queryset=Product.objects.filter(active=True, kind='SIMPLE').order_by('name'))
-    category=forms.ModelChoiceField(label='Categoria sem estoque',required=False,queryset=ChartOfAccount.objects.filter(active=True,postable=True).exclude(nature='REVENUE'))
+    category=forms.ModelChoiceField(label='Categoria sem estoque',required=False,queryset=ChartOfAccount.objects.filter(active=True,postable=True).exclude(nature__in=['REVENUE','DEPRECIATION','GROUP']))
     new_sku=forms.CharField(label='SKU do novo produto',max_length=60,required=False)
     new_name=forms.CharField(label='Nome no MVet',max_length=240,required=False)
     new_unit=forms.CharField(label='Unidade no MVet',max_length=12,initial='UN',required=False)
