@@ -14,7 +14,8 @@ nem a garantia de ausência de falhas.
    compartilham a mesma data corrente. Não há alteração no valor nem no histórico.
 2. **Excel do caixa ignorava a visão:** o quadro horizontal exportava sempre realizado,
    mesmo ao escolher Realizado + previsto. Agora respeita a seleção, incluindo baixas
-   futuras e compromissos; a aba detalhada identifica explicitamente realizado e projetado.
+   futuras e compromissos; a aba detalhada identifica explicitamente realizado e projetado. Os botões de exportação
+   voltam a estar acessíveis na página do caixa, restritos à permissão de exportar financeiro.
 3. **Cálculo duplicado do caixa:** a página materializava duas vezes o mesmo livro para
    montar cartões e grade. Passa a reutilizar a projeção, reduzindo consultas e tempo
    sob o lock compartilhado, mantendo uma única base de cálculo.
