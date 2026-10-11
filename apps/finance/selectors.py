@@ -77,6 +77,11 @@ def daily_cash(start,end,account_id=None, *, active_only=False):
 def cash_summary(start, end, account_id=None, *, active_only=False):
     """Period endpoint, independent of pagination; company includes unassigned debts."""
     rows, unallocated = daily_cash(start, end, account_id, active_only=active_only)
+    return summarize_cash(rows, unallocated, end, account_id)
+
+
+def summarize_cash(rows, unallocated, end, account_id=None):
+    """Reuse an already materialized ledger instead of querying every source twice."""
     final_rows = [row for row in rows if row['date'] == end]
     actual = sum((row['final'] for row in final_rows), ZERO)
     projected = sum((row['projected'] for row in final_rows), ZERO)

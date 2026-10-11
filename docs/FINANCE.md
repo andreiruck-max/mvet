@@ -61,3 +61,10 @@ ADR 0037 substitui as orientações anteriores que limitavam a data da baixa a h
 
 ## Janela e lançamentos futuros (ADR 0038)
 Saldos e fluxo abre de hoje até hoje+15 dias, inclusive, com destaque visual em hoje. Novo crédito/débito permite data futura: registrado uma única vez na projeção, sem aumentar/reduzir o saldo realizado antes da data. Estorno mantém regras da baixa futura (ADR 0037).
+
+## Revisão funcional 11/10/2026
+O vencimento atual do título é a referência também nas consultas/exportações de compras
+e na ficha do fornecedor. A parcela preserva o vencimento contratual, mostrado como
+Original quando diferente. Excel do caixa respeita Somente realizado / Realizado + previsto;
+a aba detalhada mantém ambas as posições identificadas. A grade e os cartões reutilizam
+um único cálculo. Dashboard inclui contas ativas e inativas, explicitamente; fluxo só ativas.

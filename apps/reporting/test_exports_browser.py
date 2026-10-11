@@ -60,3 +60,36 @@ class ExportBrowser(ReportingFixture,StaticLiveServerTestCase):
             self.assertNotIn('CMV',page.locator('main').inner_text())
             self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390)
             browser.close()
+
+    def test_renegotiated_purchase_and_projected_cash_download(self):
+        from datetime import timedelta
+        from decimal import Decimal
+        from pathlib import Path
+        from io import BytesIO
+        from zipfile import ZipFile
+        from xml.etree import ElementTree as ET
+        from playwright.sync_api import sync_playwright
+        from apps.finance import services
+        from .files import NS
+        purchase=self.purchase();title=purchase.installments.first().financial_title
+        day=self.today+timedelta(days=5)
+        services.schedule_title(actor=self.actor,pk=title.pk,due_date=day,account=self.account,
+            notes='Vencimento renegociado',revision=title.revision)
+        client=Client();client.force_login(self.actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(accept_downloads=True)
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page();page.goto(self.live_server_url+reverse('purchase_detail',args=[purchase.pk]))
+            page.get_by_text('Original: '+self.today.strftime('%d/%m/%Y'),exact=True).wait_for()
+            self.assertIn(day.strftime('%d/%m/%Y'),page.locator('main').inner_text())
+            Path('artifacts').mkdir(exist_ok=True)
+            page.screenshot(path='artifacts/review-purchase-reschedule.png',full_page=True)
+            page.goto(self.live_server_url+reverse('finance')+f'?start={day}&end={day}&mode=projected')
+            with page.expect_download() as info:
+                page.get_by_role('link',name='Exportar Excel',exact=True).click()
+            download=info.value;self.assertIsNone(download.failure())
+            with ZipFile(BytesIO(Path(download.path()).read_bytes())) as book:
+                root=ET.fromstring(book.read('xl/worksheets/sheet1.xml'))
+            self.assertEqual(Decimal(root.find(f'.//{{{NS}}}c[@r="D3"]/{{{NS}}}v').text),Decimal(975))
+            page.screenshot(path='artifacts/review-projected-cash.png',full_page=True)
+            browser.close()

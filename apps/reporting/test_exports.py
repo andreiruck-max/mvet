@@ -95,7 +95,7 @@ class ExportTests(ReportingFixture, TestCase):
     def test_cash_horizontal_days_include_empty_days_and_detail(self):
         ds=build('cash',self.actor,dict(start=self.today,end=self.today+timedelta(days=1)))
         root=self.xml(xlsx(ds,'Empresa sintética'))
-        self.assertEqual(len(root.findall(f'.//{{{NS}}}mergeCell')),2)
+        self.assertEqual(len(root.findall(f'.//{{{NS}}}mergeCell')),3)
         self.assertEqual(root.find(f'.//{{{NS}}}c[@r="D3"]/{{{NS}}}v').text,'1000.00')
         self.assertIsNotNone(self.xml(xlsx(ds,'Empresa sintética'),2))
 
