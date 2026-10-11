@@ -73,7 +73,10 @@ def sheet_xml(dataset, company, *, horizontal=False):
             row=SubElement(data,'row',r=str(i));cell(row,1,name)
             for j,day in enumerate(days):
                 r=lookup.get((pk,day))
-                for offset,key in enumerate(['credits','debits','final']):cell(row,2+j*3+offset,r[key] if r else None)
+                keys=['projected_credits','projected_debits','projected'] if dataset.cash_mode=='projected' else ['credits','debits','final']
+                for offset,key in enumerate(keys):cell(row,2+j*3+offset,r[key] if r else None)
+        row=SubElement(data,'row',r=str(len(accounts)+4),ht='45',customHeight='1');cell(row,1,dataset.notes)
+        if count>1:merges.append(f'A{len(accounts)+4}:{column(count)}{len(accounts)+4}')
     else:
         row=SubElement(data,'row',r='1',ht='26',customHeight='1');cell(row,1,dataset.title+' - '+company,4)
         if count>1:merges.append(f'A1:{column(count)}1')

@@ -139,6 +139,7 @@ def cancel_expense(*,actor,pk,reason):
     require(actor,'core.operate_expenses');domain_lock()
     obj=Expense.objects.select_for_update().get(pk=pk)
     if obj.status=='CANCELLED':return obj
+    if not reason.strip() or len(reason)>500:raise ValidationError('Informe motivo de até 500 caracteres.')
     if obj.title_id: cancel_origin(actor,reason,pk=obj.title_id)
     obj.status='CANCELLED';obj.cancelled_at=timezone.now();obj.cancellation_reason=reason;obj.revision+=1
     obj.save(update_fields=['status','cancelled_at','cancellation_reason','revision'])

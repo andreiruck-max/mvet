@@ -46,3 +46,12 @@ class ChartTests(Fixture, TestCase):
         report=dre({'start':self.today,'end':self.today})
         self.assertTrue(report['provisional']);self.assertEqual(report['expenses']['NONE'],D('100'))
         self.assertEqual(report['ebitda'],D('0'))
+
+    def test_noncash_cancellation_requires_audit_reason(self):
+        install_chart()
+        expense=self.expense(category=Category.objects.get(seed_key='mercadovet-2026:08.01'))
+        for reason in ('', '   ', 'x'*501):
+            with self.assertRaises(ValidationError):
+                services.cancel_expense(actor=self.admin,pk=expense.pk,reason=reason)
+        expense.refresh_from_db()
+        self.assertEqual(expense.status,'ACTIVE')

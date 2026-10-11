@@ -226,3 +226,13 @@ class PostgreSQLInventoryTests(StockFixtures,TransactionTestCase):
         op=self.op()
         with self.assertRaises(DatabaseError),transaction.atomic():StockOperation.objects.filter(pk=op.pk).update(reason='Alterar')
         with self.assertRaises(DatabaseError),transaction.atomic():StockMovement.objects.filter(operation=op).delete()
+
+
+class DecimalBoundaryTests(TestCase):
+    def test_extreme_input_is_validation_error_not_decimal_crash(self):
+        from .services import number, MONEY
+        from decimal import Decimal
+        for value in ('1e100', '-1e100', 'NaN', 'Infinity', '1000000000000'):
+            with self.subTest(value=value), self.assertRaises(ValidationError):
+                number(Decimal(value), MONEY)
+        self.assertEqual(number(Decimal('999999999999.123456'), MONEY),Decimal('999999999999.123456'))

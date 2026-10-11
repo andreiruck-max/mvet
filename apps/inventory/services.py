@@ -27,10 +27,10 @@ def domain_lock():
 def number(value, quantum, *, zero=False):
     if not isinstance(value, Decimal) or not value.is_finite():
         raise ValidationError('Informe um número decimal válido.')
-    if value < 0 or (not zero and value == 0) or value != value.quantize(quantum):
-        raise ValidationError('Valor inválido ou com casas decimais excedentes.')
     if value >= Decimal('1000000000000'):
         raise ValidationError('Valor acima do limite permitido.')
+    if value < 0 or (not zero and value == 0) or value != value.quantize(quantum):
+        raise ValidationError('Valor inválido ou com casas decimais excedentes.')
     return value.quantize(quantum)
 
 def quant(value): return value.quantize(MONEY, rounding=ROUND_HALF_UP)

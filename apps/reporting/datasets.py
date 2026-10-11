@@ -14,6 +14,7 @@ class Dataset:
     notes: str = ''
     totals: dict = field(default_factory=dict)
     cash: list = field(default_factory=list)
+    cash_mode: str = 'actual'
 
 
 def metrics_for(user, metrics):
@@ -115,7 +116,9 @@ def build(kind, user, query):
         from apps.finance.selectors import daily_cash
         rows,unallocated = daily_cash(d['start'],d['end'],d['account'].pk if d.get('account') else None,active_only=True)
         if len(rows)>10000: raise ValidationError('Reduza o período ou selecione uma conta (máximo 10.000 posições).')
-        result = Dataset('Fluxo de Caixa',['Data','Conta','Saldo inicial','Entradas','Saídas','Saldo final','Projetado'],[[r['date'],str(r['account']),r['initial'],r['credits'],r['debits'],r['final'],r['projected']] for r in rows],f'Pendências sem conta fora da projeção: pagar R$ {unallocated["pay"]:.2f}; receber R$ {unallocated["receive"]:.2f}.',cash=rows)
+        mode=d.get('mode') or 'projected'
+        label='Realizado + previsto' if mode=='projected' else 'Somente realizado'
+        result = Dataset('Fluxo de Caixa',['Data','Conta','Saldo inicial realizado','Entradas realizadas','Saídas realizadas','Saldo realizado','Saldo projetado'],[[r['date'],str(r['account']),r['initial'],r['credits'],r['debits'],r['final'],r['projected']] for r in rows],f'Quadro por conta: {label}. Pendências sem conta fora do quadro por banco: pagar R$ {unallocated["pay"]:.2f}; receber R$ {unallocated["receive"]:.2f}.',cash=rows,cash_mode=mode)
     elif kind == 'titles':
         from apps.finance.selectors import titles
         result = Dataset('Contas a pagar e receber',['Tipo','Descrição','Favorecido','Vencimento','Valor','Baixado','Pendente','Situação','Conta prevista'],[[t.get_direction_display(),t.description,t.counterparty,t.due_date,t.amount,t.settled,t.remaining,t.display_status,str(t.account or '')] for t in bound(titles(d))])
@@ -126,16 +129,15 @@ def build(kind, user, query):
             return f"{path[-1]['code']} · {path[-1]['name']}" if path else 'A classificar'
         result = Dataset('Despesas',['Competência','Descrição','Favorecido','Categoria','Valor','Vencimento','Situação'],[[e.competence,e.description,e.counterparty,historical_category(e),e.amount,e.title.due_date if e.title_id else None,(e.title.display_status if e.title_id else 'Sem movimento financeiro') if e.status=='ACTIVE' else 'Cancelada'] for e in bound(expenses(d))])
     elif kind in ('purchases','payables'):
-        from apps.purchases.selectors import purchases
-        from apps.purchases.models import PurchaseInstallment
+        from apps.purchases.selectors import purchases, current_installments
         if kind == 'purchases':
             ids = bound(purchases(d)).values('pk')
-            rows = PurchaseInstallment.objects.filter(purchase_id__in=ids).select_related('purchase__supplier','financial_title').prefetch_related('purchase__items__product','purchase__installments')
+            rows = current_installments().filter(purchase_id__in=ids).select_related('purchase__supplier','financial_title').prefetch_related('purchase__items__product','purchase__installments')
         else:
-            rows = PurchaseInstallment.objects.filter(pk__in=bound(selectors.payables(d)).values('purchase_installment_id')).select_related('purchase__supplier','financial_title').prefetch_related('purchase__items__product','purchase__installments')
+            rows = current_installments().filter(pk__in=bound(selectors.payables(d)).values('purchase_installment_id')).select_related('purchase__supplier','financial_title').prefetch_related('purchase__items__product','purchase__installments')
         result = Dataset('Compras',['DATA COMPRA','NF','FORNECEDOR','PARCELA','VCTO','VALOR','PRODUTOS','SITUAÇÃO','PENDENTE'],[],'Uma linha por parcela; não somar o valor total da compra repetidamente.')
-        for i in bound(rows).order_by('due_date','pk'):
-            p=i.purchase; result.rows.append([p.date,p.document,str(p.supplier),f'{i.number}/{len(p.installments.all())}',i.due_date,i.amount,' + '.join(f'{j.quantity} × {j.name_snapshot or j.product.name}' for j in p.items.all()),i.display_status,i.remaining])
+        for i in bound(rows).order_by('current_due_date','pk'):
+            p=i.purchase; result.rows.append([p.date,p.document,str(p.supplier),f'{i.number}/{len(p.installments.all())}',i.effective_due_date,i.amount,' + '.join(f'{j.quantity} × {j.name_snapshot or j.product.name}' for j in p.items.all()),i.display_status,i.remaining])
         if kind=='purchases':
             for p in purchases(d).filter(installments__isnull=True).prefetch_related('items__product'):
                 result.rows.append([p.date,p.document,str(p.supplier),'Sem parcelas',None,p.total,' + '.join(f'{j.quantity} × {j.name_snapshot or j.product.name}' for j in p.items.all()),p.get_status_display(),None])

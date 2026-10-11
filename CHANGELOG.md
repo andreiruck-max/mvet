@@ -220,3 +220,9 @@ Indicadores como início autorizado, mês completo com datas visíveis, cartões
 - Primeiros contatos aguardam distribuição em vez de lotar pendências futuras; cadastros e histórico preservados.
 - Master define limite diário total, início e pausa. Seleção aleatória persistida, sem duplicar cota em acessos concorrentes.
 - Retornos seguem agenda própria e não consomem o limite; indicadores distinguem fila de novas pendências.
+
+## 2026-10-11 — Revisão funcional transversal
+- Vencimento renegociado consistente entre financeiro, compras, fornecedores e exportações, preservando o original.
+- Quadro Excel do caixa respeita visão realizada/projetada; página evita calcular o livro duas vezes.
+- Validação de valores extremos e motivo de cancelamento para despesas sem caixa.
+- Escopo das contas nos indicadores explicitado; revisão documentada em docs/FUNCTIONAL_REVIEW_2026_10_11.md.

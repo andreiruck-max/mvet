@@ -121,3 +121,9 @@ Implementado: baixa em data futura com projeção/realizado por data e estorno; 
 - Pacote ADR 0038: preço de loja com markup geral 35% e exceção master; Full sem markup; conciliação privada de estoque por base com prévia/revisão/idempotência; caixa hoje..+15 e crédito/débito futuro. Aplicação dos arquivos reais depende da instalação local e envio pelo master.
 
 - CRM: distribuição aleatória de primeiros contatos com limite diário global, pausa master, elegibilidade pela data original, preservação de retornos e registro imutável; ADR 0039. Liberação ao abrir Pendências, sem cron/catch-up.
+
+## Revisão funcional 11/10/2026
+Correções de vencimento corrente, exportação projetada, cálculo duplicado do caixa e
+validações descritas em FUNCTIONAL_REVIEW_2026_10_11.md. Evoluções identificadas para
+medição/projeto posterior: lock de relatórios longos, consultas por linha no CRM,
+disponibilidade de kits por depósito e demanda comercial após correções de depósito.
