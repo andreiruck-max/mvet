@@ -100,6 +100,7 @@ class ReportingBrowser(ReportingFixture,StaticLiveServerTestCase):
             page.get_by_role('link',name='DRE',exact=True).click()
             page.get_by_role('heading',name='DRE gerencial por competência',exact=True).wait_for()
             page.get_by_role('cell',name='EBITDA gerencial',exact=True).wait_for()
+            page.get_by_text('Outros relatórios e critérios da DRE',exact=True).click()
             page.get_by_role('link',name='Compras a pagar',exact=True).click()
             page.get_by_role('heading',name='Compras · parcelas a pagar',exact=True).wait_for()
             self.assertLess(page.locator('.payables-sheet tbody tr').first.bounding_box()['y'],850)
