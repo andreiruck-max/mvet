@@ -79,6 +79,8 @@ class ReconciliationTests(Fixture,TestCase):
         preview=reconcile(actor=self.actor,raw=raw)
         self.assertEqual(StockMovement.objects.count(),before)
         self.assertEqual(preview['changes'][0]['quantity'],'7.0000')
+        self.assertEqual(D(preview['locations'][0]['current_value']),D(40))
+        self.assertEqual(D(preview['locations'][0]['result_value']),D(56))
         report=self.apply(raw)
         self.assertTrue(report['committed'])
         self.product.refresh_from_db();sale.refresh_from_db()
@@ -134,3 +136,15 @@ class ReconciliationTests(Fixture,TestCase):
         response=self.client.post(url,{'action':'apply','token':token})
         self.assertContains(response,'Conciliação já aplicada')
         self.assertEqual(InventoryReconciliation.objects.count(),1)
+
+    def test_read_only_base_diagnosis(self):
+        from io import StringIO
+        self.apply(self.payload())
+        before = StockMovement.objects.count()
+        out = StringIO()
+        call_command('inspect_inventory_base', date=str(timezone.localdate()), stdout=out)
+        report = json.loads(out.getvalue())
+        self.assertEqual(D(report['current_balances'][0]['value']), D(56))
+        self.assertEqual(len(report['reconciliations']), 1)
+        self.assertEqual(report['movements_after_base'], [])
+        self.assertEqual(StockMovement.objects.count(), before)

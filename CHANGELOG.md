@@ -1,3 +1,9 @@
+## Correção visual e conferência de estoque — 12/10/2026
+- Azul-escuro da marca aplicado à navegação, ações, tema escuro e relatórios PDF.
+- Prévia da conciliação separa valor do arquivo, saldo anterior e resultado com movimentos posteriores.
+- Comando inspect_inventory_base consulta aplicação da base e movimentos posteriores/retroativos sem alterar dados.
+- Saldos reais dependem da conferência no computador do usuário; nenhuma carga automática nesta atualização.
+
 ## 12/10/2026 — MVet 2.0
 - Central de configurações por domínio e gestão nativa de funcionários, senhas e situação.
 - Permissões agrupadas, busca, perfis editáveis e alertas de dependências/acessos sensíveis.
