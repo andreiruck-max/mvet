@@ -127,3 +127,15 @@ class SpreadsheetTests(Fixture, TestCase):
         self.product.refresh_from_db();self.assertEqual(self.product.quantity,7)
         response=self.client.post(url,{'file':SimpleUploadedFile('stock.xlsx',self.sheet()),'location':self.location.pk,'mode':'historical'})
         self.assertContains(response,'Informe a data-base.')
+
+    def test_cached_numeric_formula_uses_saved_value_only(self):
+        raw=self.sheet()
+        source=ZipFile(io.BytesIO(raw));out=io.BytesIO()
+        with ZipFile(out,'w') as dest:
+            for name in source.namelist():
+                data=source.read(name)
+                if name=='xl/worksheets/sheet1.xml':
+                    data=data.replace(b'<c r="C2" t="inlineStr"><is><t>7</t></is></c>',b'<c r="C2"><f>SUM(3,4)</f><v>7</v></c>')
+                dest.writestr(name,data)
+        payload=json.loads(snapshot_from_xlsx(out.getvalue(),location=self.location))
+        self.assertEqual(D(payload['locations'][0]['items'][0]['quantity']),D(7))

@@ -6,7 +6,7 @@
 <div class="inventory-upload-grid">{% for field in form %}<div class="field{% if field.name == 'complete' or field.name == 'file' %} inventory-upload-wide{% endif %}">{{ field.errors }}{{ field.label_tag }}{{ field }}{% if field.help_text %}<small class="help">{{ field.help_text }}</small>{% endif %}</div>{% endfor %}</div>
 <button class="primary">Conferir arquivo</button></form>
 <details class="panel"><summary>Como preencher a planilha</summary>
-<p>Primeira aba, cabeçalhos na primeira linha. Até 5.000 produtos / 5 MB. Use valores, sem fórmulas (copie e cole como valores no Excel).</p>
+<p>Primeira aba, cabeçalhos na primeira linha. Até 5.000 produtos / 5 MB. Fórmulas numéricas usam o último resultado salvo: recalcule e salve no Excel antes de enviar. O MVet não executa fórmulas. Também pode copiar e colar como valores.</p>
 <p><strong>Obrigatórios:</strong> SKU, Quantidade e Custo médio. <strong>Produto:</strong> obrigatório para novo cadastro. Unidade vazia em produto novo usa UN. Produtos existentes mantêm nome e unidade.</p>
 <p><strong>Depósito:</strong> selecione na tela ou preencha a coluna para atualizar vários depósitos juntos. <strong>Valor total:</strong> opcional; se informado, será conferido contra quantidade × custo. Custos são arredondados para 6 casas; quantidades aceitam até 4.</p>
 <p>Formate SKU como texto para preservar zeros à esquerda. SKU repetido no mesmo depósito bloqueia a importação. Depósitos devem estar cadastrados e ativos. Arquivos JSON anteriores continuam aceitos, com as opções do próprio arquivo.</p>

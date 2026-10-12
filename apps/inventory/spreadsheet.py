@@ -1,4 +1,4 @@
-"""Bounded XLSX positions: values only, no additions or duplicate consolidation."""
+"""Bounded XLSX positions: saved values only, no additions or duplicate consolidation."""
 import io
 import json
 import posixpath
@@ -61,8 +61,8 @@ def read_xlsx(raw):
             for row in root.findall('s:sheetData/s:row', NS):
                 cells = {}
                 for cell in row.findall('s:c', NS):
-                    if cell.find('s:f', NS) is not None:
-                        raise ValidationError(f"Linha {row.get('r')}: use valores, sem fórmulas. No Excel, copie e cole como valores.")
+                    if cell.find('s:f', NS) is not None and (cell.get('t', 'n') != 'n' or not cell.findtext('s:v', '', NS)):
+                        raise ValidationError(f"Linha {row.get('r')}: fórmula sem resultado numérico salvo. Recalcule e salve no Excel, ou copie e cole como valores.")
                     if cell.get('t') in ('e', 'b', 'd'):
                         raise ValidationError(f"Linha {row.get('r')}: célula com erro, data ou valor lógico não permitido.")
                     letters = ''.join(c for c in cell.attrib['r'] if c.isalpha())
