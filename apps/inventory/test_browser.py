@@ -87,7 +87,7 @@ class BrowserAcceptance(StaticLiveServerTestCase):
             page=context.new_page();page.goto(self.live_server_url+'/estoque/produtos/')
             totals=page.get_by_role('region',name='Valores de todo o estoque').inner_text()
             page.get_by_role('navigation',name='Selecionar depósito').get_by_role('link',name='Full Mercado Livre',exact=True).click()
-            page.get_by_role('heading',name='Full Mercado Livre',exact=True).wait_for()
+            page.locator('.stock-locations a[aria-current="page"]').filter(has_text='Full Mercado Livre').wait_for()
             self.assertEqual(page.get_by_role('region',name='Valores de todo o estoque').inner_text(),totals)
             page.get_by_label('SKU ou nome').fill('31');page.get_by_role('button',name='Filtrar',exact=True).click()
             self.assertEqual(page.locator('tbody tr').count(),1)
