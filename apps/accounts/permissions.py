@@ -47,6 +47,12 @@ CAPABILITIES = {
 }
 
 LABELS = {
+    'operate_sales': 'Criar e editar rascunhos de vendas',
+    'operate_purchases': 'Criar e editar compras (mostra valores de aquisição)',
+    'operate_stock': 'Acessar operações de estoque',
+    'operate_finance': 'Acessar títulos e operações financeiras',
+    'operate_expenses': 'Registrar despesas e consultar seus valores',
+    'view_auditlog': 'Consultar auditoria no admin (requer acesso administrativo)',
     'view_dashboard': 'Consultar faturamento consolidado (sem margens)',
     'view_costs': 'Consultar custos, CMV e valorização de estoque',
     'view_finance': 'Consultar saldos bancários e fluxo de caixa',

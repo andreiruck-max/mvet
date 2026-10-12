@@ -1,12 +1,13 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_GET, require_http_methods
 from .forms import CompanyForm
 from .selectors import get_company
 from .services import update_company
+from .navigation import can_manage_settings
 
 @login_required
 @require_GET
@@ -20,9 +21,12 @@ def home(request):
     return render(request, "core/home.html", {"company": get_company()})
 
 @login_required
-@permission_required("core.manage_configuration", raise_exception=True)
 @require_http_methods(["GET", "POST"])
 def configuration(request):
+    if not can_manage_settings(request.user):
+        raise PermissionDenied
+    can_edit=request.user.has_perm('core.manage_configuration')
+    if request.method == 'POST' and not can_edit: raise PermissionDenied
     company = get_company()
     if company is None:
         return render(request, "core/setup_required.html", status=503)
@@ -35,7 +39,7 @@ def configuration(request):
         else:
             messages.success(request, "Configurações salvas.")
             return redirect("configuration")
-    return render(request, "core/configuration.html", {"form": form, "company": company})
+    return render(request, "core/configuration.html", {"form": form, "company": company, 'can_edit_company':can_edit})
 
 @login_required
 @permission_required("core.view_dashboard", raise_exception=True)

@@ -7,6 +7,7 @@ from apps.reporting.exports import export
 from apps.notifications import views as notifications
 from apps.accounts.views import AuditedPasswordChangeView
 from apps.accounts.access import users as user_access
+from apps.accounts.access import employee_new, employee_password
 
 from apps.inventory.views import lookup
 from apps.sales.views import sale_result
@@ -20,6 +21,8 @@ urlpatterns = [
     path('integracoes/bling/', include('apps.integrations.urls')),
     path('relatorios/exportar/<str:kind>/<str:format>/', export, name='report_export'),
     path('usuarios/', user_access, name='user_access_list'),
+    path('usuarios/novo/', employee_new, name='employee_new'),
+    path('usuarios/<int:pk>/senha/', employee_password, name='employee_password'),
     path('usuarios/<int:pk>/acessos/', user_access, name='user_access'),
     path('notificacoes/', include('apps.notifications.urls')),
     path('api/v1/notificacoes/', notifications.api, name='notifications_api'),
