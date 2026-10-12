@@ -65,3 +65,63 @@ class AccessTests(TestCase):
         self.assertEqual(self.client.get(reverse('dashboard')).status_code,200)
         save_access(actor=self.master,user_id=self.user.pk,active=True,permissions=[],revision=1)
         self.assertEqual(self.client.get(reverse('dashboard')).status_code,403)
+
+    def test_complete_policy_does_not_inherit_new_capabilities(self):
+        self.save(['core.operate_stock'])
+        policy=AccessPolicy.objects.get(user=self.user)
+        # Simulate a new capability absent from an already-reviewed policy.
+        policy.rules.pop('core.adjust_stock');policy.save()
+        self.assertTrue(self.fresh().has_perm('core.operate_stock'))
+        self.assertFalse(self.fresh().has_perm('core.adjust_stock'))
+
+    def test_native_employee_creation_does_not_accept_privilege_fields(self):
+        self.client.force_login(self.master)
+        password='Synthetic-Strong-Employee-729!'
+        response=self.client.post(reverse('employee_new'),dict(username='employee',first_name='Pessoa',
+            password1=password,password2=password,is_staff='on',is_superuser='on',permissions=['core.view_dre']))
+        user=User.objects.get(username='employee')
+        self.assertRedirects(response,reverse('user_access',args=[user.pk]))
+        self.assertFalse(user.is_staff);self.assertFalse(user.is_superuser)
+        self.assertFalse(user.has_perm('core.view_dre'));self.assertTrue(user.check_password(password))
+        self.assertTrue(AccessPolicy.objects.get(user=user).rules['__complete__'])
+        self.assertNotIn(password,str(list(AuditLog.objects.values('before','after'))))
+
+    def test_password_reset_authorization_validation_and_session_revocation(self):
+        self.user.set_password('Old-Synthetic-Employee-729!');self.user.save()
+        employee=Client();employee.login(username='local',password='Old-Synthetic-Employee-729!')
+        self.client.force_login(self.user)
+        for route in [reverse('employee_new'),reverse('employee_password',args=[self.user.pk])]:
+            self.assertEqual(self.client.get(route).status_code,403)
+            self.assertEqual(self.client.post(route,{}).status_code,403)
+        self.client.force_login(self.master)
+        self.assertEqual(self.client.get(reverse('employee_password',args=[self.master.pk])).status_code,403)
+        url=reverse('employee_password',args=[self.user.pk])
+        self.client.post(url,{'new_password1':'123','new_password2':'123'})
+        self.assertTrue(self.fresh().check_password('Old-Synthetic-Employee-729!'))
+        response=self.client.post(url,{'new_password1':'New-Synthetic-Employee-893!','new_password2':'New-Synthetic-Employee-893!'})
+        self.assertEqual(response.status_code,302)
+        self.assertEqual(employee.get(reverse('home')).status_code,302)
+        self.assertTrue(self.fresh().check_password('New-Synthetic-Employee-893!'))
+        self.assertEqual(AuditLog.objects.filter(operation='reset_employee_password').count(),1)
+
+    def test_settings_hub_does_not_grant_company_write_or_master_actions(self):
+        from apps.core.models import Company
+        Company.objects.create(pk=1)
+        self.save(['core.manage_expense_rules']);self.client.force_login(self.user)
+        response=self.client.get(reverse('configuration'))
+        self.assertContains(response,'Plano de contas e despesas')
+        self.assertNotContains(response,'Salvar configurações')
+        self.assertNotContains(response,'Funcionários e permissões')
+        self.assertEqual(self.client.post(reverse('configuration'),{'name':'Invadido'}).status_code,403)
+        self.assertEqual(self.client.get(reverse('user_access_list')).status_code,403)
+        self.assertNotEqual(Company.objects.get(pk=1).name,'Invadido')
+
+    def test_profiles_are_explicit_and_grouped_catalog_is_complete(self):
+        from .access import AccessForm, choices
+        from .catalog import PROFILES, permission_groups
+        codes={code.removeprefix('core.') for code,label in choices()}
+        for profile in PROFILES.values():
+            self.assertFalse(set(profile['codes'])-codes)
+        options=[item['option'].data['value'] for group in permission_groups(AccessForm()) for item in group['items']]
+        self.assertEqual(set(options),{'core.'+code for code in codes})
+        self.assertEqual(len(options),len(codes))

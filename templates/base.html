@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>{% block title %}MVet 1.5{% endblock %} · Mercadovet</title>
+  <title>{% block title %}MVet {{ mvet_version }}{% endblock %} · Mercadovet</title>
   <link rel="stylesheet" href="{% static 'mvet.css' %}">
   <link rel="stylesheet" href="{% static 'interface.css' %}">
   <script src="{% static 'mvet.js' %}" defer></script>
@@ -17,7 +17,7 @@
 {% if user.is_authenticated %}
 <aside class="sidebar">
   <button type="button" class="menu-toggle" aria-controls="main-navigation" aria-expanded="false">Menu</button>
-  <a class="brand" href="{% url 'home' %}"><span class="brand-mark">M</span><span>Mercadovet<small>MVet 1.5</small></span></a>
+  <a class="brand" href="{% url 'home' %}"><span class="brand-mark">M</span><span>Mercadovet<small>MVet {{ mvet_version }}</small></span></a>
   <label class="nav-search"><span>Encontrar uma tela</span><input id="navigation-search" type="search" placeholder="Ex.: parcelas, estoque…" autocomplete="off" aria-controls="main-navigation"></label>
   <nav id="main-navigation" aria-label="Navegação principal">
     <span class="nav-group">Visão geral</span>
@@ -49,9 +49,9 @@
     {% if perms.core.view_finance or perms.core.operate_finance %}<a href="{% url 'financial_titles' %}">Títulos financeiros</a>{% endif %}
     {% if perms.core.operate_expenses or perms.core.view_expense_reports %}<a href="{% url 'expenses' %}">Despesas</a>{% endif %}</details>{% endif %}
     {% if perms.core.view_dre %}<a href="{% url 'dre' %}">DRE gerencial</a>{% endif %}
-    {% if perms.core.manage_configuration or user.is_staff or user.is_superuser %}<details class="nav-submenu" data-menu="settings"><summary>Configurações</summary>
-    {% if perms.core.manage_configuration %}<a href="{% url 'configuration' %}">Configurações gerais</a>{% endif %}
-    {% if user.is_superuser %}<a href="{% url 'bling_connection' %}">Conexão Bling</a><a href="{% url 'user_access_list' %}">Usuários e acessos</a>{% endif %}
+    {% if can_manage_settings or user.is_staff or user.is_superuser %}<details class="nav-submenu" data-menu="settings"><summary>Configurações</summary>
+    {% if can_manage_settings %}<a href="{% url 'configuration' %}">Central de configurações</a>{% endif %}
+    {% if user.is_superuser %}<a href="{% url 'bling_connection' %}">Conexão Bling</a><a href="{% url 'user_access_list' %}">Funcionários e acessos</a>{% endif %}
     {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administração</a>{% endif %}</details>{% endif %}
     <p class="nav-empty" hidden>Nenhuma tela encontrada.</p>
   </nav>

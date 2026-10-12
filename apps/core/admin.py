@@ -13,6 +13,7 @@ class AuditLogAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None): return False
     def has_delete_permission(self, request, obj=None): return False
 
-admin.site.site_header = "MVet 1.0 · Administração"
+from config.version import VERSION
+admin.site.site_header = f"MVet {VERSION} · Administração"
 admin.site.site_title = "Mercadovet"
 admin.site.index_title = "Usuários, permissões e auditoria"

@@ -1,4 +1,4 @@
-# Manutenção do MVet 1.5
+# Manutenção do MVet 2.0
 ## Arquitetura
 Monólito Django 5.2 LTS, PostgreSQL, templates, CSS/JS locais. Código em inglês; interface e documentação em português. `apps/<module>`: models para estrutura, services para regras/transações, selectors para consultas, forms para entrada, views para HTTP. Templates não calculam finanças. Group e Permission do Django representam papéis e permissões.
 

@@ -15,6 +15,8 @@ class AccessBackend(ModelBackend):
             user_obj._mvet_rules = AccessPolicy.objects.filter(user=user_obj).values_list('rules', flat=True).first() or {}
         if perm in user_obj._mvet_rules:
             return user_obj._mvet_rules[perm] is True
+        if perm.startswith('core.') and user_obj._mvet_rules.get('__complete__') is True:
+            return False
         if super().has_perm(user_obj, perm, obj):
             return True
         code = perm.removeprefix('core.')

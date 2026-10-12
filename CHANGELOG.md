@@ -1,3 +1,9 @@
+## 12/10/2026 — MVet 2.0
+- Central de configurações por domínio e gestão nativa de funcionários, senhas e situação.
+- Permissões agrupadas, busca, perfis editáveis e alertas de dependências/acessos sensíveis.
+- Políticas revisadas negam novas capacidades por padrão; histórico e permissões existentes preservados na instalação.
+- Identidade 2.0 em login, menu, início e administração. ADR 0041.
+
 ## 12/10/2026 — Interface e relatórios
 - Menu pesquisável com localização atual, controles consistentes, foco acessível e leitura comum em temas claro/escuro.
 - Matriz de caixa preservada, com total fixo e contraste revisado.

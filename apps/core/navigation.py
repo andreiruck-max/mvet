@@ -1,6 +1,13 @@
 from urllib.parse import urlsplit, urlencode
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
+from config.version import VERSION
+
+SETTINGS_CAPABILITIES = ('manage_configuration','manage_channels','manage_taxes','manage_stock_catalogs','manage_expense_rules','manage_alerts','manage_commissions')
+
+
+def can_manage_settings(user):
+    return user.is_authenticated and any(user.has_perm('core.'+code) for code in SETTINGS_CAPABILITIES)
 
 
 def safe_return(request, value):
@@ -31,4 +38,5 @@ def navigation(request):
     fallback = reverse('products') if request.path.startswith('/estoque/') else reverse('home')
     back = safe_return(request, request.POST.get('next') or request.GET.get('next'))
     back = back or safe_return(request, request.META.get('HTTP_REFERER')) or fallback
-    return {'back_url': back, 'inventory_return_url': return_url(request), 'show_back': request.path not in (reverse('home'), reverse('dashboard'))}
+    return {'back_url': back, 'inventory_return_url': return_url(request), 'show_back': request.path not in (reverse('home'), reverse('dashboard')),
+            'mvet_version':VERSION, 'can_manage_settings':can_manage_settings(request.user)}

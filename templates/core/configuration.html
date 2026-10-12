@@ -1,14 +1,13 @@
-{% extends "base.html" %}
-{% block title %}Configurações{% endblock %}
-{% block content %}
-<div class="eyebrow">EMPRESA</div>
-<h1>Configurações</h1>
-<p class="muted">Corte operacional: {{ company.cutover_date|date:"d/m/Y" }}. A alteração de parâmetros fica registrada na auditoria.</p>
-{% if perms.core.operate_stock %}<p><a class="button" href="{% url 'named' 'locais' %}">Cadastrar ou editar estoques</a></p>{% endif %}
-<form method="post" class="card form-card">{% csrf_token %}
-{{ form.non_field_errors }}
-{% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}</div>{% endfor %}
-<p class="help">A margem mínima é aplicada na confirmação. O estoque padrão é sugerido em novas vendas.</p>
-<button class="primary">Salvar configurações</button>
-</form>
+{% extends 'base.html' %}{% block title %}Configurações{% endblock %}{% block content %}
+<div class="page-heading"><div><h1>Configurações</h1><p class="muted">MVet {{ mvet_version }} · Pessoas, regras e parâmetros da empresa.</p></div></div>
+<div class="settings-grid">
+{% if user.is_superuser %}<a class="panel" href="{% url 'user_access_list' %}"><strong>Funcionários e permissões →</strong><small>Cadastro, senhas, acessos por módulo e histórico de alterações.</small></a><a class="panel" href="{% url 'bling_connection' %}"><strong>Integração Bling →</strong><small>Conexão e sugestões de canal e depósito.</small></a><a class="panel" href="{% url 'stock_pricing' %}"><strong>Preços e markup →</strong><small>Regra geral e preços individuais do estoque da loja.</small></a><a class="panel" href="{% url 'crm_rules' %}"><strong>Recorrências do CRM →</strong><small>Prazos de retorno por resultado do contato.</small></a><a class="panel" href="{% url 'crm_intake' %}"><strong>Distribuição de contatos →</strong><small>Limite diário e pausa de novos contatos.</small></a>{% endif %}
+{% if perms.core.manage_channels %}<a class="panel" href="{% url 'sales_configuration' 'canais' %}"><strong>Canais de venda →</strong><small>Cadastro e inativação dos canais.</small></a>{% endif %}
+{% if perms.core.manage_taxes %}<a class="panel" href="{% url 'sales_configuration' 'impostos' %}"><strong>Regras tributárias →</strong><small>Alíquotas, vigências e regras das vendas.</small></a>{% endif %}
+{% if perms.core.manage_expense_rules %}<a class="panel" href="{% url 'expense_configuration' %}"><strong>Plano de contas e despesas →</strong><small>Categorias, classificação e regras do resultado.</small></a>{% endif %}
+{% if perms.core.manage_stock_catalogs and perms.core.operate_stock %}<a class="panel" href="{% url 'named' 'locais' %}"><strong>Depósitos →</strong><small>Locais de estoque e situação dos cadastros.</small></a><a class="panel" href="{% url 'named' 'marcas' %}"><strong>Marcas e categorias →</strong><small>Organização do catálogo de produtos.</small></a>{% endif %}
+{% if perms.core.manage_commissions %}<a class="panel" href="{% url 'commission_settings' %}"><strong>Comissões →</strong><small>Comissionados e percentuais de cálculo.</small></a>{% endif %}
+{% if perms.core.manage_alerts %}<a class="panel" href="{% url 'notification_configuration' %}"><strong>Alertas →</strong><small>Regras dos avisos operacionais.</small></a>{% endif %}
+</div>
+{% if can_edit_company %}<section class="panel"><h2>Parâmetros da empresa</h2><p class="help">Corte operacional: {{ company.cutover_date|date:'d/m/Y' }}. As alterações ficam registradas na auditoria.</p><form method="post">{% csrf_token %}{{ form.non_field_errors }}<div class="form-grid">{% for field in form %}<div class="field">{{ field.label_tag }}{{ field }}{{ field.errors }}{% if field.help_text %}<small class="help">{{ field.help_text }}</small>{% endif %}</div>{% endfor %}</div><p class="help">O estoque padrão é sugerido nas novas vendas; não altera lançamentos anteriores.</p><button class="primary">Salvar configurações</button></form></section>{% endif %}
 {% endblock %}

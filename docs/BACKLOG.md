@@ -127,3 +127,6 @@ Correções de vencimento corrente, exportação projetada, cálculo duplicado d
 validações descritas em FUNCTIONAL_REVIEW_2026_10_11.md. Evoluções identificadas para
 medição/projeto posterior: lock de relatórios longos, consultas por linha no CRM,
 disponibilidade de kits por depósito e demanda comercial após correções de depósito.
+
+## MVet 2.0 — configurações e funcionários
+Entregue: central por domínio, cadastro e senha de funcionários pelo master, permissões agrupadas/pesquisáveis, perfis editáveis, dependências informativas, política completa com negação de novas capacidades, dados/situação/histórico e identidade 2.0. Instalação pelo atualizador com backup e restauração isolada. Limites preservados: permissões por função; recorte por banco, canal ou depósito e aprovação dupla de pagamento não foram implementados.

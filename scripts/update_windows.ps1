@@ -87,7 +87,7 @@ try {
         throw 'Aplicacao nao respondeu. Confira docker compose logs --tail=60 web; o backup foi preservado.'
     }
     Run docker @('compose', 'ps')
-    Write-Host "MVet atualizado. Backup: $backupFile"
+    Write-Host "MVet 2.0 atualizado. Backup: $backupFile"
     Write-Host 'Abra o endereco habitual do MVet e atualize o navegador com Ctrl+F5.'
 } catch {
     if ($webStopped -and !$newWebStarted) {
