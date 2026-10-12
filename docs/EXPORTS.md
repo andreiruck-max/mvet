@@ -21,3 +21,6 @@ Revogar acesso impede novas consultas/exportações, mas não recolhe arquivos j
 ## Manutenção
 
 `reporting/datasets.py`: projeções autorizadas e filtros. `files.py`: serializers OOXML sem dependência do Excel e PDF ReportLab. `exports.py`: autenticação, limites, download e auditoria. Adicionar campo exige testar autorização em HTML, API, Excel e PDF. Não passar objetos brutos a serializers que possam exportar todos os atributos.
+
+## Apresentação PDF — 12/10/2026
+`pdf_layout.py` centraliza fontes Bitstream Vera incorporadas (distribuídas pelo ReportLab), cabeçalhos, rodapés, margens, zebrado e alinhamento de valores. Relatórios estreitos usam A4 retrato; os demais usam paisagem com larguras proporcionais. DRE destaca subtotais e valores negativos. Vendas mantêm resumo e seções por canal, totais repetidos e todos os produtos/deduções de cada nota; uma nota longa pode continuar em outra página. Caixa usa a matriz por banco com até três dias por página, respeitando realizado/projetado, e total das contas. Notas explicativas do dataset acompanham cada grupo. Exportadores recebem apenas projeções já autorizadas; não consultam nem modificam o banco. XLSX mantém seus dados e tipos.

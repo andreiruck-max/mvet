@@ -1,3 +1,8 @@
+## 12/10/2026 — Interface e relatórios
+- Menu pesquisável com localização atual, controles consistentes, foco acessível e leitura comum em temas claro/escuro.
+- Matriz de caixa preservada, com total fixo e contraste revisado.
+- PDFs com fontes incorporadas, números alinhados, larguras por conteúdo, DRE destacada e notas longas completas; caixa em grupos de três dias. Sem migration.
+
 ## 10/10/2026 — Controle de comissões
 - Previsão por venda, rateio por parcela, recebimentos parciais, pagamentos alocados e apuração mensal.
 - Comissionados, percentuais, consulta própria e gestão autorizada; estornos, correções e compensações com histórico.
