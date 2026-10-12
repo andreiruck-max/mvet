@@ -165,3 +165,26 @@ class ExportTests(ReportingFixture, TestCase):
         self.assertEqual(response.context['channels'][0]['id'],other.pk)
         html=response.content.decode()
         self.assertLess(html.index('Total da empresa'),html.index('<strong>Maior canal'))
+
+    def test_pdf_single_invoice_can_continue_without_losing_items(self):
+        self.confirmed()
+        ds = build('sales', self.actor, self.period)
+        products = ds.headers.index('PRODUTOS')
+        ds.groups[0].rows[0][products] = '\n'.join(f'{i} × Produto veterinário com descrição extensa' for i in range(150))
+        content = pdf(ds, 'Empresa sintética')
+        self.assertTrue(content.startswith(b'%PDF-'))
+        self.assertIn(b'%%EOF', content)
+
+    def test_cash_pdf_uses_selected_projection_and_account_totals(self):
+        from unittest.mock import patch
+        from . import cash_pdf
+        ds = build('cash', self.actor, {**self.period, 'mode':'projected'})
+        # Read the actual rendered cell text before PDF compression.
+        with patch.object(cash_pdf, 'table', wraps=cash_pdf.table) as render_table:
+            self.assertTrue(pdf(ds, 'Empresa sintética').startswith(b'%PDF-'))
+            rows = render_table.call_args_list[0].args[0]
+            self.assertEqual(rows[0][0].getPlainText(), 'Banco / conta')
+            self.assertEqual(rows[-1][0].getPlainText(), 'Total das contas')
+            first = ds.cash[0]
+            from .pdf_layout import fmt
+            self.assertEqual(rows[2][3].getPlainText(), fmt(first['projected']))

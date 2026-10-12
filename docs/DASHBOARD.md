@@ -53,3 +53,6 @@ Selecionar período, canal, situação ou ordenação aplica a consulta automati
 
 ## 10/10/2026 — cartões e exportações
 Total da empresa/estoque primeiro; canais/depósitos em ordem decrescente de valor. Ocultar valores dos cartões persiste no navegador e não substitui permissões; tabelas e arquivos permanecem com os valores autorizados. Exportações de vendas incluem todos os canais por padrão, conservando período/NF/situação. Excel com aba completa, resumo e abas por canal; PDF com resumo e seções que mantêm produtos, deduções e resultado junto à respectiva NF. Depreciação registrada é deduzida após o EBITDA na DRE e no resultado da dashboard.
+
+## Interface unificada — 12/10/2026
+A camada `static/interface.css` define cores, controles, foco, cartões e tabelas comuns, com temas claro/escuro. Os layouts de domínio continuam em `mvet.css`. Menu pesquisável apenas entre destinos autorizados; a tela atual e seu módulo ficam indicados. Busca ignora acentos, Escape limpa a busca e fecha o menu móvel; ações continuam disponíveis sem JavaScript. A matriz de caixa mantém bancos nas linhas e dias nas colunas, com total fixo ao rolar. Preferências de privacidade e permissões permanecem independentes da apresentação.

@@ -7,6 +7,7 @@
   <meta name="color-scheme" content="light dark">
   <title>{% block title %}MVet 1.5{% endblock %} · Mercadovet</title>
   <link rel="stylesheet" href="{% static 'mvet.css' %}">
+  <link rel="stylesheet" href="{% static 'interface.css' %}">
   <script src="{% static 'mvet.js' %}" defer></script>
   <script src="{% static 'money.js' %}" defer></script>
   <script src="{% static 'privacy.js' %}" defer></script>
@@ -17,6 +18,7 @@
 <aside class="sidebar">
   <button type="button" class="menu-toggle" aria-controls="main-navigation" aria-expanded="false">Menu</button>
   <a class="brand" href="{% url 'home' %}"><span class="brand-mark">M</span><span>Mercadovet<small>MVet 1.5</small></span></a>
+  <label class="nav-search"><span>Encontrar uma tela</span><input id="navigation-search" type="search" placeholder="Ex.: parcelas, estoque…" autocomplete="off" aria-controls="main-navigation"></label>
   <nav id="main-navigation" aria-label="Navegação principal">
     <span class="nav-group">Visão geral</span>
     {% if perms.core.view_dashboard %}<a href="{% url 'dashboard' %}">Indicadores</a>{% else %}<a href="{% url 'home' %}">Início</a>{% endif %}
@@ -51,13 +53,14 @@
     {% if perms.core.manage_configuration %}<a href="{% url 'configuration' %}">Configurações gerais</a>{% endif %}
     {% if user.is_superuser %}<a href="{% url 'bling_connection' %}">Conexão Bling</a><a href="{% url 'user_access_list' %}">Usuários e acessos</a>{% endif %}
     {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administração</a>{% endif %}</details>{% endif %}
+    <p class="nav-empty" hidden>Nenhuma tela encontrada.</p>
   </nav>
   <div class="sidebar-foot">Gestão interna<br>Mercadovet Produtos Agroveterinários</div>
 </aside>
 {% endif %}
 <div class="shell {% if not user.is_authenticated %}anonymous{% endif %}">
   <header class="topbar">
-    <span>{% if user.is_authenticated %}Área de trabalho{% else %}Mercadovet · Gestão interna{% endif %}</span>
+    <span class="workspace-location">{% if user.is_authenticated %}Área de trabalho{% else %}Mercadovet · Gestão interna{% endif %}</span>
     <div class="actions">
       <button type="button" class="quiet" id="theme-toggle" aria-label="Alternar modo claro e escuro">Tema</button>
       {% if user.is_authenticated %}

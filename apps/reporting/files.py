@@ -148,46 +148,30 @@ def xlsx(dataset, company):
 
 
 def pdf(dataset, company):
+    if dataset.cash:
+        from .cash_pdf import render
+        return render(dataset, company)
     if hasattr(dataset, 'groups'):
         from .sales_pdf import render
         return render(dataset, company)
-    from reportlab.lib import colors
-    from reportlab.lib.pagesizes import A4, landscape
-    from reportlab.lib.styles import ParagraphStyle
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, LongTable, TableStyle, PageBreak
-    out=BytesIO();page=landscape(A4)
-    document=SimpleDocTemplate(out,pagesize=page,rightMargin=28,leftMargin=28,topMargin=35,bottomMargin=35,title=dataset.title,author=company)
-    body=ParagraphStyle('body',fontName='Helvetica',fontSize=8,leading=11,wordWrap='CJK')
-    heading=ParagraphStyle('heading',fontName='Helvetica-Bold',fontSize=14,leading=18)
-    white=ParagraphStyle('white',parent=body,textColor=colors.white)
-    story=[]
-    def value(v):
-        if v is None:return '-'
-        if isinstance(v,date):return v.strftime('%d/%m/%Y')
-        if isinstance(v,Decimal):return f'{v:,.2f}'.replace(',','X').replace('.',',').replace('X','.')
-        return str(v)
-    def paragraph(v,style=body):return Paragraph(escape(value(v)),style)
-    # Split wide reports into readable blocks, repeating identifying columns.
-    indexes=list(range(len(dataset.headers)));blocks=[indexes] if len(indexes)<=8 else [[0,1]+indexes[i:i+6] for i in range(2,len(indexes),6)]
-    for block_no,index in enumerate(blocks):
-        if block_no:story.append(PageBreak())
-        story += [paragraph(company,heading),paragraph(dataset.title+f' - bloco {block_no+1}/{len(blocks)}',heading),paragraph(dataset.notes),Spacer(1,12)]
-        table_data=[[paragraph(dataset.headers[c],white) for c in index]]
-        for row in dataset.rows:
-            table_data.append([paragraph(row[c]*100 if dataset.headers[c]=='Margem %' and row[c] is not None else row[c]) for c in index])
-        if len(table_data)==1:table_data.append([paragraph('Sem registros')]+[paragraph('') for _ in index[1:]])
-        table=LongTable(table_data,colWidths=[(page[0]-56)/len(index)]*len(index),repeatRows=1,hAlign='LEFT',splitInRow=1)
-        table.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,0),colors.HexColor('#1b1c4a')),('VALIGN',(0,0),(-1,-1),'TOP'),('ROWBACKGROUNDS',(0,1),(-1,-1),[colors.white,colors.HexColor('#f1f3f7')]),('TOPPADDING',(0,0),(-1,-1),6),('BOTTOMPADDING',(0,0),(-1,-1),6)]));story.append(table)
+    from reportlab.platypus import Spacer, PageBreak
+    from .pdf_layout import Report, p, HEADING, SECTION, SMALL, HEADER, NUMBER, table, dataset_table
+    report = Report(dataset.title, company, wide=len(dataset.headers) > 4)
+    story = [p(dataset.title, HEADING), p(dataset.notes, SMALL), Spacer(1, 12)]
+    indexes = list(range(len(dataset.headers)))
+    blocks = [indexes] if len(indexes) <= 9 else [[0, 1]+indexes[i:i+6] for i in range(2, len(indexes), 6)]
+    for number, index in enumerate(blocks):
+        if number:
+            story += [PageBreak(), p(dataset.title, HEADING)]
+        if len(blocks) > 1:
+            story += [p(f'Detalhamento {number+1} de {len(blocks)} · mesmas referências', SECTION)]
+        story.append(dataset_table(dataset, report.width, index))
     if dataset.totals:
-        story += [Spacer(1,12),paragraph('Totais das vendas confirmadas',heading)]
-        for k,v in dataset.totals.items():story.append(paragraph(f'{METRICS.get(k,k)}: {value(v)}'))
-    if hasattr(dataset,'locations'):
-        locations=dataset.locations
-        story += [PageBreak(),paragraph('Estoque por local',heading),Spacer(1,12)]
-        table=LongTable([[paragraph(v) for v in locations.headers]]+[[paragraph(v) for v in row] for row in locations.rows],colWidths=[90,360,220,page[0]-726],repeatRows=1,splitInRow=1)
-        table.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('ROWBACKGROUNDS',(0,0),(-1,-1),[colors.HexColor('#f1f3f7'),colors.white])]))
-        story.append(table)
-    def footer(canvas,doc):
-        canvas.setFont('Helvetica',8);canvas.drawRightString(page[0]-28,18,f'Página {doc.page}')
-    document.build(story,onFirstPage=footer,onLaterPages=footer)
-    return out.getvalue()
+        story += [p('Totais do relatório', SECTION)]
+        data = [[p('Indicador', HEADER), p('Valor', HEADER)]]
+        data += [[p(METRICS.get(key, key)), p(value, NUMBER)] for key, value in dataset.totals.items()]
+        story.append(table(data, [report.width*.65, report.width*.35]))
+    if hasattr(dataset, 'locations'):
+        story += [PageBreak(), p('Estoque por local', HEADING),
+                  dataset_table(dataset.locations, report.width, list(range(len(dataset.locations.headers))))]
+    return report.build(story)
