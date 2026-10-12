@@ -1,18 +1,21 @@
 {% extends 'base.html' %}{% block title %}Produtos e estoque{% endblock %}
-{% block content %}{% include 'reporting/export_buttons.html' with kind='stock' allowed=perms.core.export_stock %}
-<div class="eyebrow">CONTROLE DE ESTOQUE</div><div class="page-heading"><div><h1>Produtos e estoque</h1><p class="muted">Consulte produtos, quantidades e disponibilidade.</p></div>
-{% if perms.core.operate_stock %}<div class="actions">{% if perms.core.manage_products %}<a class="button" href="{% url 'product_new' %}?next={{ request.get_full_path|urlencode }}">Novo produto</a>{% endif %}<a class="button primary" href="{% url 'operation_new' %}?next={{ request.get_full_path|urlencode }}">Movimentar estoque</a></div>{% endif %}</div>
+{% block content %}<section class="compact-report stock-page">
+<div class="page-heading"><h1>Produtos e estoque</h1>
+<div class="actions">{% if perms.core.operate_stock %}{% if perms.core.manage_products %}<a class="button" href="{% url 'product_new' %}?next={{ request.get_full_path|urlencode }}">Novo produto</a>{% endif %}<a class="button primary" href="{% url 'operation_new' %}?next={{ request.get_full_path|urlencode }}">Movimentar estoque</a>{% endif %}</div></div>
+<details class="page-tools"><summary>Cadastros, preços e exportações</summary>
+{% include 'reporting/export_buttons.html' with kind='stock' allowed=perms.core.export_stock %}
 {% if perms.core.operate_stock and perms.core.manage_stock_catalogs %}<div class="tabs"><a href="{% url 'named' 'locais' %}?next={{ request.get_full_path|urlencode }}">Locais</a><a href="{% url 'named' 'marcas' %}?next={{ request.get_full_path|urlencode }}">Marcas</a><a href="{% url 'named' 'categorias' %}?next={{ request.get_full_path|urlencode }}">Categorias</a></div>{% endif %}
+{% if request.user.is_superuser %}<div class="actions"><a class="button" href="{% url 'stock_pricing' %}?next={{ request.get_full_path|urlencode }}">Configurar markup / preços</a><a class="button" href="{% url 'inventory_reconcile' %}">Atualizar posição de estoque</a></div>{% endif %}
+</details>
 {% if perms.core.view_costs %}
 <section class="stock-totals" aria-label="Valores de todo o estoque"><div class="card"><span>Total do estoque</span><strong>R$ {{ stock_total|floatformat:2 }}</strong></div>
 {% for item in stock_totals %}<div class="card"><span>{{ item.location.name }}</span><strong>R$ {{ item.value|floatformat:2 }}</strong></div>{% endfor %}
 
-</section><p class="muted">Valores de todos os produtos, sem filtros, pelo custo médio de cada depósito. A troca de depósito não altera estes totais.</p>
+</section><p class="compact-caption">Totais de todos os produtos, pelo custo médio. Independem dos filtros e do depósito selecionado.</p>
 {% endif %}
-{% if request.user.is_superuser %}<p><a class="button" href="{% url 'stock_pricing' %}?next={{ request.get_full_path|urlencode }}">Configurar markup / preços</a> <a class="button" href="{% url 'inventory_reconcile' %}">Atualizar posição de estoque</a></p>{% endif %}
 <nav class="actions stock-locations" aria-label="Selecionar depósito">
 {% for loc in locations %}<a class="button {% if loc.pk == location.pk %}primary{% endif %}" {% if loc.pk == location.pk %}aria-current="page"{% endif %} href="{% querystring location=loc.pk page=None %}">{{ loc.name }}{% if not loc.active %} (inativo){% endif %}</a>{% endfor %}
-</nav><h2>{{ location.name|default:'Nenhum depósito cadastrado' }}</h2>
+</nav>{% if not location %}<p>Nenhum depósito cadastrado</p>{% endif %}
 <form method="get" class="filters card">
 {% if location %}<input type="hidden" name="location" value="{{ location.pk }}">{% endif %}
 <label>SKU ou nome<input name="q" value="{{ request.GET.q }}" placeholder="SKU exato ou parte do nome"></label>
@@ -23,4 +26,4 @@
 <div class="table-wrap card"><table><thead><tr><th>SKU</th><th>Produto</th><th>Unidade</th><th class="numeric">Quantidade</th>{% if show_prices %}<th class="numeric">Preço de venda</th>{% endif %}{% if perms.core.view_costs %}<th class="numeric">Custo médio</th><th class="numeric">Valor do estoque</th>{% endif %}<th>Situação</th>{% if perms.core.operate_stock and perms.core.adjust_stock %}<th>Ações</th>{% endif %}</tr></thead><tbody>
 {% for p in page %}<tr><td>{{ p.sku }}</td><td><a href="{% url 'product_detail' p.pk %}?next={{ request.get_full_path|urlencode }}">{{ p.name }}</a>{% if p.kind == 'KIT' %}<small>Kit virtual · consultar composição</small>{% endif %}</td><td>{{ p.unit }}</td><td class="numeric">{% if p.kind == 'KIT' %}Por componentes{% else %}{{ p.stock_quantity|floatformat:4 }}{% endif %}</td>{% if show_prices %}<td class="numeric">{% if p.sale_price is not None %}R$ {{ p.sale_price|floatformat:"2g" }}{% else %}Consultar kit{% endif %}{% if request.user.is_superuser %} <a href="{% url 'product_pricing' p.pk %}?next={{ request.get_full_path|urlencode }}" aria-label="Alterar markup de {{ p.name }}">Editar preço</a>{% endif %}</td>{% endif %}{% if perms.core.view_costs %}<td class="numeric">{% if p.kind == 'KIT' %}—{% else %}R$ {{ p.stock_cost|floatformat:6 }}{% endif %}</td><td class="numeric">{% if p.kind == 'KIT' %}—{% else %}R$ {{ p.stock_value|floatformat:2 }}{% endif %}</td>{% endif %}<td>{% if not p.active %}Inativo{% elif p.kind == 'SIMPLE' and p.stock_quantity <= p.minimum %}<span class="badge warning">Estoque mínimo</span>{% else %}<span class="badge">Ativo</span>{% endif %}</td>{% if perms.core.operate_stock and perms.core.adjust_stock %}<td>{% if p.active and p.kind == 'SIMPLE' and location.active %}<a class="button" href="{% url 'product_count' p.pk location.pk %}?next={{ request.get_full_path|urlencode }}">Contar / ajustar</a>{% endif %}</td>{% endif %}</tr>
 {% empty %}<tr><td colspan="8">Nenhum produto encontrado. Cadastre um produto para começar.</td></tr>{% endfor %}</tbody></table></div>
-{% include 'inventory/pagination.html' %}{% endblock %}
+{% include 'inventory/pagination.html' %}</section>{% endblock %}

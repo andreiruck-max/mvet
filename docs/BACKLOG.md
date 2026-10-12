@@ -136,3 +136,6 @@ Prévia explicita substituição na base e totais resultantes. Diagnóstico some
 
 ### Posição por Excel
 Tela exclusiva do master com modelo XLSX, depósito por seleção/coluna, quantidade/custo por posição, cadastro de novos produtos, validação integral e prévia. Atual substitui saldo; histórico preserva posteriores e bloqueia conciliação ambígua. Ausentes preservados por padrão. ADR0042. Instalar código não aplica arquivos reais.
+
+### Navegação compacta
+DRE e produtos/saldos reduzem o topo. Ações secundárias recolhíveis, sem ocultar avisos de resultado parcial. Menu em acordeão (busca expande resultados), ordem por arraste ou setas salva por usuário/navegador, com restauração. Sininho substitui item lateral de notificações; permissões mantidas no servidor.

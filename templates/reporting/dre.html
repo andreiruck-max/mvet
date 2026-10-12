@@ -1,14 +1,16 @@
 {% extends 'base.html' %}{% block title %}DRE gerencial{% endblock %}{% block content %}
-{% include 'reporting/export_buttons.html' with kind='dre' allowed=perms.core.export_dre %}{% include 'reporting/nav.html' %}
-<h1>DRE gerencial por competência</h1><p>Receitas e despesas reconhecidas por competência. Compras de estoque, aberturas, transferências e principal de dívida não são resultado.</p>{% include 'reporting/filter.html' %}
+<section class="compact-report dre-page">
+<header class="page-heading"><h1>DRE gerencial por competência</h1>{% include 'reporting/export_buttons.html' with kind='dre' allowed=perms.core.export_dre %}</header>
+<details class="page-tools"><summary>Outros relatórios e critérios da DRE</summary>{% include 'reporting/nav.html' %}<p>Receitas e despesas reconhecidas por competência. Compras de estoque, aberturas, transferências e principal de dívida não são resultado.</p></details>
+{% include 'reporting/filter.html' %}
 {% if report %}
 {% if report.channel_only %}<p class="notice">Canal selecionado: apresentamos sua contribuição. Despesas e resultado financeiro são comuns à empresa; não há EBITDA ou resultado líquido por canal sem política de rateio.</p>{% endif %}
 {% if report.provisional %}<p class="notice" role="alert"><strong>RESULTADO PARCIAL — pendências de conferência.</strong> Despesas a classificar: R$ {{ report.expenses.NONE|floatformat:2 }}. Títulos manuais sem competência de despesa validada: R$ {{ report.financial.unresolved|floatformat:2 }}. Abatimentos/estornos a conferir: R$ {{ report.financial.discounts|floatformat:2 }}. Não incluídos automaticamente no resultado.</p>{% endif %}
-{% if user.is_superuser %}<p class="report-caption">Clique na linha ou categoria para consultar os lançamentos e acessar suas origens.</p>{% endif %}
+{% if user.is_superuser %}<p class="report-caption compact-caption">Clique na linha ou categoria para consultar os lançamentos e acessar suas origens.</p>{% endif %}
 <div class="panel table-wrap"><table class="dre-table"><thead><tr><th>Linha gerencial</th><th class="numeric">Valor (R$)</th></tr></thead><tbody>
 {% for line in lines %}<tr class="{% if line.total %}report-total{% endif %}"><td>{% if line.url %}<a href="{{ line.url }}">{{ line.label }}</a>{% else %}{{ line.label }}{% endif %}</td><td class="numeric {% if line.value < 0 %}result-negative{% endif %}">{{ line.value|floatformat:2 }}</td></tr>{% endfor %}
 </tbody></table></div>
 <p>Depreciação/amortização é registrada manualmente por competência, sem gerar conta a pagar, e deduzida após o EBITDA. Títulos financeiros manuais usam a data de origem como competência; juros adicionais usam a data da liquidação, e estornos a sua data efetiva. Não registre os mesmos juros como despesa e como título financeiro independente.</p>
 <h2>Despesas por categoria histórica · empresa</h2><div class="panel table-wrap"><table class="dre-table"><thead><tr><th>Categoria</th><th>Natureza</th><th class="numeric">Quantidade</th><th class="numeric">Valor (R$)</th></tr></thead><tbody>
 {% for row in report.groups %}<tr><td>{% if row.url %}<a href="{{ row.url }}">{{ row.label }}</a>{% else %}{{ row.label }}{% endif %}</td><td>{{ row.nature_label }}</td><td class="numeric">{{ row.count }}</td><td class="numeric {% if row.amount < 0 %}result-negative{% endif %}">{{ row.amount|floatformat:2 }}</td></tr>{% empty %}<tr><td colspan="4">Nenhuma despesa na competência.</td></tr>{% endfor %}
-</tbody></table></div>{% endif %}{% endblock %}
+</tbody></table></div>{% endif %}</section>{% endblock %}
