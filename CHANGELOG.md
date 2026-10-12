@@ -1,3 +1,7 @@
+## Navegação e leitura compacta
+- DRE e estoque com título, filtros e dados mais próximos; ações secundárias recolhíveis.
+- Menu em acordeão, ordenação por arraste/setas por usuário neste navegador, restauração da ordem e notificações no sininho superior.
+
 ## Posição de estoque por Excel
 - Modelo XLSX e importação pela tela, com seleção de depósito, quantidade, custo médio e novos produtos.
 - Substituição atual ou posição histórica; ausentes preservados por padrão e prévia antes de aplicar.

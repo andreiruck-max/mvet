@@ -9,10 +9,11 @@
   <link rel="stylesheet" href="{% static 'mvet.css' %}">
   <link rel="stylesheet" href="{% static 'interface.css' %}">
   <script src="{% static 'mvet.js' %}" defer></script>
+  <script src="{% static 'navigation.js' %}" defer></script>
   <script src="{% static 'money.js' %}" defer></script>
   <script src="{% static 'privacy.js' %}" defer></script>
 </head>
-<body>
+<body data-user-id="{{ user.pk|default:'anonymous' }}">
 <a class="skip" href="#content">Pular para o conteúdo</a>
 {% if user.is_authenticated %}
 <aside class="sidebar">
@@ -20,9 +21,9 @@
   <a class="brand" href="{% url 'home' %}"><span class="brand-mark">M</span><span>Mercadovet<small>MVet {{ mvet_version }}</small></span></a>
   <label class="nav-search"><span>Encontrar uma tela</span><input id="navigation-search" type="search" placeholder="Ex.: parcelas, estoque…" autocomplete="off" aria-controls="main-navigation"></label>
   <nav id="main-navigation" aria-label="Navegação principal">
-    <span class="nav-group">Visão geral</span>
+
     {% if perms.core.view_dashboard %}<a href="{% url 'dashboard' %}">Indicadores</a>{% else %}<a href="{% url 'home' %}">Início</a>{% endif %}
-    <a href="{% url 'notifications' %}">Notificações</a>
+
     {% if perms.core.operate_crm %}<details class="nav-submenu" data-menu="crm"><summary>CRM / Comercial</summary>
     <a href="{% url 'crm_queue' %}">Minhas pendências</a><a href="{% url 'crm_contacts' %}">Carteira de contatos</a><a href="{% url 'crm_new' %}">Cadastrar contato</a>
     {% if user.is_superuser %}<a href="{% url 'crm_intake' %}">Distribuição diária</a><a href="{% url 'crm_report' %}">Visão comercial</a><a href="{% url 'crm_approvals' %}">Aprovações</a><a href="{% url 'crm_import' %}">Importar contatos</a><a href="{% url 'crm_rules' %}">Regras de retorno</a>{% endif %}</details>{% endif %}
@@ -55,6 +56,8 @@
     {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administração</a>{% endif %}</details>{% endif %}
     <p class="nav-empty" hidden>Nenhuma tela encontrada.</p>
   </nav>
+  <button type="button" id="edit-navigation" class="nav-edit" hidden>Organizar menu</button>
+  <div id="navigation-editor" hidden><p>Arraste para ordenar ou use as setas. Ordem salva neste navegador para seu usuário.</p><ol id="navigation-order"></ol><button type="button" id="reset-navigation">Restaurar ordem</button><span id="navigation-feedback" role="status"></span></div>
   <div class="sidebar-foot">Gestão interna<br>Mercadovet Produtos Agroveterinários</div>
 </aside>
 {% endif %}
@@ -64,6 +67,7 @@
     <div class="actions">
       <button type="button" class="quiet" id="theme-toggle" aria-label="Alternar modo claro e escuro">Tema</button>
       {% if user.is_authenticated %}
+      <a class="notification-bell" href="{% url 'notifications' %}" aria-label="Notificações" title="Notificações"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></a>
       <span class="username">{{ user.get_full_name|default:user.username }}</span>
       <a href="{% url 'password_change' %}">Senha</a>
       <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="quiet">Sair</button></form>

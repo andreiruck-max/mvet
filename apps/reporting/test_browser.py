@@ -52,6 +52,8 @@ class ReportingBrowser(ReportingFixture,StaticLiveServerTestCase):
             page.screenshot(path='artifacts/sales-review-mobile.png',full_page=True)
             page.set_viewport_size({'width':1440,'height':1050})
             page.goto(self.live_server_url+reverse('dre'))
+            self.assertLess(page.locator('.dre-table').first.bounding_box()['y'],400)
+            page.screenshot(path='artifacts/dre-compact-desktop.png',full_page=True)
             page.get_by_role('link',name='(−) Despesas operacionais da empresa',exact=True).click()
             page.get_by_role('heading',name='Lançamentos da DRE',exact=False).wait_for()
             self.assertIn('Serviço mensal',page.locator('main').inner_text())
