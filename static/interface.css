@@ -71,3 +71,10 @@ input[type=checkbox],input[type=radio]{accent-color:var(--focus)}
 .workspace .actions>a.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
 .workspace .actions>a:hover{border-color:var(--focus);background:var(--soft)}
 .workspace .actions>a.primary:hover{background:#205969}
+.workspace .bling-page .page-heading .actions{flex:0 1 auto}
+.workspace .bling-page .page-heading{margin-bottom:10px}
+.bulk-toolbar label{white-space:nowrap}
+.bulk-toolbar label select{width:auto;min-width:200px;max-width:100%}
+.cash-page .report-nav{gap:5px}
+.cash-page .report-nav a{font-size:11px;padding:6px 8px}
+@media(max-width:850px){.workspace .bling-page .page-heading .actions{flex-wrap:wrap}.bulk-toolbar label{max-width:100%;flex-wrap:wrap}}

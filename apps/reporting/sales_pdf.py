@@ -41,9 +41,15 @@ def render(dataset, company):
                 if row.get(key):
                     details.append(key.title() + ': R$ ' + fmt(row[key]))
             details.append('Estoque: ' + str(row['ESTOQUE']))
-            # All items remain within their invoice; long invoices may continue across pages.
-            products = [p(row['PRODUTOS']), Spacer(1, 5), p(' · '.join(details), SMALL)]
-            data.append([p(identity), products] + [p(row[key]*100 if key == 'Margem %' and row[key] is not None else row[key], NUMBER) for key in financial])
+            # Bounded item groups repeat invoice identification on continuation rows.
+            # Deductions precede the first items, avoiding a detached details-only page.
+            items = str(row['PRODUTOS']).split('\n')
+            chunks = [items[i:i+5] for i in range(0, len(items), 5)]
+            for index, chunk in enumerate(chunks):
+                products = ([p(' · '.join(details), SMALL), Spacer(1, 5)] if index == 0 else []) + [p('\n'.join(chunk))]
+                numbers = [p(row[key]*100 if key == 'Margem %' and row[key] is not None else row[key], NUMBER) for key in financial] if index == 0 else [p('') for _ in financial]
+                label = identity if index == 0 else 'NF ' + str(row['NF']) + ' / ' + str(row['SÉRIE']) + '\nContinuação'
+                data.append([p(label), products] + numbers)
         number_widths = [82 if key == 'Margem de contribuição' else 65 for key in financial]
         story.append(table(data, [90, width-90-sum(number_widths)] + number_widths, repeat=2))
     return report.build(story)
