@@ -276,8 +276,8 @@ def reconcile_inventory(request):
     from apps.accounts.access import master
     from .reconciliation import reconcile
     master(request.user)
-    class UploadForm(forms.Form):
-        file = forms.FileField(label='Arquivo de posição de estoque (.json)')
+    from .forms import InventoryUploadForm as UploadForm
+    from .spreadsheet import snapshot_from_xlsx
     form = UploadForm(request.POST or None, request.FILES or None)
     report = None
     token = None
@@ -289,15 +289,33 @@ def reconcile_inventory(request):
             report = reconcile(actor=request.user, raw=preview['raw'], commit=True, expected_revision=preview['revision'])
             del request.session['inventory_reconciliation_preview']
             form = UploadForm()
-            messages.success(request, 'Posição de estoque conciliada. Quantidades e valores posteriores à base foram preservados.')
+            messages.success(request, 'Posição de estoque atualizada. Histórico e custos das vendas anteriores foram preservados.')
         elif request.method == 'POST' and form.is_valid():
             uploaded = form.cleaned_data['file']
-            if uploaded.size > 2_000_000:
-                raise ValidationError('Arquivo excede 2 MB.')
-            raw = uploaded.read().decode('utf-8-sig')
+            request.session.pop('inventory_reconciliation_preview', None)
+            if uploaded.size > 5_000_000:
+                raise ValidationError('Arquivo excede 5 MB.')
+            content = uploaded.read()
+            if uploaded.name.lower().endswith('.xlsx'):
+                raw = snapshot_from_xlsx(content, **{k:form.cleaned_data[k] for k in ('location','mode','base_date','complete')})
+            elif uploaded.name.lower().endswith('.json'):
+                raw = content.decode('utf-8-sig')
+            else:
+                raise ValidationError('Envie Excel (.xlsx) ou o arquivo JSON legado.')
             report = reconcile(actor=request.user, raw=raw)
             token = str(uuid4())
             request.session['inventory_reconciliation_preview'] = dict(raw=raw,revision=report['revision'],token=token)
     except (ValidationError, UnicodeDecodeError) as exc:
         form.add_error(None, '; '.join(exc.messages) if isinstance(exc,ValidationError) else 'Arquivo deve usar UTF-8.')
     return render(request, 'inventory/reconcile.html', {'form':form,'report':report,'token':token})
+
+
+@login_required
+def inventory_template(request):
+    from apps.accounts.access import master
+    from .spreadsheet import template_xlsx
+    from django.http import HttpResponse
+    master(request.user)
+    response = HttpResponse(template_xlsx(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="modelo_estoque_mvet.xlsx"'
+    return response

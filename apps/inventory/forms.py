@@ -55,3 +55,25 @@ class CountForm(forms.Form):
     snapshot = forms.CharField(widget=forms.HiddenInput)
     counted = forms.DecimalField(label='Quantidade contada', min_value=0, max_digits=18, decimal_places=4)
     reason = forms.CharField(label='Motivo / observação da contagem', max_length=350, widget=forms.Textarea(attrs={'rows':3}))
+
+
+class InventoryUploadForm(forms.Form):
+    file = forms.FileField(label='Planilha Excel (.xlsx)', widget=forms.ClearableFileInput(attrs={'accept':'.xlsx,.json'}))
+    mode = forms.ChoiceField(label='Como aplicar', required=False, initial='current', choices=[('current','Substituir a posição atual'),('historical','Posição de uma data passada')])
+    base_date = forms.DateField(label='Data-base (somente posição passada)', required=False,
+        widget=forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d'))
+    location = forms.ModelChoiceField(label='Depósito', queryset=StockLocation.objects.filter(active=True), required=False,
+        empty_label='Usar a coluna Depósito da planilha')
+    complete = forms.BooleanField(label='Zerar SKUs ausentes nos depósitos da planilha', required=False,
+        help_text='Desmarcado: altera somente os produtos enviados. Marque apenas para uma contagem completa.')
+
+    def clean(self):
+        data = super().clean()
+        data['mode'] = data.get('mode') or 'current'
+        file = data.get('file')
+        if file and file.name.lower().endswith('.xlsx') and data['mode'] == 'historical':
+            if not data.get('base_date'):
+                self.add_error('base_date','Informe a data-base.')
+            elif data['base_date'] > timezone.localdate():
+                self.add_error('base_date','A data-base não pode ser futura.')
+        return data

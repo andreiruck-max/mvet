@@ -21,9 +21,12 @@ def parse_snapshot(raw):
         raise ValidationError('Arquivo excede 2 MB.')
     try:
         data = json.loads(raw)
-        if data['version'] != 2 or not data['locations']:
+        if data['version'] not in (2, 3) or not data['locations']:
             raise ValueError()
         day = date.fromisoformat(data['date'])
+        mode = data.get('mode', 'historical') if data['version'] == 3 else 'historical'
+        if mode not in ('current', 'historical'):
+            raise ValueError()
         names = set()
         rows = []
         for source in data['locations']:
@@ -49,7 +52,9 @@ def parse_snapshot(raw):
             if not items:
                 raise ValueError()
             rows.append(dict(location=name, complete=source['complete'], items=sorted(items, key=lambda r:r['sku'])))
-        payload = dict(version=2, date=str(day), locations=sorted(rows,key=lambda r:r['location']))
+        payload = dict(version=data['version'], date=str(day), locations=sorted(rows,key=lambda r:r['location']))
+        if data['version'] == 3:
+            payload['mode'] = mode
         digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
         return day, payload, digest
     except (KeyError, ValueError, TypeError, AttributeError, InvalidOperation) as exc:
@@ -60,6 +65,7 @@ def revision():
     # Capture projection/catalog state as well as the immutable ledger watermark.
     content = [StockMovement.objects.aggregate(last=Max('pk'))['last'],
                list(Product.objects.order_by('pk').values_list('pk','sku','active','kind','unit')),
+               list(StockLocation.objects.order_by('pk').values_list('pk','name','active')),
                list(StockBalance.objects.order_by('pk').values_list('product_id','location_id','quantity','value','average_cost'))]
     return hashlib.sha256(json.dumps(content, default=str).encode()).hexdigest()
 
@@ -72,15 +78,23 @@ def reconcile(*, actor, raw, commit=False, expected_revision=None):
     previous = InventoryReconciliation.objects.filter(digest=digest).first()
     if previous:
         return dict(previous.report, already_applied=True)
-    if InventoryReconciliation.objects.filter(base_date=day).exists():
-        raise ValidationError('Esta data-base já foi conciliada com outro arquivo. Não reaplique: registre uma nova contagem com data-base atual.')
+    mode = payload.get('mode', 'historical')
+    if mode == 'current' and day != timezone.localdate():
+        raise ValidationError('O dia mudou desde a prévia. Envie a planilha novamente.')
+    if mode == 'historical':
+        names = {loc['location'] for loc in payload['locations']}
+        for prior in InventoryReconciliation.objects.filter(base_date=day):
+            if names & {loc['name'] for loc in prior.report.get('locations', [])}:
+                raise ValidationError('Este depósito já tem uma conciliação nesta data-base. Para corrigir novamente, envie uma contagem com Substituir a posição atual.')
+        if StockMovement.objects.filter(location__name__in=names,operation__date__gt=day,operation__kind='RECONCILE').exists():
+            raise ValidationError('Há conciliação posterior nesta posição. Use Substituir a posição atual para evitar reaplicar ajustes antigos.')
     _date(day, [])
     current_revision = revision()
     if commit and expected_revision != current_revision:
         raise ValidationError('O estoque mudou desde a prévia. Confira novamente antes de aplicar.')
     products = {p.sku:p for p in Product.objects.select_for_update().order_by('pk')}
     plan = []
-    report = dict(date=str(day), digest=digest, revision=current_revision, committed=False, locations=[], new_products=[], changes=[])
+    report = dict(date=str(day), digest=digest, revision=current_revision, committed=False, mode=mode, locations=[], new_products=[], changes=[])
     for source in payload['locations']:
         try:
             location = StockLocation.objects.get(name=source['location'], active=True)
@@ -103,7 +117,7 @@ def reconcile(*, actor, raw, commit=False, expected_revision=None):
             qty, value, cost = (Decimal(item[k]) for k in ('quantity','value','cost'))
             total_q += qty; total_v += value
             current = StockBalance.objects.filter(product=p,location=location).first() if p else None
-            moves = StockMovement.objects.filter(product=p,location=location,operation__date__gt=day) if p else StockMovement.objects.none()
+            moves = StockMovement.objects.filter(product=p,location=location,operation__date__gt=day) if p and mode == 'historical' else StockMovement.objects.none()
             later = moves.aggregate(q=Sum('quantity'),v=Sum('value'))
             target_q = qty + (later['q'] or Decimal(0))
             target_v = value + (later['v'] or Decimal(0))
@@ -119,7 +133,7 @@ def reconcile(*, actor, raw, commit=False, expected_revision=None):
             changed = (before_q,before_v,current.average_cost if current else Decimal(0)) != (target_q,target_v,reference)
             if not p and sku not in report['new_products']:
                 report['new_products'].append(sku)
-            entry = dict(sku=sku, location=location.name, before_quantity=str(before_q), quantity=str(target_q), before_value=str(before_v), value=str(target_v), cost=str(reference), later_movements=moves.count(), exhausted_value_adjustment=str(residual))
+            entry = dict(sku=sku, name=p.name if p else item['name'], unit=p.unit if p else item['unit'], new_product=not bool(p), location=location.name, before_quantity=str(before_q), quantity=str(target_q), before_value=str(before_v), value=str(target_v), cost=str(reference), later_movements=moves.count(), exhausted_value_adjustment=str(residual))
             if changed or not p:
                 report['changes'].append(entry)
             plan.append((item, location, target_q, target_v, reference, changed))
@@ -138,7 +152,7 @@ def reconcile(*, actor, raw, commit=False, expected_revision=None):
         current = StockBalance.objects.filter(product=p,location=location).first()
         before_q,before_v = (current.quantity,current.value) if current else (Decimal(0),Decimal(0))
         operation = StockOperation.objects.create(key=uuid4(),fingerprint=digest,kind='RECONCILE',date=timezone.localdate(),actor=actor,
-            reason=f'Conciliação de posição em {day}; movimentos posteriores preservados. Arquivo {digest[:16]}.')
+            reason=f'Conciliação {mode} de posição em {day}. Arquivo {digest[:16]}.')
         _apply(operation,p,location,qty-before_q,value-before_v,unit_cost=cost,local_average_override=cost,average_override=cost)
     report['committed'] = True
     record = InventoryReconciliation.objects.create(base_date=day,digest=digest,actor=actor,report=report)
