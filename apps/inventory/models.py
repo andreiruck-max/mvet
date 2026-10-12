@@ -63,7 +63,7 @@ class OpeningImport(models.Model):
 
 
 class InventoryReconciliation(Immutable):
-    base_date = models.DateField(unique=True)
+    base_date = models.DateField(db_index=True)
     digest = models.CharField(max_length=64, unique=True)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)

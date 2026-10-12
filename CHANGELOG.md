@@ -1,3 +1,8 @@
+## Posição de estoque por Excel
+- Modelo XLSX e importação pela tela, com seleção de depósito, quantidade, custo médio e novos produtos.
+- Substituição atual ou posição histórica; ausentes preservados por padrão e prévia antes de aplicar.
+- Contagens distintas no mesmo dia, sem duplicar reenvio idêntico; validações e histórico preservados.
+
 ## Correção visual e conferência de estoque — 12/10/2026
 - Azul-escuro da marca aplicado à navegação, ações, tema escuro e relatórios PDF.
 - Prévia da conciliação separa valor do arquivo, saldo anterior e resultado com movimentos posteriores.

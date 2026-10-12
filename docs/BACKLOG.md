@@ -133,3 +133,6 @@ Entregue: central por domínio, cadastro e senha de funcionários pelo master, p
 
 ### 12/10/2026 — Conferência de estoque e azul da marca
 Prévia explicita substituição na base e totais resultantes. Diagnóstico somente leitura inspect_inventory_base. Correção do saldo real pendente de evidência do banco local e confirmação da divergência entre total informado e arquivo da loja; não sobrescrever movimentos posteriores nem alterar CMV histórico. Cores da interface e PDF alinhadas ao azul #1b1c4a da logo.
+
+### Posição por Excel
+Tela exclusiva do master com modelo XLSX, depósito por seleção/coluna, quantidade/custo por posição, cadastro de novos produtos, validação integral e prévia. Atual substitui saldo; histórico preserva posteriores e bloqueia conciliação ambígua. Ausentes preservados por padrão. ADR0042. Instalar código não aplica arquivos reais.
