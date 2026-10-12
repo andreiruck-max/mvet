@@ -206,7 +206,7 @@ class CommissionTests(Fixture,TestCase):
             with self.assertRaises(DatabaseError),transaction.atomic():model.objects.filter(pk=pk).update(**{field:value})
 
 from django.test import TransactionTestCase
-from django.db import close_old_connections
+from django.db import close_old_connections, connections
 from concurrent.futures import ThreadPoolExecutor
 
 @skipUnless(connection.vendor=='postgresql','PostgreSQL concurrent settlement')
@@ -220,7 +220,7 @@ class CommissionConcurrency(Fixture,TransactionTestCase):
                 s.pay(actor=actor,payee_id=self.payee.pk,amount=D('22.50'),date=self.today,period=self.today,method='PIX',key=uuid4(),reason='Pagamento concorrente')
                 return 'paid'
             except ValidationError:return 'blocked'
-            finally:close_old_connections()
+            finally:connections.close_all()
         with ThreadPoolExecutor(max_workers=2) as pool:results=list(pool.map(worker,range(2)))
         self.assertCountEqual(results,['paid','blocked'])
         self.assertEqual(Payment.objects.count(),1);self.assertEqual(s.balance(self.payee),0)
