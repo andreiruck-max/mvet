@@ -183,7 +183,7 @@ class BrowserAcceptance(StaticLiveServerTestCase):
             page.get_by_role('button',name='Conferir arquivo',exact=True).click()
             page.get_by_role('button',name='Aplicar conciliação no MVet').wait_for()
             page.get_by_text('Conferir alterações por produto',exact=True).click()
-            page.get_by_text('Novo produto da planilha',exact=True).wait_for()
+            page.get_by_role('cell').filter(has_text='Novo produto da planilha').wait_for()
             page.screenshot(path=str(output/'inventory-excel-desktop.png'),full_page=True)
             page.set_viewport_size({'width':390,'height':844})
             self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390)
