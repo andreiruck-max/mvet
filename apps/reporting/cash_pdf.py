@@ -38,8 +38,8 @@ def render(dataset, company):
         data.append(total)
         number_width = (report.width-150)/(len(group)*3)
         grid = table(data, [150]+[number_width]*(len(group)*3), repeat=2)
-        commands = [('SPAN', (0,0), (0,1)), ('BACKGROUND', (0,1), (0,1), colors.HexColor('#153a46')),
-                    ('LINEABOVE', (0,-1), (-1,-1), 1, colors.HexColor('#153a46'))]
+        commands = [('SPAN', (0,0), (0,1)), ('BACKGROUND', (0,1), (0,1), colors.HexColor('#1b1c4a')),
+                    ('LINEABOVE', (0,-1), (-1,-1), 1, colors.HexColor('#1b1c4a'))]
         for index in range(len(group)):
             start = 1+index*3
             commands += [('SPAN', (start,0), (start+2,0)),

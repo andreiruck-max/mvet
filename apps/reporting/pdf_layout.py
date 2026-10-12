@@ -20,7 +20,7 @@ pdfmetrics.registerFont(TTFont('MVet', str(_font_dir / 'Vera.ttf')))
 pdfmetrics.registerFont(TTFont('MVet-Bold', str(_font_dir / 'VeraBd.ttf')))
 
 INK = colors.HexColor('#20313d')
-BRAND = colors.HexColor('#153a46')
+BRAND = colors.HexColor('#1b1c4a')
 BORDER = colors.HexColor('#ccd8df')
 SOFT = colors.HexColor('#eef3f6')
 BODY = ParagraphStyle('body', fontName='MVet', fontSize=8.5, leading=12, textColor=INK)

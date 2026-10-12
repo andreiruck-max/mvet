@@ -130,3 +130,6 @@ disponibilidade de kits por depósito e demanda comercial após correções de d
 
 ## MVet 2.0 — configurações e funcionários
 Entregue: central por domínio, cadastro e senha de funcionários pelo master, permissões agrupadas/pesquisáveis, perfis editáveis, dependências informativas, política completa com negação de novas capacidades, dados/situação/histórico e identidade 2.0. Instalação pelo atualizador com backup e restauração isolada. Limites preservados: permissões por função; recorte por banco, canal ou depósito e aprovação dupla de pagamento não foram implementados.
+
+### 12/10/2026 — Conferência de estoque e azul da marca
+Prévia explicita substituição na base e totais resultantes. Diagnóstico somente leitura inspect_inventory_base. Correção do saldo real pendente de evidência do banco local e confirmação da divergência entre total informado e arquivo da loja; não sobrescrever movimentos posteriores nem alterar CMV histórico. Cores da interface e PDF alinhadas ao azul #1b1c4a da logo.

@@ -95,7 +95,7 @@ def reconcile(*, actor, raw, commit=False, expected_revision=None):
                 if p.sku not in items:
                     items[p.sku] = dict(sku=p.sku,name=p.name,unit=p.unit,quantity='0',value='0',cost=str(balance.average_cost))
                     omitted.append(p.sku)
-        total_q = total_v = Decimal(0)
+        total_q = total_v = current_q = current_v = result_q = result_v = Decimal(0)
         for sku, item in sorted(items.items()):
             p = products.get(sku)
             if p and p.kind != 'SIMPLE':
@@ -113,6 +113,8 @@ def reconcile(*, actor, raw, commit=False, expected_revision=None):
             if target_q * target_v < 0:
                 raise ValidationError(f'{sku}: a base e movimentos posteriores geram quantidade/valor de sinais opostos. Confira o custo deste produto antes de conciliar.')
             before_q, before_v = (current.quantity,current.value) if current else (Decimal(0),Decimal(0))
+            current_q += before_q; current_v += before_v
+            result_q += target_q; result_v += target_v
             reference = quant(target_v/target_q) if target_q else cost
             changed = (before_q,before_v,current.average_cost if current else Decimal(0)) != (target_q,target_v,reference)
             if not p and sku not in report['new_products']:
@@ -121,7 +123,7 @@ def reconcile(*, actor, raw, commit=False, expected_revision=None):
             if changed or not p:
                 report['changes'].append(entry)
             plan.append((item, location, target_q, target_v, reference, changed))
-        report['locations'].append(dict(name=location.name, quantity=str(total_q), value=str(total_v), complete=source['complete'], absent_zeroed=omitted))
+        report['locations'].append(dict(name=location.name, quantity=str(total_q), value=str(total_v), complete=source['complete'], absent_zeroed=omitted, current_quantity=str(current_q), current_value=str(current_v), result_quantity=str(result_q), result_value=str(result_v)))
     if not commit:
         return report
     for item, location, qty, value, cost, changed in plan:
