@@ -16,6 +16,7 @@ from django.utils import timezone
 from apps.accounts.access import master
 from apps.core.services import audit, require
 from .models import BlingConnection, ImportRun, InvoiceImport
+from .xml_discounts import enrich
 
 BASE = 'https://api.bling.com.br/Api/v3'
 AUTHORIZE = 'https://bling.com.br/Api/v3/oauth/authorize'
@@ -185,7 +186,7 @@ def sync_page(*, actor, start, end, page=1, source_status=5, kind="SALE", number
                     raise BlingError('Detalhe não corresponde à nota solicitada.')
                 if number is not None and str(payload.get('numero','')).lstrip('0')!=str(number):raise BlingError('Bling retornou número diferente do solicitado. Consulta interrompida.')
                 if series is not None and str(payload.get('serie','')).lstrip('0')!=(str(series).lstrip('0')):raise BlingError('Bling retornou série diferente da solicitada.')
-                invoice = stage(actor=actor, connection=connection, payload=payload)
+                invoice = stage(actor=actor, connection=connection, payload=enrich(payload))
                 run.processed += 1
                 if invoice.error: run.errors += 1
             except BlingError:
@@ -210,4 +211,4 @@ def refresh_invoice(*, actor, invoice_id):
     if not isinstance(payload, dict) or str(payload.get('id')) != obj.external_id:
         raise BlingError('Detalhe inválido.')
     from .services import stage
-    return stage(actor=actor, connection=obj.connection, payload=payload)
+    return stage(actor=actor, connection=obj.connection, payload=enrich(payload))
