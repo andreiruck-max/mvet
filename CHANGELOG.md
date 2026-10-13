@@ -1,3 +1,6 @@
+## Filtro após consulta ao Bling
+- Ver notas consultadas e pendências abre somente pendentes nas filas de vendas e compras. Ignoradas continuam acessíveis pelo filtro manual.
+
 ## Navegação e leitura compacta
 - DRE e estoque com título, filtros e dados mais próximos; ações secundárias recolhíveis.
 - Menu em acordeão, ordenação por arraste/setas por usuário neste navegador, restauração da ordem e notificações no sininho superior.
