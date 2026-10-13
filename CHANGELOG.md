@@ -255,3 +255,6 @@ Indicadores como início autorizado, mês completo com datas visíveis, cartões
 - Quadro Excel do caixa respeita visão realizada/projetada; página evita calcular o livro duas vezes.
 - Validação de valores extremos e motivo de cancelamento para despesas sem caixa.
 - Escopo das contas nos indicadores explicitado; revisão documentada em docs/FUNCTIONAL_REVIEW_2026_10_11.md.
+
+## Correção — desconto do XML Bling
+- Conferência de vendas preenche o desconto explícito do XML; compras preservam o desconto por item sem duplicar o desconto geral. Ajustes manuais continuam prioritários.

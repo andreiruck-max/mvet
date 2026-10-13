@@ -139,3 +139,5 @@ Tela exclusiva do master com modelo XLSX, depósito por seleção/coluna, quanti
 
 ### Navegação compacta
 DRE e produtos/saldos reduzem o topo. Ações secundárias recolhíveis, sem ocultar avisos de resultado parcial. Menu em acordeão (busca expande resultados), ordem por arraste ou setas salva por usuário/navegador, com restauração. Sininho substitui item lateral de notificações; permissões mantidas no servidor.
+
+- Entregue: desconto explícito do XML Bling no pré-preenchimento de vendas e compras, com validação de identidade e itens e preservação de ajustes manuais.

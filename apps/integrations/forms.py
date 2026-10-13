@@ -43,6 +43,7 @@ class ReviewForm(SaleForm):
         if invoice.source:
             amount = sum((Decimal(i['quantity']) * Decimal(i['price']) for i in invoice.source['items']), Decimal(0))
             self.initial['products_amount'] = amount.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
+            self.initial['discount'] = Decimal(invoice.source.get('discount', '0'))
             self.initial['shipping_received'] = Decimal(invoice.source.get('freight', '0'))
             self.initial['shipping_paid'] = self.initial['shipping_received']
         from .models import ReviewDefaults
@@ -56,7 +57,7 @@ class ReviewForm(SaleForm):
         self.initial.update(invoice.review_overrides)
         self.fields['shipping_received'].help_text = 'Frete da nota no Bling; confira e altere se necessário.'
         self.fields['shipping_paid'].help_text = 'Sugerido igual ao frete da nota. Ajuste para o custo efetivamente pago.'
-        self.fields['discount'].help_text = 'Não fornecido nesta consulta do Bling. Confira e informe se houver.'
+        self.fields['discount'].help_text = ('Desconto do XML da nota; confira e altere se necessário.' if 'discount' in invoice.source else 'Desconto não fornecido nesta consulta. Confira o documento e informe se houver.')
 
     def clean(self):
         data = super().clean()

@@ -53,11 +53,15 @@ def normalize(payload, issuer):
             'price': decimal_text(item.get('valor')),
             'type': text(item.get('tipo'), 1), 'cfop': text(item.get('cfop'), 4),
         })
+    discounts = payload.get('_xml_discounts')
+    if discounts:
+        for row, discount in zip(rows, discounts['items']):
+            row['discount'] = decimal_text(discount, 2)
     store = payload.get('loja') or {}
     if not isinstance(store, dict): raise ValidationError('Loja externa inválida.')
     contact = payload.get('contato') or {}
     if not isinstance(contact, dict): raise ValidationError('Contato externo inválido.')
-    return {'number': str(int(number)), 'series': str(int(series)), 'key': key,
+    return {**({'discount': decimal_text(discounts['total'], 2)} if discounts else {}), 'number': str(int(number)), 'series': str(int(series)), 'key': key,
             'customer_name': text(contact.get('nome'), 240),
             'date': issued.isoformat(), 'status': text(payload.get('situacao'), 20),
             'type': text(payload.get('tipo'), 1), 'purpose': text(payload.get('finalidade'), 1),
