@@ -1,3 +1,6 @@
+## Filtro automático de comissões
+- Selecionar um comissionado aplica o filtro imediatamente, preservando os demais critérios da consulta.
+
 ## Filtro após consulta ao Bling
 - Ver notas consultadas e pendências abre somente pendentes nas filas de vendas e compras. Ignoradas continuam acessíveis pelo filtro manual.
 
