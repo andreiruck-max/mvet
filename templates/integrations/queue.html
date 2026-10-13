@@ -5,7 +5,7 @@
 <form method="post" action="{% url 'bling_query' %}" id="bling-period-query">{% csrf_token %}<div class="bling-toolbar">{% include 'integrations/query_fields.html' %}
 <button id="bling-start" disabled>Buscar notas do período</button> <button type="button" id="bling-stop" class="quiet" hidden>Interromper busca</button></div>{% include 'integrations/query_number.html' %}</form>
 <noscript><p>Ative JavaScript para buscar o período automaticamente.</p></noscript>
-<p id="bling-progress" role="status" aria-live="polite"></p><a id="bling-results" href="{% url 'bling_queue' %}?status=" hidden>Ver notas consultadas e pendências</a>
+<p id="bling-progress" role="status" aria-live="polite"></p><a id="bling-results" href="{% url 'bling_queue' %}?status=PENDING" hidden>Ver notas consultadas e pendências</a>
 <details class="bling-help"><summary>Como funciona a busca</summary><p class="muted">Consultar não baixa estoque nem gera recebimento. Confirme cada venda após conferir produtos e deduções. Uma busca percorre todas as páginas da situação selecionada. Mantenha esta aba aberta até concluir. Interromper aguarda o lote em andamento; notas já consultadas ficam salvas. Uma nova busca do mesmo período atualiza as notas sem duplicar. Consulte também canceladas para identificar divergências; elas não cancelam vendas no MVet.</p></details></section>
 <script src="{% static 'bling-query.js' %}" defer></script>{% endif %}
 <form method="get" class="panel bling-toolbar">
