@@ -1,3 +1,6 @@
+## Atalhos de período nas comissões
+- Hoje, ontem, últimos 7 dias, esta semana, semana passada, este mês, mês passado e este ano; aplicação automática e datas manuais preservadas.
+
 ## Filtro automático de comissões
 - Selecionar um comissionado aplica o filtro imediatamente, preservando os demais critérios da consulta.
 

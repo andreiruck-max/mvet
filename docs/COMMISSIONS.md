@@ -25,3 +25,6 @@ Comissionado com histórico não pode trocar usuário já vinculado. Pode inativ
 
 ## Validação
 Cenários automatizados: frete/desconto; rateio desigual e centavos; recebimento parcial; idempotência; limite de pagamento; compensação; cancelamento/recuperação; ajustes; snapshot; mudança de base; corte mensal; escopo de usuário; concorrência PostgreSQL e proteção do livro. Browser: criar plano, receber parcela, pagar parcialmente, apurar e consultar como funcionário no celular.
+
+## Filtros rápidos
+Controle e conferência de comissões oferecem períodos prontos para as datas de venda: hoje, ontem, últimos 7 dias, semana atual (segunda a domingo), semana passada, mês atual, mês passado e ano atual. Usam a data local do MVet. Selecionar aplica automaticamente e mantém os demais critérios. Editar uma data muda para personalizado. Datas de recebimento permanecem independentes.

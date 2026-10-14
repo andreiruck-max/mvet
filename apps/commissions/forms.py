@@ -1,3 +1,5 @@
+import calendar
+from datetime import timedelta
 from uuid import uuid4
 from decimal import Decimal
 from django import forms
@@ -87,6 +89,7 @@ class DefaultForm(forms.Form):
     reason=forms.CharField(label='Motivo',max_length=500)
 
 class FilterForm(forms.Form):
+    period=forms.ChoiceField(label='Período das vendas',required=False,choices=[('', 'Personalizado / todas as datas'),('today','Hoje'),('yesterday','Ontem'),('last7','Últimos 7 dias'),('week','Esta semana'),('previous_week','Semana passada'),('month','Este mês'),('previous_month','Mês passado'),('year','Este ano')])
     payee=forms.ModelChoiceField(label='Comissionado',queryset=Payee.objects.all(),required=False)
     q=forms.CharField(label='Cliente / NF / venda',required=False)
     start=forms.DateField(label='Venda de',widget=DateInput(),required=False)
@@ -99,6 +102,22 @@ class FilterForm(forms.Form):
     def __init__(self,*args,actor,**kwargs):
         super().__init__(*args,**kwargs)
         if not actor.has_perm('core.manage_commissions'):self.fields.pop('payee')
+        if self.is_bound:
+            today=timezone.localdate()
+            week=today-timedelta(days=today.weekday())
+            previous_month=today.replace(day=1)-timedelta(days=1)
+            ranges={
+                'today':(today,today), 'yesterday':(today-timedelta(days=1),today-timedelta(days=1)),
+                'last7':(today-timedelta(days=6),today), 'week':(week,week+timedelta(days=6)),
+                'previous_week':(week-timedelta(days=7),week-timedelta(days=1)),
+                'month':(today.replace(day=1),today.replace(day=calendar.monthrange(today.year,today.month)[1])),
+                'previous_month':(previous_month.replace(day=1),previous_month),
+                'year':(today.replace(month=1,day=1),today.replace(month=12,day=31)),
+            }
+            dates=ranges.get(self.data.get('period'))
+            if dates:
+                self.data=self.data.copy()
+                self.data['start'],self.data['end']=[date.isoformat() for date in dates]
     def clean(self):
         d=super().clean()
         for a,b in [('start','end'),('received_start','received_end')]:
