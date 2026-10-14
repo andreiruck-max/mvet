@@ -119,3 +119,5 @@ Fila de venda exibe série/número em ordem crescente, valor fiscal e nome do cl
 
 ## Desconto fiscal via XML
 O detalhe JSON pode omitir descontos. Quando disponibiliza XML HTTPS do Bling, a consulta valida chave, total e itens antes de extrair vDesc. Venda recebe o total uma única vez; compra recebe descontos por item e somente o residual no desconto geral. Download limitado, sem credenciais OAuth nem redirecionamentos; XML/URL não são persistidos. Falha de conferência interrompe a consulta para nova tentativa. Sem XML, informar manualmente; nunca inferir desconto pela diferença de totais. Reconsultar notas pendentes após atualizar. Vendas confirmadas e escolhas locais não são reescritas.
+
+A fila de vendas transporta o endereço filtrado para a conferência e ações POST. Voltar às notas preserva série, situação, pesquisa e paginação; destinos externos são rejeitados pelo validador de navegação.

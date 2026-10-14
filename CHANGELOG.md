@@ -1,3 +1,6 @@
+## Retorno à fila do Bling
+- Série e demais filtros são preservados ao abrir uma nota, vincular produto, registrar venda ou reconsultar o documento e voltar às notas.
+
 ## Atalhos de período nas comissões
 - Hoje, ontem, últimos 7 dias, esta semana, semana passada, este mês, mês passado e este ano; aplicação automática e datas manuais preservadas.
 
