@@ -2,6 +2,8 @@ import secrets
 import time
 from urllib.parse import urlencode
 from django.conf import settings
+from django.urls import reverse
+from apps.core.navigation import detail_url, return_url
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import ValidationError
@@ -53,12 +55,12 @@ def detail(request, pk):
                 services.approve(actor=request.user, invoice_id=pk, revision=form.cleaned_data['revision'],
                     data={k: form.cleaned_data[k] for k in EDIT_FIELDS}, extra_costs=costs, reviewed=True)
                 messages.success(request, 'Venda confirmada no MVet. Nenhuma alteração foi enviada ao Bling.')
-                return redirect('bling_detail', pk=pk)
+                return redirect(detail_url(request, 'bling_detail', pk))
             except ValidationError as exc: form.add_error(None, exc)
             except IntegrityError: form.add_error(None, 'NF/série ou chave já cadastrada. Confira a venda existente; não crie outra.')
     rows = [{'source': r, 'product': services.resolve(invoice.connection, r)} for r in invoice.source.get('items', [])]
     return render(request, 'integrations/detail.html', {'invoice': invoice, 'rows': rows, 'form': form,
-        'extra_formset': extras, 'alias_form': AliasForm(invoice=invoice, initial={'revision': invoice.revision}, prefix='alias'),
+        'queue_return_url': return_url(request, reverse('bling_queue')), 'extra_formset': extras, 'alias_form': AliasForm(invoice=invoice, initial={'revision': invoice.revision}, prefix='alias'),
         'decision_form': DecisionForm(initial={'revision': invoice.revision}, prefix='decision')})
 
 
@@ -100,7 +102,7 @@ def alias(request, pk):
             messages.success(request, 'Código vinculado. Confira os produtos antes de confirmar a venda.')
         except ValidationError as exc: messages.error(request, '; '.join(exc.messages))
     else: messages.error(request, 'Selecione um item da nota e um produto válido.')
-    return redirect('bling_detail', pk=pk)
+    return redirect(detail_url(request, 'bling_detail', pk))
 
 
 @login_required
@@ -115,7 +117,7 @@ def decision(request, pk, action):
             services.set_ignored(actor=request.user, invoice_id=pk, ignored=action == 'ignore', **form.cleaned_data)
         else: raise ValidationError('Ação inválida.')
     except ValidationError as exc: messages.error(request, '; '.join(exc.messages))
-    return redirect('bling_detail', pk=pk)
+    return redirect(detail_url(request, 'bling_detail', pk))
 
 
 @login_required

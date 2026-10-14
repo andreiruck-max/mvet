@@ -54,7 +54,7 @@ class ReviewDefaultsTests(Fixture, TestCase):
     def test_manual_overrides_survive_post_and_errors_without_receivable(self):
         row=self.invoice()
         values=self.values(row)
-        values.update(discount='1,50', shipping_received='9,00', shipping_paid='20,00',
+        values.update(next=reverse('bling_queue')+'?series=2&status=PENDING', discount='1,50', shipping_received='9,00', shipping_paid='20,00',
                       tax_override='0', tax_reason='Injected override')
         self.client.force_login(self.actor)
         url=reverse('bling_detail',args=[row.pk])
@@ -65,6 +65,10 @@ class ReviewDefaultsTests(Fixture, TestCase):
         self.assertEqual(str(response.context['form']['channel'].value()),str(self.channel.pk))
         response=self.client.post(url,values)
         self.assertEqual(response.status_code,302)
+        from urllib.parse import parse_qs, urlsplit
+        self.assertEqual(parse_qs(urlsplit(response.url).query)['next'],[reverse('bling_queue')+'?series=2&status=PENDING'])
+        returned=self.client.get(response.url)
+        self.assertContains(returned,'?series=2&amp;status=PENDING')
         sale=Sale.objects.get()
         self.assertEqual(sale.location,self.location)
         self.assertEqual(sale.channel,self.channel)
@@ -97,3 +101,17 @@ class ReviewDefaultsTests(Fixture, TestCase):
         response=self.client.post(reverse('bling_connection'),data)
         self.assertEqual(response.status_code,302)
         self.assertFalse(Sale.objects.exists())
+
+    def test_queue_return_preserves_filters_and_rejects_external_url(self):
+        from urllib.parse import urlencode, parse_qs, urlsplit
+        row=self.invoice()
+        self.client.force_login(self.actor)
+        origin=reverse('bling_queue')+'?series=1&status=PENDING&page=2'
+        url=reverse('bling_detail',args=[row.pk])+'?'+urlencode({'next':origin})
+        response=self.client.get(url)
+        self.assertEqual(response.context['queue_return_url'],origin)
+        self.assertContains(response,'name="next"')
+        response=self.client.post(reverse('bling_alias',args=[row.pk]),{'next':origin})
+        self.assertEqual(parse_qs(urlsplit(response.url).query)['next'],[origin])
+        response=self.client.get(reverse('bling_detail',args=[row.pk]),{'next':'https://example.org/'})
+        self.assertEqual(response.context['queue_return_url'],reverse('bling_queue'))
