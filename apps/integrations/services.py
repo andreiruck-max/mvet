@@ -136,7 +136,8 @@ def approve(*, actor, invoice_id, revision, data, extra_costs, reviewed, purpose
     sale = sales.save_draft(actor=actor, key=uuid4(), data=data, items=items, extra_costs=extra_costs)
     sale.source = 'bling'; sale.external_id = invoice.external_id
     sale.save(update_fields=['source', 'external_id'])
-    sale = sales.confirm(actor=actor, sale_id=sale.pk, revision=sale.revision)
+    sale = sales.confirm(actor=actor, sale_id=sale.pk, revision=sale.revision,
+        commission_customer=invoice.source.get('customer_name',''))
     invoice.sale = sale; invoice.approved_source = invoice.source
     invoice.status = 'IMPORTED'; invoice.revision += 1; invoice.save()
     audit(actor, invoice, 'bling_approve', after={'sale': sale.pk, 'fingerprint': invoice.fingerprint,

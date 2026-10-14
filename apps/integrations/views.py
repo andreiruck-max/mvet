@@ -54,7 +54,8 @@ def detail(request, pk):
                 costs = [(f.cleaned_data['name'], f.cleaned_data['amount']) for f in extras if f.cleaned_data and f.cleaned_data.get('name') and not f.cleaned_data.get('DELETE')]
                 services.approve(actor=request.user, invoice_id=pk, revision=form.cleaned_data['revision'],
                     data={k: form.cleaned_data[k] for k in EDIT_FIELDS}, extra_costs=costs, reviewed=True)
-                messages.success(request, 'Venda confirmada no MVet. Nenhuma alteração foi enviada ao Bling.')
+                suffix=' Comissão prevista registrada.' if form.cleaned_data.get('seller') else ''
+                messages.success(request, 'Venda confirmada no MVet.'+suffix+' Nenhuma alteração foi enviada ao Bling.')
                 return redirect(detail_url(request, 'bling_detail', pk))
             except ValidationError as exc: form.add_error(None, exc)
             except IntegrityError: form.add_error(None, 'NF/série ou chave já cadastrada. Confira a venda existente; não crie outra.')

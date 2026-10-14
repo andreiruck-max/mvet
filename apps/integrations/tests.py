@@ -15,6 +15,7 @@ from apps.inventory.models import StockMovement
 from apps.products.models import Product
 from apps.finance.models import FinancialTitle
 from apps.core.models import AuditLog
+from apps.commissions.models import Payee, CommissionPlan
 from .models import BlingConnection, InvoiceImport
 from .services import stage, approve, set_ignored, map_product
 from . import bling
@@ -59,6 +60,17 @@ class ImportTests(Fixture, TestCase):
         self.assertEqual(row.approved_source['status'], '6')
         row = self.staged(situacao=2, loja=None)
         self.assertTrue(row.discrepancy)
+
+    def test_review_assigns_seller_and_registers_commission_with_customer(self):
+        payee=Payee.objects.create(name='Vendedora Bling',default_rate=D('6'))
+        row=self.staged(contato={'nome':'Cliente da nota'})
+        self.client.force_login(self.actor)
+        self.assertContains(self.client.get(reverse('bling_detail',args=[row.pk])),'Vendedor / comissionado')
+        sale=self.approve(row,seller=payee,commission=D('0'))
+        plan=CommissionPlan.objects.get(sale=sale)
+        self.assertEqual(sale.seller,payee);self.assertEqual(plan.payee,payee)
+        self.assertEqual(plan.customer,'Cliente da nota');self.assertEqual(plan.total,D('5.40'))
+        self.assertEqual(plan.installments.get().amount,D('95'))
 
     def test_issued_danfe_does_not_relax_other_validation(self):
         for changes in ({'tipo': 0}, {'finalidade': 4}, {'chaveAcesso': ''}):

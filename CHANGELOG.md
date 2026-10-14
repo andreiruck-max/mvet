@@ -1,3 +1,8 @@
+## Vendedor na conferência e comissão automática
+- Conferência de NF do Bling e lançamento manual permitem selecionar o vendedor / comissionado.
+- A confirmação usa o percentual cadastrado da pessoa (ou o padrão global), calcula sobre produtos menos desconto e registra imediatamente a previsão na tela de Comissões.
+- O cronograma inicial usa uma parcela na data da venda e pode ser revisado depois; não gera recebível, banco ou liberação automática.
+
 ## Retorno à fila do Bling
 - Série e demais filtros são preservados ao abrir uma nota, vincular produto, registrar venda ou reconsultar o documento e voltar às notas.
 
