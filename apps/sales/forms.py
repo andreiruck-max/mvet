@@ -58,6 +58,18 @@ class SaleForm(forms.ModelForm):
             self.fields['location'].required=True
         self.fields['date'].initial=timezone.localdate
         self.fields['channel'].queryset=SalesChannel.objects.filter(active=True)
+        from django.db.models import Q
+        from apps.commissions.models import Payee, CommissionSettings
+        self.fields['seller'].queryset=Payee.objects.filter(Q(active=True)|Q(pk=self.instance.seller_id)).order_by('name','pk')
+        default=CommissionSettings.objects.filter(pk=1).values_list('default_rate',flat=True).first()
+        def seller_label(person):
+            rate=person.default_rate if person.default_rate is not None else default
+            value=(format(rate,'f').rstrip('0').rstrip('.') or '0')+'%' if rate is not None else 'percentual não configurado'
+            return f'{person.name} · {value}'
+        self.fields['seller'].label_from_instance=seller_label
+        self.fields['seller'].help_text='Ao confirmar, cria a comissão prevista usando o percentual cadastrado para a pessoa (ou o padrão global).'
+        self.fields['commission'].label='Comissão manual (R$)'
+        self.fields['commission'].help_text='Use somente sem vendedor. Com vendedor selecionado, deixe zero: o ERP calcula e registra automaticamente.'
         self.fields['location'].queryset=StockLocation.objects.filter(active=True)
         self.fields['tax_rule'].queryset=TaxRule.objects.filter(active=True)
         for name in ['channel']:
@@ -71,7 +83,7 @@ class SaleForm(forms.ModelForm):
         elif not self.instance.pk and company and not company.default_stock_location_id and self.fields['location'].queryset.count()==1:
             self.initial['location']=self.fields['location'].queryset.first().pk
         self.fields['location'].label='Estoque da venda'
-        self.basic_fields=[self[name] for name in ['date','invoice_number','invoice_series','channel','location','products_amount','tax_rule']]
+        self.basic_fields=[self[name] for name in ['date','invoice_number','invoice_series','channel','seller','location','products_amount','tax_rule']]
         self.optional_fields=[self[name] for name in [*FINANCIAL_FIELDS[1:],'tax_override','tax_reason','notes']]
         for name in FINANCIAL_FIELDS[1:]:self.fields[name].required=False
         if self.instance.pk:
@@ -85,6 +97,16 @@ class SaleForm(forms.ModelForm):
             if existing:self.add_error('invoice_number',f'Esta NF/série já pertence à venda #{existing.pk} ({existing.get_status_display()}). Abra essa venda e use Corrigir valores ou Recuperar venda cancelada; não é necessário relançar.')
         for name in FINANCIAL_FIELDS[1:]:
             if data.get(name) is None and name not in self.errors:data[name]=Decimal('0')
+        seller=data.get('seller')
+        if seller:
+            if data.get('commission'):
+                self.add_error('commission','Com vendedor selecionado, deixe a comissão manual em zero; o ERP usará o percentual cadastrado.')
+            from apps.commissions.models import CommissionSettings
+            if seller.default_rate is None and not CommissionSettings.objects.filter(pk=1).exists():
+                self.add_error('seller','Este comissionado não possui percentual e não há percentual global configurado.')
+            face=(data.get('products_amount') or Decimal('0'))-(data.get('discount') or Decimal('0'))+(data.get('shipping_received') or Decimal('0'))
+            if face <= 0:
+                self.add_error('seller','A venda precisa ter valor contratual positivo para gerar o controle de comissão.')
         if self.actor and self.actor.is_superuser:
             data['date']=data.get('date') or timezone.localdate()
             if data.get('products_amount') is None and 'products_amount' not in self.errors:data['products_amount']=Decimal('0')

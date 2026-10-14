@@ -35,6 +35,7 @@ class Sale(models.Model):
     invoice_number = models.CharField('Número da NF', max_length=40, blank=True, default='')
     invoice_series = models.CharField('Série', max_length=20, blank=True, default='')
     channel = models.ForeignKey(SalesChannel, on_delete=models.PROTECT, verbose_name='Canal', null=True, blank=True)
+    seller = models.ForeignKey('commissions.Payee', on_delete=models.PROTECT, verbose_name='Vendedor / comissionado', related_name='sales', null=True, blank=True)
     location = models.ForeignKey(StockLocation, on_delete=models.PROTECT, verbose_name='Local de estoque', null=True, blank=True)
     products_amount = money('Valor dos produtos (R$)')
     discount = money('Desconto (R$)')

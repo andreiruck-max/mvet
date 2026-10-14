@@ -154,6 +154,7 @@ class SalesTests(Fixture,TestCase):
         sale=self.draft();self.client.force_login(self.actor)
         for url in ['sales','sale_new']:
             self.assertEqual(self.client.get(reverse(url)).status_code,200)
+        self.assertContains(self.client.get(reverse('sale_new')),'Vendedor / comissionado')
         for kind in ['canais','impostos']:self.assertEqual(self.client.get(reverse('sales_configuration',args=[kind])).status_code,200)
         self.assertContains(self.client.get(reverse('sales'),{'q':'TEST-1'}),'100')
         self.assertNotContains(self.client.get(reverse('sales'),{'status':'CONFIRMED'}),'href="/vendas/1/"')

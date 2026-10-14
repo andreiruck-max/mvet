@@ -55,7 +55,7 @@ def sale_edit(request,pk=None):
 @login_required
 def sale_detail(request,pk):
     check_read(request.user)
-    sale=get_object_or_404(Sale.objects.select_related('channel','location','created_by','confirmed_by','cancelled_by'),pk=pk)
+    sale=get_object_or_404(Sale.objects.select_related('channel','seller','location','created_by','confirmed_by','cancelled_by'),pk=pk)
     return render(request,'sales/detail.html',{'sale':sale,'items':sale.items.select_related('product'),'cancel_form':CancelForm(),'extra_costs':sale.extra_costs.all(),'tax_revisions':sale.tax_revisions.select_related('change__actor'),'recoveries':sale.recoveries.select_related('actor')})
 
 @login_required
@@ -99,8 +99,9 @@ def sale_confirm(request,pk):
     get_object_or_404(Sale,pk=pk)
     try:
         revision=int(request.POST.get('revision','-1'))
-        confirm(actor=request.user,sale_id=pk,revision=revision)
-        messages.success(request,'Venda confirmada. Estoque atualizado.')
+        sale=confirm(actor=request.user,sale_id=pk,revision=revision)
+        suffix=' Comissão prevista registrada.' if sale.seller_id else ''
+        messages.success(request,'Venda confirmada. Estoque atualizado.'+suffix)
     except (ValidationError,ValueError) as exc:messages.error(request,'; '.join(exc.messages) if isinstance(exc,ValidationError) else 'Revisão inválida.')
     return redirect('sale_detail',pk=pk)
 

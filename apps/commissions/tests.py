@@ -38,6 +38,28 @@ class Fixture(SalesFixture):
         data.update(kw);return s.pay(**data)
 
 class CommissionTests(Fixture,TestCase):
+    def test_selected_seller_creates_forecast_when_sale_is_confirmed(self):
+        sale=self.draft(invoice_number='AUTO-1',seller=self.payee,commission=D('0'),
+            products_amount=D('1000'),discount=D('100'),shipping_received=D('50'))
+        sale=sales.confirm(actor=self.operator,sale_id=sale.pk,revision=sale.revision,
+            commission_customer='Cliente automático')
+        plan=CommissionPlan.objects.get(sale=sale)
+        item=plan.installments.get()
+        self.assertEqual(plan.payee,self.payee);self.assertEqual(plan.customer,'Cliente automático')
+        self.assertEqual(plan.base,D('900'));self.assertEqual(plan.total,D('45'));self.assertEqual(plan.rate_source,'PAYEE')
+        self.assertEqual(item.amount,D('950'));self.assertEqual(item.forecast,D('45'));self.assertEqual(item.due_date,sale.date)
+        self.assertEqual(sale.commission,D('45'));self.assertFalse(Entry.objects.filter(installment=item).exists())
+        sales.confirm(actor=self.operator,sale_id=sale.pk,revision=sale.revision)
+        self.assertEqual(CommissionPlan.objects.filter(sale=sale).count(),1)
+
+    def test_automatic_commission_requires_rate_and_rolls_back_confirmation(self):
+        self.payee.default_rate=None;self.payee.save(update_fields=['default_rate'])
+        sale=self.draft(invoice_number='AUTO-2',seller=self.payee,commission=D('0'))
+        before=sale.revision
+        with self.assertRaises(ValidationError):sales.confirm(actor=self.operator,sale_id=sale.pk,revision=before)
+        sale.refresh_from_db();self.assertEqual(sale.status,'DRAFT');self.assertEqual(sale.revision,before)
+        self.assertFalse(CommissionPlan.objects.filter(sale=sale).exists())
+
     def test_base_excludes_freight_discount_and_cost_uses_single_sale_field(self):
         original=self.sale.contribution;plan=self.plan();self.sale.refresh_from_db()
         self.assertEqual(plan.base,900);self.assertEqual(plan.total,45);self.assertEqual(plan.rate_source,'PAYEE')

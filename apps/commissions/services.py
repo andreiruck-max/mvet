@@ -91,12 +91,9 @@ def configure_default(*,actor,rate,reason):
     before=str(obj.default_rate);obj.default_rate=rate;obj.full_clean();obj.save()
     audit(actor,obj,'commission_default',{'rate':before},{'rate':str(rate),'reason':reason})
 
-@transaction.atomic
-def create_plan(*,actor,sale_id,payee_id,customer,rate,installments,key,reason):
-    manage(actor);domain_lock()
-    sale=Sale.objects.select_for_update().get(pk=sale_id)
+def _create_plan(*,actor,sale,payee_id,customer,rate,installments,key,reason):
     rows=[(date,number(amount,CENT)) for date,amount in installments]
-    payload=[sale_id,payee_id,customer,str(rate),[(str(d),str(a)) for d,a in rows]]
+    payload=[sale.pk,payee_id,customer,str(rate),[(str(d),str(a)) for d,a in rows]]
     cmd,fresh=command(actor,key,'CREATE',reason,payload)
     if not fresh:return CommissionPlan.objects.get(sale=sale)
     if sale.status!='CONFIRMED' or CommissionPlan.objects.filter(sale=sale).exists():
@@ -119,6 +116,30 @@ def create_plan(*,actor,sale_id,payee_id,customer,rate,installments,key,reason):
     write_sale_cost(sale,actor,plan.total,reason)
     audit(actor,plan,'commission_create',{},dict(snapshot(plan),command_id=cmd.pk))
     return plan
+
+@transaction.atomic
+def create_plan(*,actor,sale_id,payee_id,customer,rate,installments,key,reason):
+    manage(actor);domain_lock()
+    sale=Sale.objects.select_for_update().get(pk=sale_id)
+    return _create_plan(actor=actor,sale=sale,payee_id=payee_id,customer=customer,rate=rate,
+        installments=installments,key=key,reason=reason)
+
+@transaction.atomic
+def create_from_sale(*,actor,sale,customer=''):
+    """Create the one-installment forecast selected while entering the sale.
+
+    This is an internal confirmation hook: it never records a receipt or bank
+    movement. The schedule can be revised later in the commission module.
+    """
+    require(actor,'core.operate_sales');require(actor,'core.confirm_sales');domain_lock()
+    sale=Sale.objects.select_for_update().get(pk=sale.pk)
+    if not sale.seller_id:return None
+    existing=CommissionPlan.objects.filter(sale=sale).first()
+    if existing:return existing
+    face=sale.products_amount-sale.discount+sale.shipping_received
+    if face<=ZERO:raise ValidationError('A venda precisa ter valor contratual positivo para gerar o controle de comissão.')
+    return _create_plan(actor=actor,sale=sale,payee_id=sale.seller_id,customer=customer,rate=None,
+        installments=[(sale.date,face)],key=uuid4(),reason='Comissão criada automaticamente na confirmação da venda.')
 
 def rebalance(plan,cmd,date):
     for item in plan.installments.all():

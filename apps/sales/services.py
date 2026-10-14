@@ -13,7 +13,7 @@ from apps.inventory.services import domain_lock, number, QTY, _fingerprint, _app
 from .models import Sale, SaleItem, SaleConsumption, SalesChannel, TaxRule, SaleExtraCost
 
 FINANCIAL_FIELDS = ['products_amount','discount','shipping_received','shipping_paid','fees','difal','commission','other_costs']
-EDIT_FIELDS = ['date','invoice_number','invoice_series','channel','location',*FINANCIAL_FIELDS,'tax_rule','tax_override','tax_reason','notes','revenue_adjustment','revenue_adjustment_reason']
+EDIT_FIELDS = ['date','invoice_number','invoice_series','channel','seller','location',*FINANCIAL_FIELDS,'tax_rule','tax_override','tax_reason','notes','revenue_adjustment','revenue_adjustment_reason']
 CENT = Decimal('0.01')
 
 def snapshot(sale):
@@ -30,6 +30,9 @@ def validate(sale, *, partial=False):
     if (sale.location_id or not partial) and not StockLocation.objects.filter(pk=sale.location_id,active=True).exists(): raise ValidationError('Selecione um estoque ativo antes de confirmar.')
     for field in FINANCIAL_FIELDS: number(getattr(sale,field),CENT,zero=True)
     if sale.discount > sale.products_amount: raise ValidationError('Desconto não pode exceder o valor dos produtos.')
+    if sale.seller_id:
+        if not sale.seller.active: raise ValidationError('Selecione um vendedor / comissionado ativo.')
+        if sale.commission: raise ValidationError('Com vendedor selecionado, deixe a comissão manual em zero; o ERP calcula o valor na confirmação.')
     number(abs(sale.revenue_adjustment), CENT, zero=True)
     if sale.revenue < 0: raise ValidationError('Receita operacional não pode ser negativa.')
     if sale.tax_override is not None:
@@ -47,6 +50,7 @@ def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None):
     require(actor,'core.operate_sales')
     domain_lock()
     data = dict(data)
+    data.setdefault('seller', None)
     data.setdefault('revenue_adjustment', Decimal('0'))
     data.setdefault('revenue_adjustment_reason', '')
     if actor.is_superuser:
@@ -106,7 +110,7 @@ def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None):
     return sale
 
 @transaction.atomic
-def confirm(*,actor,sale_id,revision):
+def confirm(*,actor,sale_id,revision,commission_customer=''):
     require(actor,'core.confirm_sales')
     require(actor,'core.operate_sales')
     domain_lock()
@@ -146,6 +150,10 @@ def confirm(*,actor,sale_id,revision):
     sale.cmv=cmv;sale.minimum_margin=company.minimum_margin
     sale.status='CONFIRMED';sale.stock_operation=operation;sale.confirmed_by=actor;sale.confirmed_at=timezone.now();sale.revision+=1
     sale.save()
+    if sale.seller_id:
+        from apps.commissions.services import create_from_sale
+        create_from_sale(actor=actor, sale=sale, customer=commission_customer)
+        sale.refresh_from_db(fields=['commission','revision'])
     audit(actor,sale,'confirm_sale',{'status':'DRAFT'},{'status':sale.status,'cmv':str(cmv),'tax':sale.tax_snapshot,'tax_amount':str(sale.tax_amount),'stock_operation':operation.pk})
     return sale
 
