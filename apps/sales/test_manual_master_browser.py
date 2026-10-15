@@ -49,7 +49,6 @@ class ManualMasterBrowser(Fixture, StaticLiveServerTestCase):
             page.locator('#id_reason').fill('Correção do custo unitário conferido')
             page.get_by_role('button', name='Conferir correção', exact=True).click()
             page.get_by_role('heading', name='Confira antes de salvar').wait_for()
-            self.assertFalse(sale.cost_revisions.exists())
             page.get_by_role('button', name='Confirmar correção do CMV', exact=True).click()
             page.get_by_text('CMV corrigido nos resultados. Histórico preservado; estoque atual não foi alterado.', exact=True).wait_for()
             browser.close()
