@@ -1,3 +1,11 @@
+## Extrato bancário — mês e saldos (15/10/2026)
+
+Ao abrir uma conta, o período padrão é o mês atual, inclusive com parâmetros de navegação. Lançamentos aparecem do mais recente ao mais antigo; saldo acumulado continua calculado cronologicamente. Abertura aparece ao final da última página. Cartões mostram saldo realizado hoje e saldo no último dia do filtro (previsto se futuro, realizado se passado).
+
+## Fluxo de caixa — leitura dos pagamentos (15/10/2026)
+
+Pagamentos pendentes e futuros ficam sempre expostos, sem acordeão. Removido o bloco Como ler os saldos. Vencimentos atrasados e de hoje recebem cor e rótulo textual; divisórias identificam mês e ano. Preservados filtros, paginação e regras financeiras.
+
 ## Retorno à fila do Bling
 - Série e demais filtros são preservados ao abrir uma nota, vincular produto, registrar venda ou reconsultar o documento e voltar às notas.
 

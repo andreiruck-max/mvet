@@ -201,7 +201,11 @@ def day_detail(request,pk,date):
 def account_detail(request,pk):
     from apps.reporting.forms import PeriodForm
     account=get_object_or_404(Account,pk=pk)
-    data=request.GET or {'start':timezone.localdate()-timedelta(days=29),'end':timezone.localdate()}
+    data=request.GET.copy()
+    if not any(data.get(key) for key in ('period','start','end')):
+        data['period']='month'
+    today=timezone.localdate()
+    today_summary=selectors.cash_summary(today,today,account.pk)
     form=PeriodForm(data)
     form.fields.pop('channel')
     rows=Entry.objects.none(); initial=None; summary=None; opening_in_period=False
@@ -209,10 +213,12 @@ def account_detail(request,pk):
         start,end=form.cleaned_data['start'],form.cleaned_data['end']
         opening_in_period=start<=account.opening_date<=end
         rows,initial=selectors.account_statement(account,start,end)
+        rows=rows.order_by('-operation__date','-pk')
         summary=selectors.cash_summary(start,end,account.pk)
+        summary['closing']=summary['projected'] if end>today else summary['actual']
         display=form.data.copy();display.update(start=start.isoformat(),end=end.isoformat());form.data=display
     pending=Title.objects.filter(account=account,status='OPEN',settled__lt=F('amount')).order_by('due_date','pk')
-    return render(request,'finance/account.html',{'account':account,'form':form,'initial':initial,'summary':summary,
+    return render(request,'finance/account.html',{'account':account,'form':form,'initial':initial,'summary':summary,'today_summary':today_summary,'today':today,
         'opening_in_period':opening_in_period,'page':Paginator(rows,50).get_page(request.GET.get('page')),'pending':Paginator(pending,20).get_page(request.GET.get('pending_page'))})
 
 
