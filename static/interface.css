@@ -107,3 +107,16 @@ input[type=checkbox],input[type=radio]{accent-color:var(--focus)}
 #navigation-order li span{flex:1;min-width:0}#navigation-order button{padding:4px 7px;min-height:32px}#navigation-order .dragging{opacity:.5}#navigation-feedback{display:block;margin:6px 0}
 @media(max-width:850px){.sidebar:not(.menu-open) .nav-edit,.sidebar:not(.menu-open) #navigation-editor{display:none}.topbar .actions{gap:6px;flex-wrap:wrap}.topbar .username{display:none}.compact-report .page-heading{gap:6px}.compact-report .stock-totals strong{font-size:18px}.workspace .compact-report .stock-totals{grid-template-columns:repeat(auto-fit,minmax(100px,1fr))}.workspace .compact-report .stock-totals .card{padding:8px}.compact-report .filter-bar>p{flex-basis:40%}.compact-report .filters label{flex-basis:40%}.compact-report .filters .check{flex-basis:auto}}
 @media print{.page-tools,#navigation-editor,.nav-edit{display:none!important}}
+
+/* Pending payments stay visible; labels distinguish urgency without relying on color. */
+.cash-page .cash-payments-table{min-width:650px;width:100%}
+.cash-page .cash-payments-table .payment-month th{border-top:3px solid var(--focus);border-bottom:1px solid var(--border);background:var(--soft);color:var(--text);padding:12px 10px;text-align:left;font-weight:800}
+.cash-page .cash-payments-table .payment-overdue td{background:#fff0f1}
+.cash-page .cash-payments-table .payment-today td{background:#fff7dc}
+.cash-page .cash-payments-table .payment-overdue .payment-due{border-left:4px solid #b42338;color:#9d1730;font-weight:700}
+.cash-page .cash-payments-table .payment-today .payment-due{border-left:4px solid #a36200;color:#805000;font-weight:700}
+.cash-page .payment-status{display:block;font-size:11px;font-weight:800;margin-top:3px}
+[data-theme=dark] .cash-page .cash-payments-table .payment-overdue td{background:#3c202b}
+[data-theme=dark] .cash-page .cash-payments-table .payment-today td{background:#38301e}
+[data-theme=dark] .cash-page .cash-payments-table .payment-overdue .payment-due{color:#ffb5c1;border-left-color:#ff8da2}
+[data-theme=dark] .cash-page .cash-payments-table .payment-today .payment-due{color:#ffe0a0;border-left-color:#ffd080}

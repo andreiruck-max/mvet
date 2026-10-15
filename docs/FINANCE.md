@@ -1,3 +1,7 @@
+## Fluxo de caixa — leitura dos pagamentos (15/10/2026)
+
+Pagamentos pendentes e futuros ficam sempre expostos, sem acordeão. Removido o bloco Como ler os saldos. Vencimentos atrasados e de hoje recebem cor e rótulo textual; divisórias identificam mês e ano. Preservados filtros, paginação e regras financeiras.
+
 ## Antecipar parcelas — 09/10/2026
 A ação Pagar / antecipar abre a liquidação da parcela, inclusive quando vence no futuro. Informe a data real do pagamento (hoje ou anterior, dentro das regras existentes). Liquidação parcial ou integral reduz a pendência e recalcula caixa realizado e projeção sem duplicação. Para um pagamento ainda não realizado, use Alterar previsão de vencimento / conta; não registrar como caixa realizado. Estorno recompõe a obrigação pelo serviço existente. Nenhuma mudança em regras de competência ou migrations nesta revisão.
 

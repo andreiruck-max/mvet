@@ -1,3 +1,7 @@
+## Fluxo de caixa — leitura dos pagamentos (15/10/2026)
+
+Pagamentos pendentes e futuros ficam sempre expostos, sem acordeão. Removido o bloco Como ler os saldos. Vencimentos atrasados e de hoje recebem cor e rótulo textual; divisórias identificam mês e ano. Preservados filtros, paginação e regras financeiras.
+
 ## Retorno à fila do Bling
 - Série e demais filtros são preservados ao abrir uma nota, vincular produto, registrar venda ou reconsultar o documento e voltar às notas.
 

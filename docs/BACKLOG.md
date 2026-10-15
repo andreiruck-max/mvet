@@ -1,3 +1,7 @@
+## Fluxo de caixa — leitura dos pagamentos (15/10/2026)
+
+Pagamentos pendentes e futuros ficam sempre expostos, sem acordeão. Removido o bloco Como ler os saldos. Vencimentos atrasados e de hoje recebem cor e rótulo textual; divisórias identificam mês e ano. Preservados filtros, paginação e regras financeiras.
+
 ## Comissões — 10/10/2026
 Implementado: controle por venda/parcela, recebimentos e pagamentos manuais, apuração mensal, conferência, acesso próprio/gestor e livro auditável. Integração com banco/Bling de recebimentos, conciliação automática e divisão da mesma venda entre vários comissionados permanecem futuras.
 

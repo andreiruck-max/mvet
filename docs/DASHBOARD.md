@@ -1,3 +1,7 @@
+## Fluxo de caixa — leitura dos pagamentos (15/10/2026)
+
+Pagamentos pendentes e futuros ficam sempre expostos, sem acordeão. Removido o bloco Como ler os saldos. Vencimentos atrasados e de hoje recebem cor e rótulo textual; divisórias identificam mês e ano. Preservados filtros, paginação e regras financeiras.
+
 ## Navegação, compras e canais — 09/10/2026
 Submenus por domínio dão acesso direto às parcelas, importações, cadastros e relatórios, respeitando permissões. Estado de expansão é lembrado neste navegador; grupo da página atual abre automaticamente. Dashboard inclui imposto aplicado às vendas confirmadas no período/canal, condicionado a view_margins.
 Relatório de vendas substitui o nome Vendas em tabela. Ordem padrão por data crescente, seguida de número de NF numérico crescente dentro do canal. Cartões de canais ativos incluem cadastros sem vendas e filtram mantendo período e demais critérios. Total da empresa limpa o canal e preserva histórico de canais inativos; estes continuam disponíveis no filtro e na listagem histórica. Cadastro/inativação usa manage_channels.
