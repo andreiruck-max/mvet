@@ -90,3 +90,31 @@ class AccountFlowTests(Fixture, TestCase):
         self.assertEqual(summary['actual'],1000)
         # Reversal reopens the obligation: it remains projected until cancelled.
         self.assertEqual(summary['projected'],985)
+
+    def test_bank_month_default_with_return_url_and_descending_balances(self):
+        from calendar import monthrange
+        self.entry(direction='RECEIVE',amount=D('10'),description='Primeiro crédito')
+        self.entry(amount=D('25'),description='Último débito')
+        self.client.force_login(self.admin)
+        response=self.client.get(reverse('financial_account',args=[self.a.pk]),{'next':'/financeiro/'})
+        self.assertEqual(response.status_code,200)
+        form=response.context['form']
+        self.assertEqual(form.cleaned_data['start'],self.today.replace(day=1))
+        self.assertEqual(form.cleaned_data['end'],self.today.replace(day=monthrange(self.today.year,self.today.month)[1]))
+        rows=list(response.context['page'])
+        self.assertEqual([r.operation.description for r in rows],['Último débito','Primeiro crédito'])
+        self.assertEqual([r.running_balance for r in rows],[D('985'),D('1010')])
+        self.assertEqual(response.context['today_summary']['actual'],985)
+        self.assertNotContains(response,'Selecione um período ou informe as duas datas.')
+
+    def test_bank_closing_forecast_does_not_change_today_balance(self):
+        end=self.today+timedelta(days=5)
+        self.title(due_date=end,amount=D('100'))
+        self.client.force_login(self.admin)
+        response=self.client.get(reverse('financial_account',args=[self.a.pk]),{'start':self.today,'end':end})
+        self.assertEqual(response.context['today_summary']['actual'],1000)
+        self.assertEqual(response.context['summary']['closing'],900)
+        self.assertContains(response,'Saldo previsto no último dia')
+        response=self.client.get(reverse('financial_account',args=[self.a.pk]),{'start':self.today,'end':self.today})
+        self.assertEqual(response.context['summary']['closing'],1000)
+        self.assertContains(response,'Saldo realizado no último dia')
