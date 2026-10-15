@@ -49,7 +49,7 @@ def sources(token,data):
     dates=(data['start'],data['end'])
     if kind=='sale' and spec.get('field') in dict(SALES):
         for sale in selectors.sale_rows({**data,'status':'CONFIRMED'}):
-            add(sale.date,'Venda '+sale.reference,spec['label'],getattr(sale,spec['field']),'sale_detail',sale.pk)
+            add(sale.date,'Venda '+sale.reference,spec['label'],getattr(sale,'effective_cmv' if spec['field']=='cmv' else spec['field']),'sale_detail',sale.pk)
     elif kind in ('nature','expense','purchase','inventory'):
         nature=spec.get('nature')
         if kind in ('nature','expense'):

@@ -122,7 +122,7 @@ def sale_result(request,pk):
     sale=get_object_or_404(Sale,pk=pk)
     if sale.status=='DRAFT':return JsonResponse({'status':sale.status,'detail':'Custo calculado na confirmação.'})
     result={'status':sale.status,'revenue':str(sale.revenue),'contribution':str(sale.contribution),'margin_percent':str(sale.margin_percent) if sale.margin_percent is not None else None}
-    if request.user.has_perm('core.view_costs'):result['cmv']=str(sale.cmv)
+    if request.user.has_perm('core.view_costs'):result['cmv']=str(sale.effective_cmv)
     return JsonResponse(result)
 
 @login_required
@@ -157,3 +157,46 @@ def tax_change(request,pk):
             return redirect('tax_change',pk=pk)
         except ValidationError as exc:form.add_error(None,'; '.join(exc.messages))
     return render(request,'sales/tax_change.html',{'form':form,'rule':rule,'rate':rate,'changes':rule.changes.select_related('actor')})
+
+
+@login_required
+def sale_correct_cost(request, pk):
+    from django.core import signing
+    from apps.accounts.access import master
+    from .forms import CostCorrectionForm
+    from .cost_corrections import correct_cost, preview
+    master(request.user)
+    sale = get_object_or_404(Sale, pk=pk)
+    if sale.status != 'CONFIRMED':
+        messages.error(request, 'Somente vendas confirmadas admitem correção de CMV.')
+        return redirect('sale_detail', pk=pk)
+    form = CostCorrectionForm(request.POST if request.method == 'POST' else None,
+                              sale=sale, initial={'revision': sale.revision})
+    context = {'sale': sale, 'form': form}
+    if request.method == 'POST' and form.is_valid():
+        try:
+            costs = form.costs()
+            payload = dict(sale=pk, actor=request.user.pk, revision=form.cleaned_data['revision'],
+                           key=str(form.cleaned_data['key']), reason=form.cleaned_data['reason'],
+                           costs={str(k): str(v) for k, v in costs.items()})
+            if request.POST.get('confirm'):
+                signed = signing.loads(request.POST.get('preview_token', ''), salt='sale-cost-preview', max_age=1800)
+                if signed != payload:
+                    raise ValidationError('Os valores mudaram. Gere uma nova prévia.')
+                correct_cost(actor=request.user, sale_id=pk, revision=form.cleaned_data['revision'],
+                             key=form.cleaned_data['key'], reason=form.cleaned_data['reason'], costs=costs)
+                messages.success(request, 'CMV corrigido nos resultados. Histórico preservado; estoque atual não foi alterado.')
+                return redirect('sale_detail', pk=pk)
+            if sale.revision != form.cleaned_data['revision']:
+                raise ValidationError('A venda mudou. Reabra a página.')
+            before, after = preview(sale, costs)
+            from decimal import Decimal
+            context.update(preview_rows=list(zip(before['items'], after['items'])),
+                           before_total=before['total'], after_total=after['total'],
+                           new_contribution=sale.contribution + sale.effective_cmv - Decimal(after['total']),
+                           preview_token=signing.dumps(payload, salt='sale-cost-preview'))
+        except signing.BadSignature:
+            form.add_error(None, 'Prévia ausente ou expirada. Gere uma nova prévia antes de confirmar.')
+        except ValidationError as exc:
+            form.add_error(None, exc)
+    return render(request, 'sales/correct_cost.html', context)

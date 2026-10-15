@@ -66,3 +66,7 @@ Novas vendas não geram contas a receber; títulos anteriores e liquidações s�
 Master: abra a venda e clique em **Corrigir valores da venda**. Informe os valores e o motivo. Dashboard, DRE e relatório passam a usar a correção na data original; estoque não se movimenta novamente e CMV fica preservado. Mudança de receita recalcula imposto automático pela alíquota histórica. Histórico manual de imposto e taxas extras discriminadas permanecem nos fluxos existentes; este formulário altera os campos exibidos nele.
 
 Se cancelou por engano, use **Recuperar venda cancelada** na venda existente, revise a taxa e depois faça as demais correções. Não exclua a NF nem tente importar outra venda com o mesmo número/série. A recuperação exige nota externa autorizada e sem divergência e preserva a cadeia de estornos. Ver ADR 0031.
+
+## Correção auditada do CMV — 15/10/2026
+
+Master: abra a venda confirmada → **Corrigir CMV** → informe custo correto por unidade vendida e motivo → **Conferir correção** → **Confirmar correção do CMV**. Kits usam custo de um kit completo. Prévia mostra custo anterior/novo, CMV total e contribuição. Resultado é corrigido na data da venda em dashboard, DRE, relatórios e exportações. Original e histórico ficam preservados. Não altera o estoque atual, impostos ou financeiro; eventual erro do saldo/custo atual deve ser conciliado separadamente. Cancelamento exclui do resultado; recuperação mantém a correção. ADR 0044.
