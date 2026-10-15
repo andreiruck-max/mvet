@@ -75,4 +75,6 @@ def enrich(payload):
         result['_xml_discounts'] = extract(raw, payload)
         return result
     except (URLError, OSError, ValueError, TypeError, ValidationError):
-        raise BlingError('Não foi possível conferir o desconto no XML do Bling. Reexecute a consulta; nenhum lançamento foi alterado.') from None
+        # Optional prefill: unavailable/untrusted XML must not block staging.
+        # No discount is inferred; the operator reviews it in the local form.
+        return result

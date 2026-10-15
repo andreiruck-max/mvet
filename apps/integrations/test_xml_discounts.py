@@ -1,3 +1,4 @@
+from urllib.error import URLError
 from decimal import Decimal
 from unittest.mock import patch, MagicMock
 from django.core.exceptions import ValidationError
@@ -47,8 +48,22 @@ class XMLTests(SimpleTestCase):
     @patch('apps.integrations.xml_discounts.build_opener')
     def test_untrusted_urls_never_requested(self, opener):
         for link in ['http://www.bling.com.br/a','https://evil.test/a','https://www.bling.com.br.evil.test/a','https://user@www.bling.com.br/a','https://www.bling.com.br:8000/a']:
-            with self.assertRaises(ValidationError):enrich(payload(xml=link))
+            self.assertNotIn('_xml_discounts', enrich(payload(xml=link)))
         opener.assert_not_called()
+
+    @patch('apps.integrations.xml_discounts.build_opener')
+    def test_unavailable_or_invalid_xml_allows_manual_discount(self, opener):
+        data = payload(valorNota='93.52', xml='https://www.bling.com.br/test.xml')
+        data['_xml_discounts'] = {'total': '999', 'items': ['999']}
+        for error in [URLError('offline'), TimeoutError()]:
+            with self.subTest(error=type(error).__name__):
+                opener.return_value.open.side_effect = error
+                result = enrich(data)
+                self.assertNotIn('discount', normalize(result, ISSUER))
+                self.assertNotIn('_xml_discounts', result)
+        opener.return_value.open.side_effect = None
+        opener.return_value.open.return_value.__enter__.return_value.read.return_value = b'<broken>'
+        self.assertNotIn('discount', normalize(enrich(data), ISSUER))
 
 
 class DiscountReviewTests(Fixture, TestCase):
@@ -91,3 +106,29 @@ class DiscountReviewTests(Fixture, TestCase):
         self.assertEqual(response.status_code,200)
         self.assertEqual(response.context['form'].initial['discount'],0)
         self.assertEqual(response.context['items'].forms[0].initial['discount'],Decimal('6.48'))
+
+    def test_xml_failure_does_not_block_sales_or_purchase_queue(self):
+        from django.urls import reverse
+        from django.utils import timezone
+        from . import bling
+        from .models import InvoiceImport, PurchaseInvoiceImport
+        from .test_purchase_import import incoming
+        BlingConnection.objects.create(pk=1, issuer=ISSUER, tokens='synthetic')
+        self.client.force_login(self.actor)
+        for kind, factory, model, route, status in [
+            ('SALE', payload, InvoiceImport, 'bling_detail', 5),
+            ('PURCHASE', incoming, PurchaseInvoiceImport, 'bling_purchase_detail', 7),
+        ]:
+            with self.subTest(kind=kind):
+                data = factory(xml='https://www.bling.com.br/test.xml')
+                with patch('apps.integrations.bling.read', side_effect=[{'data': [{'id': data['id']}]}, {'data': data}]), patch('apps.integrations.xml_discounts.build_opener') as opener:
+                    opener.return_value.open.side_effect = URLError('offline')
+                    run = bling.sync_page(actor=self.actor, start=timezone.localdate(), end=timezone.localdate(), kind=kind, source_status=status)
+                self.assertEqual(run.errors, 0)
+                self.assertEqual(run.processed, 1)
+                row = model.objects.get()
+                self.assertFalse(row.error)
+                self.assertNotIn('discount', row.source)
+                self.assertNotIn('xml', row.source)
+                response = self.client.get(reverse(route, args=[row.pk]))
+                self.assertContains(response, 'Você pode continuar a importação')
