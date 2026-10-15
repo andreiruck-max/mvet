@@ -1,3 +1,7 @@
+## Bling — XML opcional (15/10/2026)
+
+Falhas na consulta ou validação do XML não bloqueiam a importação de compras e vendas. Aviso orienta conferir descontos manualmente; não há inferência por diferença de totais. Mantidas validações fiscais, segurança do download e confirmação local.
+
 ## Extrato bancário — mês e saldos (15/10/2026)
 
 Ao abrir uma conta, o período padrão é o mês atual, inclusive com parâmetros de navegação. Lançamentos aparecem do mais recente ao mais antigo; saldo acumulado continua calculado cronologicamente. Abertura aparece ao final da última página. Cartões mostram saldo realizado hoje e saldo no último dia do filtro (previsto se futuro, realizado se passado).
