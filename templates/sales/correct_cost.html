@@ -1,0 +1,13 @@
+{% extends 'base.html' %}{% block content %}
+<div class="compact-page"><header class="page-heading"><h1>Corrigir CMV · {{ sale.reference }} / {{ sale.invoice_series }}</h1><a class="button" href="{% url 'sale_detail' sale.pk %}">Voltar à venda</a></header>
+<p>Informe o custo histórico correto por unidade vendida. Para kits, informe o custo de um kit completo. Não use o preço de venda.</p>
+<p class="notice">A correção altera o resultado na data original da venda. Não altera quantidade, valor ou custo médio do estoque atual, nem impostos ou pagamentos. Os movimentos e custos originais permanecem no histórico. Se o estoque atual também estiver incorreto, confira-o separadamente.</p>
+<form method="post">{% csrf_token %}
+{% if preview_token %}
+{{ form.non_field_errors }}{% for field in form %}{{ field.as_hidden }}{% endfor %}
+<section class="panel"><h2>Confira antes de salvar</h2><div class="table-wrap"><table><thead><tr><th>Item</th><th>Quantidade</th><th>Custo unitário anterior</th><th>Novo custo unitário</th><th>Novo CMV</th></tr></thead><tbody>
+{% for old,new in preview_rows %}<tr><td>{{ new.sku }} · {{ new.name }}</td><td>{{ new.quantity }}</td><td>R$ {{ old.unit_cost }}</td><td>R$ {{ new.unit_cost }}</td><td>R$ {{ new.cmv }}</td></tr>{% endfor %}
+</tbody></table></div><p>CMV anterior: R$ {{ before_total }} → CMV corrigido: R$ {{ after_total }}</p><p>Nova contribuição: R$ {{ new_contribution|floatformat:2 }}</p><p>Motivo: {{ form.reason.value }}</p></section>
+<input type="hidden" name="preview_token" value="{{ preview_token }}"><button name="confirm" value="1">Confirmar correção do CMV</button> <a class="button" href="{% url 'sale_correct_cost' sale.pk %}">Revisar valores</a>
+{% else %}{{ form.as_p }}<button>Conferir correção</button>{% endif %}
+</form></div>{% endblock %}

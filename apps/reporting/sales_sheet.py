@@ -20,6 +20,7 @@ def cells(source,cols):
         if isinstance(source,dict):value=source.get(col['key'])
         elif col['key'] in ('contribution','margin') and source.status!='CONFIRMED':value=None
         elif col['key']=='cmv' and source.status=='DRAFT':value=None
+        elif col['key']=='cmv':value=source.effective_cmv
         else:value=getattr(source,'margin_percent' if col['key']=='margin' else col['key'])
         result.append(dict(col,value=value,negative=value is not None and value<0))
     return result

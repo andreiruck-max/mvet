@@ -167,3 +167,24 @@ class FilterForm(forms.Form):
     status=forms.ChoiceField(label='Status',choices=[('','Todos'),*Sale._meta.get_field('status').choices],required=False)
     period=forms.ChoiceField(label='Período',required=False,choices=[('','Personalizado'),('today','Hoje'),('yesterday','Ontem'),('week','Semana'),('month','Mês'),('previous_month','Mês anterior'),('year','Ano')])
     sort=forms.ChoiceField(label='Ordenação',required=False,choices=[('-date','Mais recentes'),('date','Mais antigas'),('invoice_number','NF')])
+
+
+class CostCorrectionForm(forms.Form):
+    key = forms.UUIDField(widget=forms.HiddenInput, initial=uuid.uuid4)
+    revision = forms.IntegerField(widget=forms.HiddenInput)
+    reason = forms.CharField(label='Motivo da correção do CMV', max_length=500,
+                             widget=forms.Textarea(attrs={'rows': 2}))
+
+    def __init__(self, *args, sale, **kwargs):
+        super().__init__(*args, **kwargs)
+        from .cost_corrections import cost_rows
+        self.rows = cost_rows(sale)
+        for row in self.rows:
+            name = 'cost_' + str(row['id'])
+            self.fields[name] = forms.DecimalField(
+                label=f"{row['sku']} · {row['name']} — custo por unidade (R$)",
+                max_digits=18, decimal_places=6, min_value=0, localize=True,
+                initial=Decimal(row['unit_cost']))
+
+    def costs(self):
+        return {row['id']: self.cleaned_data['cost_' + str(row['id'])] for row in self.rows}

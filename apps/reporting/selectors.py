@@ -30,10 +30,10 @@ def metrics(values):
     return result
 
 def sales_summary(rows):
-    return metrics(rows.filter(status='CONFIRMED').aggregate(**{f:Sum(f) for f in FIELDS},count=Count('pk')))
+    return metrics(rows.filter(status='CONFIRMED').aggregate(**{f:Sum(F('cmv') + F('cmv_adjustment') if f == 'cmv' else F(f)) for f in FIELDS},count=Count('pk')))
 
 def channel_summary(d):
-    rows=sale_rows({**d,'status':'CONFIRMED'}).order_by().values('channel_id','channel__name').annotate(**{f:Sum(f) for f in FIELDS},count=Count('pk'))
+    rows=sale_rows({**d,'status':'CONFIRMED'}).order_by().values('channel_id','channel__name').annotate(**{f:Sum(F('cmv') + F('cmv_adjustment') if f == 'cmv' else F(f)) for f in FIELDS},count=Count('pk'))
     return [{'name':r['channel__name'],'id':r['channel_id'],**metrics(r)} for r in rows.order_by('channel__name')]
 
 def payables(d):

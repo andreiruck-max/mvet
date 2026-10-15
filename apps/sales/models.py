@@ -55,6 +55,7 @@ class Sale(models.Model):
     tax_snapshot = models.JSONField(default=dict, editable=False)
     tax_amount = money('Imposto aplicado')
     cmv = models.DecimalField(max_digits=24, decimal_places=6, default=0, editable=False)
+    cmv_adjustment = models.DecimalField(max_digits=24, decimal_places=6, default=0, editable=False)
     minimum_margin = models.DecimalField(max_digits=6, decimal_places=2, default=0, editable=False)
     stock_operation = models.OneToOneField(StockOperation, null=True, on_delete=models.PROTECT, related_name='sale_confirmation', editable=False)
     return_operation = models.OneToOneField(StockOperation, null=True, on_delete=models.PROTECT, related_name='sale_cancellation', editable=False)
@@ -78,7 +79,9 @@ class Sale(models.Model):
     @property
     def reference(self): return f'NF {self.invoice_number}' if self.invoice_number else f'Venda #{self.pk} (sem NF)'
     @property
-    def contribution(self): return self.revenue-self.cmv-self.shipping_paid-self.fees-self.tax_amount-self.difal-self.commission-self.other_costs-self.extra_costs_total
+    def effective_cmv(self): return self.cmv + self.cmv_adjustment
+    @property
+    def contribution(self): return self.revenue-self.effective_cmv-self.shipping_paid-self.fees-self.tax_amount-self.difal-self.commission-self.other_costs-self.extra_costs_total
     @property
     def margin_percent(self): return self.contribution/self.revenue*100 if self.revenue else None
     @property
@@ -176,3 +179,20 @@ class SaleRecovery(Immutable):
     recovery_operation = models.OneToOneField(StockOperation, on_delete=models.PROTECT, related_name='+')
     class Meta:
         constraints = [models.UniqueConstraint(fields=['sale','before_revision'],name='sales_unique_recovery_revision')]
+
+
+class SaleCostRevision(Immutable):
+    key = models.UUIDField(default=uuid.uuid4, unique=True)
+    sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name='cost_revisions')
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    created_at = models.DateTimeField(auto_now_add=True)
+    reason = models.CharField(max_length=500)
+    before_revision = models.PositiveIntegerField()
+    before_adjustment = models.DecimalField(max_digits=24, decimal_places=6)
+    after_adjustment = models.DecimalField(max_digits=24, decimal_places=6)
+    before = models.JSONField()
+    after = models.JSONField()
+
+    class Meta:
+        ordering = ['-pk']
+        constraints = [models.UniqueConstraint(fields=['sale', 'before_revision'], name='sales_unique_cost_revision')]

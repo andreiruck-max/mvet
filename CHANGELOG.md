@@ -1,3 +1,7 @@
+## Correção auditada do CMV — 15/10/2026
+
+Master: abra a venda confirmada → **Corrigir CMV** → informe custo correto por unidade vendida e motivo → **Conferir correção** → **Confirmar correção do CMV**. Kits usam custo de um kit completo. Prévia mostra custo anterior/novo, CMV total e contribuição. Resultado é corrigido na data da venda em dashboard, DRE, relatórios e exportações. Original e histórico ficam preservados. Não altera o estoque atual, impostos ou financeiro; eventual erro do saldo/custo atual deve ser conciliado separadamente. Cancelamento exclui do resultado; recuperação mantém a correção. ADR 0044.
+
 ## Bling — XML opcional (15/10/2026)
 
 Falhas na consulta ou validação do XML não bloqueiam a importação de compras e vendas. Aviso orienta conferir descontos manualmente; não há inferência por diferença de totais. Mantidas validações fiscais, segurança do download e confirmação local.

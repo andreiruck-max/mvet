@@ -46,8 +46,8 @@ def sales_dataset(user, d, *, page_rows=None):
     for sale in rows:
         confirmed = sale.status == 'CONFIRMED'
         row = [sale.date,sale.invoice_number or sale.reference,sale.products_amount,sale.discount,sale.shipping_received,sale.revenue,sale.shipping_paid,sale.shipping_received-sale.shipping_paid]
-        if costs: row += [sale.cmv if sale.status != 'DRAFT' else None]
-        if margins: row += [sale.revenue-sale.cmv-sale.shipping_paid if confirmed else None]
+        if costs: row += [sale.effective_cmv if sale.status != 'DRAFT' else None]
+        if margins: row += [sale.revenue-sale.effective_cmv-sale.shipping_paid if confirmed else None]
         row += [sale.tax_amount if sale.status != 'DRAFT' else None,sale.fees]
         if margins: row += [sale.contribution if confirmed else None]
         row += ['\n'.join(f'{i.quantity:,.4f}'.replace(',', 'X').replace('.', ',').replace('X', '.') + f' × {i.name_snapshot or i.product.name}' for i in sale.items.all()),sale.invoice_series,str(sale.channel),str(sale.location),sale.get_status_display(),sale.extra_costs_total,sale.difal,sale.commission,sale.other_costs,sale.revenue_adjustment]
@@ -56,7 +56,7 @@ def sales_dataset(user, d, *, page_rows=None):
     # Complete rows in each channel; pagination and collapsed HTML sections never apply.
     channel_index=headers.index('CANAL')
     values.sort(key=lambda row: (row[channel_index], row[0], len(str(row[1])), str(row[1])))
-    result=Dataset('Vendas', headers, values, 'Totais incluem somente confirmadas. Valores em R$. CMV histórico preservado.', metrics_for(user, selectors.sales_summary(all_rows)))
+    result=Dataset('Vendas', headers, values, 'Totais incluem somente confirmadas. Valores em R$. CMV inclui correções auditadas; custo original preservado no histórico da venda.', metrics_for(user, selectors.sales_summary(all_rows)))
     result.groups=[]
     for channel_id, name in all_rows.order_by('channel__name').values_list('channel_id','channel__name').distinct():
         name=name or 'None'
