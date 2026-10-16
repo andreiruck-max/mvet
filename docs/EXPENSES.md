@@ -42,3 +42,7 @@ Decimal/NUMERIC 18,2, chave idempotente/fingerprint, mutex transacional comum, t
 O atualizador instala o plano por `install_mercadovet_chart`; repetir não duplica. Códigos conflitantes recebem alternativa livre e categorias já utilizadas são preservadas. A instalação não reclassifica despesas históricas. Grupo patrimonial permite filhos de naturezas diversas; nunca lançar principal de financiamento como despesa. Juros são financeiros. Tributos, taxas, fretes e comissões já computados nas vendas não devem ser repetidos em Despesas.
 
 Depreciação/amortização: selecione a categoria específica em Nova despesa e informe a competência. Não gera título nem banco. A DRE deduz após o EBITDA. Registro é manual por competência, sem recorrência financeira. Categoria Pendente de classificação mantém resultado parcial, sem dedução automática do operacional. ADR 0037 prevalece sobre as limitações de naturezas descritas acima.
+
+## Despesas — cartões e filtros automáticos (16/10/2026)
+
+Lista de despesas mostra total registrado, principal liquidado (incluindo baixas futuras), saldo pendente e saldo vencido sobre todos os registros filtrados, antes da paginação. Canceladas e despesas sem movimento financeiro são destacadas separadamente quando presentes; canceladas não compõem o total registrado. Juros e descontos não são confundidos com o principal. Cartões exigem view_expense_reports, preservando a permissão de consolidados. Seleções/datas aplicam filtros automaticamente; textos após pausa de 700 ms, na lista e no relatório. Botão continua disponível sem JavaScript.

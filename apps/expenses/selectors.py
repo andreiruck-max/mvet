@@ -45,3 +45,18 @@ def expense_report(data):
         groups.append({'label':label,'nature':nature,'amount':row['total'],'count':row['count'],'source_kind':'expense','snapshot':snapshot})
         totals[nature]+=row['total']
     return groups,totals
+
+
+def expense_summary(rows):
+    """Filtered totals before pagination; principal, not cash including charges."""
+    active=Q(status='ACTIVE')
+    financial=active & Q(title__status='OPEN')
+    remaining=F('title__amount')-F('title__settled')
+    return rows.aggregate(
+        total=Sum('amount',filter=active,default=Decimal('0')),
+        settled=Sum('title__settled',filter=financial,default=Decimal('0')),
+        pending=Sum(remaining,filter=financial,default=Decimal('0')),
+        overdue=Sum(remaining,filter=financial & Q(title__due_date__lt=timezone.localdate()),default=Decimal('0')),
+        noncash=Sum('amount',filter=active & Q(title__isnull=True),default=Decimal('0')),
+        cancelled=Sum('amount',filter=Q(status='CANCELLED'),default=Decimal('0')),
+    )

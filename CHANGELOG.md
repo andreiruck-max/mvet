@@ -1,3 +1,7 @@
+## Despesas — cartões e filtros automáticos (16/10/2026)
+
+Lista de despesas mostra total registrado, principal liquidado (incluindo baixas futuras), saldo pendente e saldo vencido sobre todos os registros filtrados, antes da paginação. Canceladas e despesas sem movimento financeiro são destacadas separadamente quando presentes; canceladas não compõem o total registrado. Juros e descontos não são confundidos com o principal. Cartões exigem view_expense_reports, preservando a permissão de consolidados. Seleções/datas aplicam filtros automaticamente; textos após pausa de 700 ms, na lista e no relatório. Botão continua disponível sem JavaScript.
+
 ## CRM — atividades detalhadas do funcionário (16/10/2026)
 
 Visão Master inclui lista paginada de atividades por autor e período, do mais recente para o mais antigo, com divisórias por dia. Atalhos Hoje, Ontem, Últimos 7 dias e Este mês; datas personalizadas disponíveis. Cada registro mostra cliente, data/hora, autor, canal/tipo, resultado histórico, próximo contato registrado e mensagens/observação expansíveis. Link abre a ficha completa. Filtros e totais preservados na paginação.
