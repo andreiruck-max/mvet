@@ -1,3 +1,7 @@
+## Compras — pesquisa e grupos de categorias (16/10/2026)
+
+Categoria sem estoque permite pesquisar por código, nome ou grupo, sem diferenciar acentos/maiúsculas. Plano apresentado com títulos de grupos em negrito e subcategorias selecionáveis; níveis intermediários identificados pelo caminho do grupo. Pesquisa preserva a escolha atual, é independente por item e funciona também em linhas adicionadas na compra manual. Conferência Bling e rascunho manual compartilham o seletor. Cálculos e classificação histórica preservados.
+
 ## Conciliação e visualização — 09/10/2026
 Compras e parcelas compartilham navegação por abas. A primeira visão apresenta documentos; a segunda, vencimentos e pagamentos. Resumos mensais e por fornecedor mostram saldo em aberto, contagem e valor médio. Não somar o total da NF novamente a cada parcela.
 Divergências de parcelas ou composição fiscal mostram total informado, total da nota e diferença exata a mais/a menos. Prévia do rascunho usa centavos inteiros; validação Decimal no servidor permanece obrigatória. Nenhuma divergência é ajustada automaticamente.
