@@ -22,7 +22,7 @@ def form_error(form,exc):
 def expense_list(request):
     check_read(request.user);form=forms.FilterForm(request.GET or {'status':'active'})
     rows=selectors.expenses(form.cleaned_data) if form.is_valid() else Expense.objects.none()
-    return render(request,'expenses/list.html',{'form':form,'page':Paginator(rows,30).get_page(request.GET.get('page'))})
+    return render(request,'expenses/list.html',{'form':form,'summary':selectors.expense_summary(rows) if request.user.has_perm('core.view_expense_reports') else None,'page':Paginator(rows,30).get_page(request.GET.get('page'))})
 
 
 @login_required

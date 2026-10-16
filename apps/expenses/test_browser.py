@@ -1,4 +1,5 @@
 import os
+import re
 from decimal import Decimal
 from pathlib import Path
 from unittest import skipUnless
@@ -91,6 +92,24 @@ class ExpenseBrowser(StaticLiveServerTestCase):
             page.get_by_role('button',name='Revisar prévia',exact=True).click()
             page.get_by_role('button',name='Confirmar geração',exact=True).click()
             page.get_by_text('2 despesas geradas. Ocorrências existentes não foram duplicadas.',exact=True).wait_for()
+            page.goto(self.live_server_url+'/despesas/')
+            from playwright.sync_api import expect
+            summary=page.get_by_role('region',name='Resumo das despesas')
+            expect(summary).to_contain_text('300,00')
+            page.locator('#id_status').select_option('pending')
+            expect(page).to_have_url(re.compile('status=pending'))
+            expect(summary).to_contain_text('200,00')
+            page.locator('#id_status').select_option('paid')
+            expect(page).to_have_url(re.compile('status=paid'))
+            expect(summary).to_contain_text('100,00')
+            page.locator('#id_q').fill('Nada encontrado')
+            expect(page.locator('tbody')).to_contain_text('Nenhuma despesa encontrada.')
+            page.get_by_role('link',name='Limpar filtros',exact=True).click()
+            expect(summary).to_contain_text('300,00')
+            page.screenshot(path=str(output/'expense-summary-desktop.png'),full_page=True)
+            page.set_viewport_size({'width':390,'height':844})
+            page.screenshot(path=str(output/'expense-summary-mobile.png'),full_page=True)
+            self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390)
             page.get_by_role('link',name='Relatório por competência',exact=True).click()
             page.get_by_role('heading',name='Despesas por competência',exact=True).wait_for()
             page.screenshot(path=str(output/'expense-report-desktop.png'),full_page=True)
