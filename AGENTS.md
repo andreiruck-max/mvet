@@ -21,7 +21,7 @@ Monólito Django 5.2 LTS, PostgreSQL, templates, CSS/JS locais. Código em ingl�
 - Livro de movimentos imutável, com estorno vinculado. Cadastros utilizados são inativados.
 - Venda cancelada por engano admite recuperação explícita pelo master com SaleRecovery imutável e nova saída histórica vinculada ao estorno; somente Taxas pode ser corrigido nesse fluxo. Preservar CMV, imposto, data e vínculo Bling. Não reabrir financeiro histórico. ADR 0028.
 - Entrada de estoque não é despesa; transferência não é receita; amortização do principal não é despesa.
-- Expense reconhece competência e gera título sem caixa. Classificação histórica só muda com ExpenseRevision e motivo; pagamento não recria despesa. Ver docs/EXPENSES.md e ADR 0012.
+- Expense reconhece competência e gera título sem caixa. Edição geral é master, auditada por ExpenseRevision, sincroniza obrigação e preserva pagamentos; valor nunca abaixo do liquidado. Baixa em lote é atômica e idempotente, cada despesa conserva categoria. ADR 0046 e docs/EXPENSES.md.
 - Direção visual aprovada: tabelas de vendas próximas da planilha, caixa por dia/período e compras a pagar. Ver docs/DASHBOARD.md; preservar permissões e normalização.
 - Lançar venda NÃO autoriza ver custos, margens, DRE ou bancos. Verificar backend e endpoints.
 - Corte 15/09/2026. Sem importação integral da planilha. Aberturas não entram na DRE.

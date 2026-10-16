@@ -1,0 +1,12 @@
+{% extends 'base.html' %}{% block content %}{% include 'expenses/nav.html' %}
+<h1>Baixar despesas selecionadas</h1>
+{% if error %}<p class="notice" role="alert">{{ error }}</p><a href="{% url 'expenses' %}">Voltar às despesas</a>{% else %}
+<p>{{ rows|length }} despesas · <strong>Total a baixar: R$ {{ total|floatformat:2 }}</strong></p>
+<p>Baixa integral do saldo pendente de cada despesa, sem juros ou descontos. Cada categoria é preservada. Para juros, descontos ou pagamento parcial, use a baixa individual.</p>
+<div class="panel table-wrap"><table><thead><tr><th>Despesa</th><th>Categoria</th><th>Vencimento</th><th>Saldo a baixar</th></tr></thead><tbody>{% for expense in rows %}<tr><td>{{ expense.description }}</td><td>{% for node in expense.category_snapshot.path %}{{ node.code }} {{ node.name }}{% if not forloop.last %} / {% endif %}{% empty %}A classificar{% endfor %}</td><td>{{ expense.title.due_date|date:'d/m/Y' }}</td><td>R$ {{ expense.title.remaining|floatformat:2 }}</td></tr>{% endfor %}</tbody></table></div>
+{% if preview %}
+<section class="panel"><h2>Conferir pagamento</h2><p>Conta: <strong>{{ form.cleaned_data.account }}</strong> · Data: <strong>{{ form.cleaned_data.date|date:'d/m/Y' }}</strong></p>{% if future %}<p>Baixa futura: a saída de caixa será considerada na data selecionada.</p>{% endif %}
+<form method="post">{% csrf_token %}<input type="hidden" name="action" value="confirm"><input type="hidden" name="preview" value="{{ preview }}"><button class="primary">Confirmar baixa de {{ rows|length }} despesas</button></form></section>
+{% endif %}
+<details {% if not preview %}open{% endif %} class="panel"><summary>{% if preview %}Alterar conta ou data{% else %}Conta e data do pagamento{% endif %}</summary><form method="post">{% csrf_token %}{% for expense in rows %}<input type="hidden" name="expense_ids" value="{{ expense.pk }}">{% endfor %}<input type="hidden" name="action" value="review">{{ form.as_p }}<button>Conferir baixa</button></form></details>
+{% endif %}{% endblock %}
