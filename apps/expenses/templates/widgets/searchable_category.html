@@ -1,0 +1,6 @@
+<div class="category-picker" data-category-picker>
+  <label class="help" for="{{ widget.attrs.id }}-search">Pesquisar categoria por código, nome ou grupo</label>
+  <input type="search" id="{{ widget.attrs.id }}-search" data-category-search autocomplete="off" placeholder="Ex.: 04.01, manutenção ou estrutura" aria-controls="{{ widget.attrs.id }}">
+  {% include 'django/forms/widgets/select.html' %}
+  <small class="help" data-category-status role="status" aria-live="polite"></small>
+</div>

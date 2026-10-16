@@ -1,3 +1,7 @@
+## Compras — pesquisa e grupos de categorias (16/10/2026)
+
+Categoria sem estoque permite pesquisar por código, nome ou grupo, sem diferenciar acentos/maiúsculas. Plano apresentado com títulos de grupos em negrito e subcategorias selecionáveis; níveis intermediários identificados pelo caminho do grupo. Pesquisa preserva a escolha atual, é independente por item e funciona também em linhas adicionadas na compra manual. Conferência Bling e rascunho manual compartilham o seletor. Cálculos e classificação histórica preservados.
+
 ## Despesas — edição auditada e baixa em lote (16/10/2026)
 
 Ficha inclui Editar despesa para master, com motivo, revisão e sincronização do título: valor, datas, descrição, categoria, favorecido, fornecedor, centro de custo, observação, recorrência e conta prevista. Histórico mostra antes/depois. Pagamentos preservados; não permite valor abaixo do liquidado nem documento após pagamento. Migração 0006 permite somente edições respaldadas por revisão, mantendo proteções SQL e livro imutável.
