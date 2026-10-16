@@ -99,3 +99,36 @@ class IntakeForm(forms.Form):
     daily_limit=forms.IntegerField(label='Novos contatos por dia (total da equipe)',min_value=0,max_value=2000,help_text='Zero não libera novos contatos. Retornos não consomem essa quantidade.')
     starts_on=forms.DateField(label='Liberar a partir de',widget=DateInput())
     paused=forms.BooleanField(label='Pausar liberação de novos contatos',required=False)
+
+
+class ActivityReportForm(FilterForm):
+    performed_by = forms.ModelChoiceField(label='Atividade realizada por', queryset=Contact.objects.none(), required=False)
+    period = forms.ChoiceField(label='Período das atividades', required=False,
+        choices=[('', 'Datas personalizadas'), ('today', 'Hoje'), ('yesterday', 'Ontem'),
+                 ('last7', 'Últimos 7 dias'), ('month', 'Este mês')])
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from django.contrib.auth import get_user_model
+        # Historical authors remain selectable after deactivation/reassignment.
+        self.fields['performed_by'].queryset = get_user_model().objects.order_by('username')
+        self.fields['owner'].label = 'Responsável atual da carteira'
+        self.fields['start'].label = 'Atividades de'
+        self.fields['end'].label = 'Até'
+        self.fields['result'].label = 'Resultado da atividade'
+        self.order_fields(['performed_by', 'period', 'start', 'end', 'result', 'q', 'owner',
+                           'city', 'segment', 'origin', 'state', 'intake', 'overdue'])
+
+    def clean(self):
+        from datetime import timedelta
+        # Validate resolved dates, not stale dates left from another shortcut.
+        d = forms.Form.clean(self)
+        today = timezone.localdate()
+        period = d.get('period')
+        if period == 'today': d.update(start=today, end=today)
+        elif period == 'yesterday': d.update(start=today-timedelta(days=1), end=today-timedelta(days=1))
+        elif period == 'last7': d.update(start=today-timedelta(days=6), end=today)
+        elif period == 'month': d.update(start=today.replace(day=1), end=today)
+        else: d.update(start=d.get('start') or today.replace(day=1), end=d.get('end') or today)
+        if d['start'] > d['end']: raise forms.ValidationError('Datas em ordem inválida.')
+        return d

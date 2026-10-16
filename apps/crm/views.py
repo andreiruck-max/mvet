@@ -99,14 +99,19 @@ def approvals(request,pk=None):
 @login_required
 @require_http_methods(['GET'])
 def report(request):
-    master(request.user);form=forms.FilterForm(request.GET,actor=request.user)
-    form.fields['start'].label='Atividades de';form.fields['end'].label='Até'
-    d=form.cleaned_data if form.is_valid() else {};rows=selectors.filtered(request.user,{k:v for k,v in d.items() if k not in ('start','end')}) if form.is_valid() else Contact.objects.none()
+    master(request.user);form=forms.ActivityReportForm(request.GET,actor=request.user)
+    d=form.cleaned_data if form.is_valid() else {};rows=selectors.filtered(request.user,{k:v for k,v in d.items() if k not in ('start','end','result')}) if form.is_valid() else Contact.objects.none()
     today=timezone.localdate();start=d.get('start') or today.replace(day=1);end=d.get('end') or today
     activities=Interaction.objects.filter(contact__in=rows)
-    metrics={'today':activities.filter(occurred_at__date=today).count(),'period':activities.filter(occurred_at__date__range=(start,end)).count(),'overdue':rows.filter(awaiting_first_release=False,state__in=['ACTIVE','WAITING','PAUSED'],next_date__lt=today).count(),'due':rows.filter(awaiting_first_release=False,state__in=['ACTIVE','WAITING','PAUSED'],next_date=today).count(),'waiting':rows.filter(state='WAITING').count(),'new':rows.filter(created_at__date__range=(start,end)).count(),'requests':rows.filter(state='APPROVAL').count(),'queued':rows.filter(awaiting_first_release=True,state__in=['ACTIVE','PAUSED']).count()}
+    if d.get('performed_by'): activities=activities.filter(actor=d['performed_by'])
+    if d.get('result'): activities=activities.filter(result=d['result'])
+    period_activities=activities.filter(occurred_at__date__range=(start,end))
+    if form.is_valid():
+        display=form.data.copy();display.update(start=start.isoformat(),end=end.isoformat());form.data=display
+    page=Paginator(period_activities.select_related('actor','contact').order_by('-occurred_at','-pk'),30).get_page(request.GET.get('page'))
+    metrics={'today':activities.filter(occurred_at__date=today).count(),'period':period_activities.count(),'overdue':rows.filter(awaiting_first_release=False,state__in=['ACTIVE','WAITING','PAUSED'],next_date__lt=today).count(),'due':rows.filter(awaiting_first_release=False,state__in=['ACTIVE','WAITING','PAUSED'],next_date=today).count(),'waiting':rows.filter(state='WAITING').count(),'new':rows.filter(created_at__date__range=(start,end)).count(),'requests':rows.filter(state='APPROVAL').count(),'queued':rows.filter(awaiting_first_release=True,state__in=['ACTIVE','PAUSED']).count()}
     missing=rows.filter(awaiting_first_release=False,state__in=['ACTIVE','WAITING','PAUSED'],next_date__isnull=True)
-    return render(request,'crm/report.html',{'form':form,'metrics':metrics,'start':start,'end':end,'owners':rows.values('owner__username').annotate(count=Count('pk')).order_by('-count'),'missing':missing,'inactive_owners':rows.exclude(owner__in=services.owners()).exclude(state__in=['INACTIVE','DNC']),'activity_owners':activities.filter(occurred_at__date__range=(start,end)).values('actor__username').annotate(count=Count('pk')).order_by('-count')},status=200 if form.is_valid() else 400)
+    return render(request,'crm/report.html',{'form':form,'metrics':metrics,'start':start,'end':end,'owners':rows.values('owner__username').annotate(count=Count('pk')).order_by('-count'),'missing':missing,'inactive_owners':rows.exclude(owner__in=services.owners()).exclude(state__in=['INACTIVE','DNC']),'activity_owners':period_activities.order_by().values('actor__username').annotate(count=Count('pk')).order_by('-count','actor__username'),'page':page},status=200 if form.is_valid() else 400)
 
 @login_required
 @require_http_methods(['GET','POST'])

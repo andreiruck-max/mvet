@@ -110,3 +110,28 @@ class CRMBrowser(Fixture,StaticLiveServerTestCase):
             expect(employee.get_by_text('Liberação de novos contatos pausada.',exact=False)).to_be_visible()
             browser.close()
         self.assertTrue(intake.settings().paused)
+
+    def test_master_activity_report_filters_and_message_detail(self):
+        from playwright.sync_api import sync_playwright, expect
+        obj=self.contact()
+        self.record(obj)
+        Contact.objects.filter(pk=obj.pk).update(owner=self.other)
+        client=Client();client.force_login(self.master)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch()
+            context=browser.new_context(viewport={'width':1440,'height':1000})
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page();page.goto(self.live_server_url+reverse('crm_report'))
+            page.get_by_label('Atividade realizada por:',exact=True).select_option(str(self.worker.pk))
+            page.get_by_label('Período das atividades:',exact=True).select_option('today')
+            page.get_by_role('button',name='Filtrar',exact=True).click()
+            expect(page.get_by_role('heading',name='Atividades detalhadas no período')).to_be_visible()
+            expect(page.get_by_role('link',name=obj.name,exact=True)).to_be_visible()
+            page.get_by_text('Ver mensagens e observações',exact=True).click()
+            expect(page.get_by_text('Texto enviado',exact=False)).to_be_visible()
+            Path('artifacts').mkdir(exist_ok=True)
+            page.screenshot(path='artifacts/crm-master-activities.png',full_page=True)
+            page.get_by_label('Atividade realizada por:',exact=True).select_option(str(self.other.pk))
+            page.get_by_role('button',name='Filtrar',exact=True).click()
+            expect(page.get_by_text('Nenhuma atividade registrada nesse período e nesses filtros.',exact=True)).to_be_visible()
+            browser.close()
