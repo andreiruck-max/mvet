@@ -61,7 +61,7 @@ class TransferForm(forms.Form):
 
 
 class ReverseForm(forms.Form):
-    date=forms.DateField(label='Data efetiva',widget=DateInput(),initial=timezone.localdate,help_text='Data futura entra na projeção; o saldo realizado só muda na data informada.')
+    date=forms.DateField(label='Data efetiva',widget=DateInput(),initial=timezone.localdate,help_text='Data futura entra na projeção; o saldo realizado só muda na data informada. Estornar este lançamento também remove sua previsão.')
     reason=forms.CharField(label='Motivo',max_length=500)
 
 
@@ -97,7 +97,7 @@ class CashForm(forms.Form):
 class AccountEntryForm(forms.Form):
     key=forms.UUIDField(initial=uuid4,widget=forms.HiddenInput)
     direction=forms.ChoiceField(label='Movimento',choices=[('RECEIVE','Crédito — entrada'),('PAY','Débito — saída')])
-    date=forms.DateField(label='Data efetiva',widget=DateInput(),initial=timezone.localdate,help_text='Data futura entra na projeção; o saldo realizado só muda na data informada.')
+    date=forms.DateField(label='Data efetiva',widget=DateInput(),initial=timezone.localdate,help_text='Data futura entra na projeção; o saldo realizado só muda na data informada. Estornar este lançamento também remove sua previsão.')
     description=forms.CharField(label='Descrição',max_length=240)
     amount=forms.DecimalField(label='Valor (R$)',max_digits=18,decimal_places=2,min_value=Decimal('.01'),initial=Decimal('0.00'),localize=True)
     category=forms.ChoiceField(label='Classificação',choices=[c for c in Title.CATEGORIES if c[0]!='OPENING'])

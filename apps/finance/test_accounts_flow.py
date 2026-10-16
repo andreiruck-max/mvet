@@ -88,8 +88,8 @@ class AccountFlowTests(Fixture, TestCase):
         services.reverse(actor=self.admin,pk=debit.pk,date=self.today,reason='Cancelar débito futuro')
         summary=selectors.cash_summary(self.today,day)
         self.assertEqual(summary['actual'],1000)
-        # Reversal reopens the obligation: it remains projected until cancelled.
-        self.assertEqual(summary['projected'],985)
+        # Direct entries have no independent obligation after reversal.
+        self.assertEqual(summary['projected'],1010)
 
     def test_bank_month_default_with_return_url_and_descending_balances(self):
         from calendar import monthrange

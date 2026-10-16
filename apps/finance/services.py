@@ -212,6 +212,14 @@ def reverse(*, actor, pk, date, reason):
     if op.title_id:
         title=Title.objects.select_for_update().get(pk=op.title_id)
         title.settled-=op.principal; title.revision+=1; title.save(update_fields=['settled','revision'])
+        # A direct account entry has no independent obligation to reopen.
+        # The UUID identifies the shortcut without guessing from descriptions.
+        if (op.key == uuid5(title.key, 'account-entry-settlement')
+                and title.source == 'manual' and not title.opening
+                and not title.purchase_installment_id and not title.sale_id
+                and not hasattr(title, 'expense') and title.settled == ZERO):
+            _cancel_titles(actor, Title.objects.filter(pk=title.pk),
+                           'Estorno de lançamento direto: ' + reason[:465])
     audit(actor,reversal,'reverse_financial_operation',{'operation':op.pk},{'reason':reason,'date':str(date)})
     return reversal
 
