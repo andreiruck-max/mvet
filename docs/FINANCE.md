@@ -76,3 +76,7 @@ e na ficha do fornecedor. A parcela preserva o vencimento contratual, mostrado c
 Original quando diferente. Excel do caixa respeita Somente realizado / Realizado + previsto;
 a aba detalhada mantém ambas as posições identificadas. A grade e os cartões reutilizam
 um único cálculo. Dashboard inclui contas ativas e inativas, explicitamente; fluxo só ativas.
+
+## Estornos de créditos e débitos diretos — 16/10/2026
+
+Estornar Novo crédito/Novo débito cancela também o título auxiliar criado pelo atalho. O valor não reaparece como previsão. Estorno de pagamento/recebimento de obrigação independente continua reabrindo o título. Livro bancário preservado. Migração 0004 corrige títulos auxiliares antigos em todas as contas quando identificados pelo UUID do atalho, totalmente estornados e sem alterações posteriores (revisão 2); títulos reagendados ou reutilizados ficam preservados para conferência. Cada reparo gera auditoria. A visão Realizado + previsto continua incluindo compromissos legítimos; Somente realizado corresponde ao saldo efetivo do extrato.

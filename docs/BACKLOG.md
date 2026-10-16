@@ -1,3 +1,7 @@
+## Estornos de créditos e débitos diretos — 16/10/2026
+
+Estornar Novo crédito/Novo débito cancela também o título auxiliar criado pelo atalho. O valor não reaparece como previsão. Estorno de pagamento/recebimento de obrigação independente continua reabrindo o título. Livro bancário preservado. Migração 0004 corrige títulos auxiliares antigos em todas as contas quando identificados pelo UUID do atalho, totalmente estornados e sem alterações posteriores (revisão 2); títulos reagendados ou reutilizados ficam preservados para conferência. Cada reparo gera auditoria. A visão Realizado + previsto continua incluindo compromissos legítimos; Somente realizado corresponde ao saldo efetivo do extrato.
+
 ## Correção auditada do CMV — 15/10/2026
 
 Master: abra a venda confirmada → **Corrigir CMV** → informe custo correto por unidade vendida e motivo → **Conferir correção** → **Confirmar correção do CMV**. Kits usam custo de um kit completo. Prévia mostra custo anterior/novo, CMV total e contribuição. Resultado é corrigido na data da venda em dashboard, DRE, relatórios e exportações. Original e histórico ficam preservados. Não altera o estoque atual, impostos ou financeiro; eventual erro do saldo/custo atual deve ser conciliado separadamente. Cancelamento exclui do resultado; recuperação mantém a correção. ADR 0044.
