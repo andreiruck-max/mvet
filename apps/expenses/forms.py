@@ -1,5 +1,6 @@
 from uuid import uuid4
 from django import forms
+from django.db.models import Q
 from django.utils import timezone
 from apps.finance.forms import DateInput
 from apps.finance.models import FinancialAccount
@@ -107,3 +108,37 @@ class FilterForm(forms.Form):
         data=super().clean()
         if data.get('start') and data.get('end') and data['start']>data['end']:raise forms.ValidationError('Período inválido.')
         return data
+
+
+class ExpenseEditForm(ExpenseForm):
+    revision=forms.IntegerField(widget=forms.HiddenInput)
+    title_revision=forms.IntegerField(widget=forms.HiddenInput,required=False)
+    reason=forms.CharField(label='Motivo da edição',max_length=500)
+
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        self.fields.pop('key')
+        obj=self.instance
+        self.initial.update(revision=obj.revision,title_revision=obj.title.revision if obj.title_id else None,
+                            due_date=obj.title.due_date if obj.title_id else obj.document_date,
+                            account=obj.title.account_id if obj.title_id else None)
+        if obj.category_id:
+            self.fields['category'].queryset=ChartOfAccount.objects.filter(
+                Q(pk__in=self.fields['category'].queryset.values('pk')) |
+                Q(pk=obj.category_id))
+            paths,_=chart_options()
+            self.fields['category'].label_from_instance=lambda item:paths.get(item.pk,str(item))
+        if obj.supplier_id:self.fields['supplier'].queryset=Supplier.objects.filter(Q(active=True)|Q(pk=obj.supplier_id))
+        if obj.title_id and obj.title.account_id:
+            self.fields['account'].queryset=FinancialAccount.objects.filter(Q(active=True)|Q(pk=obj.title.account_id))
+        self.fields['category'].empty_label='Sem categoria / aplicar regras ao remover categoria atual'
+        self.fields['category'].help_text='Manter a categoria conserva sua classificação histórica. Alterar registra uma revisão.'
+        if not obj.title_id:
+            self.fields['due_date'].widget=forms.HiddenInput()
+            self.fields['account'].widget=forms.HiddenInput()
+        self.order_fields(['description','amount','counterparty','competence','document_date','due_date','category','account','cost_center','notes','recurrence_enabled','supplier','reason','revision','title_revision'])
+
+
+class BulkPaymentForm(forms.Form):
+    account=forms.ModelChoiceField(label='Pagar pela conta',queryset=FinancialAccount.objects.filter(active=True))
+    date=forms.DateField(label='Data da baixa',initial=timezone.localdate,widget=DateInput())

@@ -1,3 +1,9 @@
+## Despesas — edição auditada e baixa em lote (16/10/2026)
+
+Ficha inclui Editar despesa para master, com motivo, revisão e sincronização do título: valor, datas, descrição, categoria, favorecido, fornecedor, centro de custo, observação, recorrência e conta prevista. Histórico mostra antes/depois. Pagamentos preservados; não permite valor abaixo do liquidado nem documento após pagamento. Migração 0006 permite somente edições respaldadas por revisão, mantendo proteções SQL e livro imutável.
+
+Lista permite selecionar pendentes da página e conferir baixa conjunta em uma conta/data. Cada despesa mantém categoria e lançamento; saldo integral sem juros/descontos. Prévia assinada, confirmação atômica, proteção contra conflito e reenvio duplicado. Baixas futuras mantêm efeito na data. ADR 0046.
+
 ## Despesas — cartões compactos (16/10/2026)
 
 Totais em uma faixa compacta no computador e duas colunas no celular, com fontes, espaçamentos e explicações reduzidos. Cálculos, filtros e permissões preservados.

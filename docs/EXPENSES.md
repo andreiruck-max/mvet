@@ -18,7 +18,7 @@ Categoria manual prevalece. Em branco, são aplicadas regras ativas por priorida
 
 Despesa guarda cópia do caminho/natureza da categoria e da regra aplicada. Renomear categoria ou editar regra não altera histórico. **Corrigir classificação** exige motivo e versão atual; permite categoria manual ou reaplicação explícita das regras atuais. A revisão conserva valores anteriores/novos, usuário e horário. Pode corrigir despesa paga: relatório muda, dinheiro e competência permanecem iguais.
 
-Valor, competência e documento não são editados após registro. Para corrigir, estorne pagamentos, cancele e registre novamente. Cancelamento cancela também a obrigação; não apaga histórico. Não se pode cancelar apenas o título vinculado deixando despesa ativa.
+Master pode usar **Editar despesa** para corrigir valor, competência, documento e demais campos, informando motivo. O título acompanha a edição e o histórico guarda antes/depois. Valor não pode ficar abaixo do principal liquidado; documento não pode ultrapassar pagamento existente. Para corrigir pagamentos, estorne e baixe novamente. Cancelamento cancela também a obrigação; não apaga histórico. Não se pode cancelar apenas o título vinculado deixando despesa ativa.
 
 ## Recorrência mensal
 Marque **Despesa recorrente mensal** na criação. Em **Preparar próximos meses**, escolha de 1 a 24 meses e confira a prévia antes de confirmar. Competência e vencimento avançam com base nas datas originais; dia 31 usa o último dia de meses curtos e volta a 31 quando disponível. Data do documento/contrato original é conservada.
@@ -48,3 +48,8 @@ Depreciação/amortização: selecione a categoria específica em Nova despesa e
 Lista de despesas mostra total registrado, principal liquidado (incluindo baixas futuras), saldo pendente e saldo vencido sobre todos os registros filtrados, antes da paginação. Canceladas e despesas sem movimento financeiro são destacadas separadamente quando presentes; canceladas não compõem o total registrado. Juros e descontos não são confundidos com o principal. Cartões exigem view_expense_reports, preservando a permissão de consolidados. Seleções/datas aplicam filtros automaticamente; textos após pausa de 700 ms, na lista e no relatório. Botão continua disponível sem JavaScript.
 
 Cartões de totais usam faixa compacta no computador e duas colunas no celular, mantendo as explicações das baixas futuras e do saldo vencido.
+
+## Edição e baixa conjunta
+Na ficha, **Editar despesa** (master) permite alterar os campos comerciais, vencimento e conta prevista, com motivo obrigatório. Conta prevista não transfere pagamentos anteriores. Alterar categoria conserva revisão; manter a categoria preserva sua classificação histórica. Converter entre obrigação financeira e depreciação sem título exige cancelar/registrar. Edição da base não altera ocorrências já geradas. Canceladas não são editáveis.
+
+Na lista, marque as despesas pendentes ou **Selecionar pendentes desta página** → **Baixar selecionadas** → escolha conta/data → **Conferir baixa** → **Confirmar baixa**. A conferência mostra soma e categoria de cada despesa. Baixa integral dos saldos pendentes, com lançamentos individuais na mesma conta/data; categorias permanecem independentes. Para parcial/juros/descontos, abra o pagamento individual. Não inclui outras páginas automaticamente. Se houver alteração durante a conferência, todo o lote é recusado. Repetir a confirmação não duplica. Baixas futuras só impactam caixa na data escolhida. Exige permissões de operar despesas, financeiro e pagar títulos. ADR 0046.

@@ -122,3 +122,51 @@ class ExpenseBrowser(StaticLiveServerTestCase):
         self.assertEqual(obj.classification,'RULE')
         obj.title.refresh_from_db();self.assertEqual(obj.title.remaining,0)
         self.assertEqual(sum(x.title.remaining for x in obj.occurrences.select_related('title')),200)
+
+
+    def test_edit_expense_and_bulk_payment_preserving_categories(self):
+        from uuid import uuid4
+        from .services import create_expense
+        from playwright.sync_api import sync_playwright, expect
+        today=timezone.localdate();Company.objects.create(pk=1)
+        actor=User.objects.create_superuser('expense-edit-bulk-browser')
+        account=save_account(actor=actor,data=dict(name='Conta do lote',kind='BANK',opening_date=today,opening_balance=Decimal('1000')))
+        first=save_category(actor=actor,data=dict(code='04',name='Serviços',nature='OPERATING'))
+        second=save_category(actor=actor,data=dict(code='05',name='Estrutura',nature='OPERATING'))
+        for description,amount,category in [('Despesa A','100',first),('Despesa B','75',second)]:
+            create_expense(actor=actor,key=uuid4(),data=dict(description=description,amount=Decimal(amount),category=category,
+                competence=today,document_date=today,due_date=today,account=account))
+        client=Client();client.force_login(actor);output=Path('artifacts');output.mkdir(exist_ok=True)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1000},locale='pt-BR')
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page();errors=[];page.on('pageerror',lambda err:errors.append(str(err)))
+            page.goto(self.live_server_url+'/despesas/')
+            page.get_by_role('link',name='Despesa A',exact=True).click()
+            page.get_by_role('link',name='Editar despesa',exact=True).click()
+            page.locator('#id_description').fill('Despesa A corrigida')
+            page.locator('#id_amount').fill('125')
+            page.locator('#id_reason').fill('Valor conferido no documento')
+            page.get_by_role('button',name='Salvar alterações',exact=True).click()
+            expect(page.get_by_role('heading',name='Despesa A corrigida',exact=True)).to_be_visible()
+            expect(page.get_by_role('heading',name='Histórico de alterações',exact=True)).to_be_visible()
+            page.screenshot(path=str(output/'expense-edited-history.png'),full_page=True)
+            page.goto(self.live_server_url+'/despesas/')
+            page.get_by_role('checkbox',name='Selecionar pendentes desta página').check()
+            page.get_by_role('button',name='Baixar selecionadas',exact=True).click()
+            expect(page.get_by_text('Total a baixar: R$ 200,00',exact=True)).to_be_visible()
+            page.locator('#id_account').select_option(label='Conta do lote')
+            page.get_by_role('button',name='Conferir baixa',exact=True).click()
+            expect(page.locator('tbody')).to_contain_text('Serviços')
+            expect(page.locator('tbody')).to_contain_text('Estrutura')
+            page.screenshot(path=str(output/'expense-bulk-preview-desktop.png'),full_page=True)
+            page.set_viewport_size({'width':390,'height':844})
+            page.screenshot(path=str(output/'expense-bulk-preview-mobile.png'),full_page=True)
+            self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390)
+            page.get_by_role('button',name='Confirmar baixa de 2 despesas',exact=True).click()
+            expect(page.get_by_text('2 despesas baixadas na conta e data selecionadas. Categorias preservadas.',exact=True)).to_be_visible()
+            expect(page.locator('[name="expense_ids"]')).to_have_count(0)
+            self.assertEqual(errors,[]);browser.close()
+        self.assertEqual(FinancialEntry.objects.count(),2)
+        self.assertEqual(sum(FinancialEntry.objects.values_list('amount',flat=True)),Decimal('-200'))
+        self.assertEqual(list(Expense.objects.order_by('pk').values_list('category_id',flat=True)),[first.pk,second.pk])

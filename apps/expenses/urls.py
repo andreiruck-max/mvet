@@ -3,6 +3,8 @@ from . import views
 
 urlpatterns=[
     path('',views.expense_list,name='expenses'),
+    path('baixar-lote/',views.expense_bulk_payment,name='expense_bulk_payment'),
+    path('<int:pk>/editar/',views.expense_edit,name='expense_edit'),
     path('nova/',views.expense_new,name='expense_new'),
     path('relatorio/',views.report,name='expense_report'),
     path('configuracoes/',views.configuration_list,name='expense_configuration'),
