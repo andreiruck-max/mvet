@@ -1,11 +1,11 @@
 {% extends 'base.html' %}{% block content %}{% include 'reporting/export_buttons.html' with kind='expenses' allowed=perms.core.export_expenses %}{% include 'expenses/nav.html' %}<h1>Despesas</h1><form method="get" class="panel filter-form" data-auto-filter>{{ form.as_p }}<button>Filtrar</button><a href="{% url 'expenses' %}">Limpar filtros</a></form>
 {% if summary %}
-<p>Totais de todas as despesas encontradas nos filtros, incluindo todas as páginas. Canceladas não entram no total registrado.</p>
-<section class="grid" aria-label="Resumo das despesas">
+<p class="expense-summary-caption">Totais do filtro · todas as páginas · canceladas fora do total</p>
+<section class="expense-summary" aria-label="Resumo das despesas">
 <article class="card"><h2>Total registrado</h2><p class="large">R$ {{ summary.total|floatformat:2 }}</p></article>
-<article class="card"><h2>Principal liquidado</h2><p class="large">R$ {{ summary.settled|floatformat:2 }}</p><p>Inclui baixas futuras; não representa saída de caixa de hoje.</p></article>
+<article class="card"><h2>Principal liquidado</h2><p class="large">R$ {{ summary.settled|floatformat:2 }}</p><p>Inclui baixas futuras; não é saldo de caixa.</p></article>
 <article class="card"><h2>Saldo pendente</h2><p class="large">R$ {{ summary.pending|floatformat:2 }}</p></article>
-<article class="card"><h2>Saldo vencido</h2><p class="large">R$ {{ summary.overdue|floatformat:2 }}</p><p>Parte do saldo pendente com vencimento anterior a hoje.</p></article>
+<article class="card"><h2>Saldo vencido</h2><p class="large">R$ {{ summary.overdue|floatformat:2 }}</p><p>Parte do pendente vencida antes de hoje.</p></article>
 {% if summary.noncash %}<article class="card"><h2>Sem movimento financeiro</h2><p class="large">R$ {{ summary.noncash|floatformat:2 }}</p><p>Incluído no total registrado.</p></article>{% endif %}
 {% if summary.cancelled %}<article class="card"><h2>Canceladas</h2><p class="large">R$ {{ summary.cancelled|floatformat:2 }}</p><p>Fora do total registrado.</p></article>{% endif %}
 </section>

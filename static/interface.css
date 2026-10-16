@@ -120,3 +120,12 @@ input[type=checkbox],input[type=radio]{accent-color:var(--focus)}
 [data-theme=dark] .cash-page .cash-payments-table .payment-today td{background:#38301e}
 [data-theme=dark] .cash-page .cash-payments-table .payment-overdue .payment-due{color:#ffb5c1;border-left-color:#ff8da2}
 [data-theme=dark] .cash-page .cash-payments-table .payment-today .payment-due{color:#ffe0a0;border-left-color:#ffd080}
+
+/* Expense totals: one compact row on desktop, two columns on phones. */
+.workspace .expense-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:0 0 12px}
+.workspace .expense-summary .card{padding:10px 12px;margin:0;min-width:0}
+.expense-summary h2{font-size:12px;line-height:1.3;margin:0 0 5px;color:var(--muted)}
+.expense-summary .large{font-size:21px;line-height:1.2;margin:0;font-weight:650;overflow-wrap:anywhere}
+.expense-summary p:not(.large){font-size:11px;line-height:1.3;color:var(--muted);margin:5px 0 0}
+.expense-summary-caption{font-size:11px;color:var(--muted);margin:8px 0 6px}
+@media(max-width:650px){.workspace .expense-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.workspace .expense-summary .card{padding:9px}.expense-summary .large{font-size:18px}}

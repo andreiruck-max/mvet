@@ -1,3 +1,7 @@
+## Despesas — cartões compactos (16/10/2026)
+
+Totais em uma faixa compacta no computador e duas colunas no celular, com fontes, espaçamentos e explicações reduzidos. Cálculos, filtros e permissões preservados.
+
 ## Despesas — cartões e filtros automáticos (16/10/2026)
 
 Lista de despesas mostra total registrado, principal liquidado (incluindo baixas futuras), saldo pendente e saldo vencido sobre todos os registros filtrados, antes da paginação. Canceladas e despesas sem movimento financeiro são destacadas separadamente quando presentes; canceladas não compõem o total registrado. Juros e descontos não são confundidos com o principal. Cartões exigem view_expense_reports, preservando a permissão de consolidados. Seleções/datas aplicam filtros automaticamente; textos após pausa de 700 ms, na lista e no relatório. Botão continua disponível sem JavaScript.
