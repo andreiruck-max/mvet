@@ -9,6 +9,9 @@ from .models import Sale, SalesChannel, TaxRule
 from .services import EDIT_FIELDS, FINANCIAL_FIELDS
 
 class CorrectionForm(forms.ModelForm):
+    tax_mode=forms.ChoiceField(label='Correção do imposto',required=False,initial='keep',choices=[('keep','Manter tratamento atual'),('rate','Informar nova alíquota para esta venda'),('amount','Informar valor do imposto para esta venda')])
+    tax_rate=forms.DecimalField(label='Nova alíquota (%)',max_digits=7,decimal_places=4,min_value=0,max_value=100,required=False)
+    corrected_tax_amount=forms.DecimalField(label='Novo imposto (R$)',max_digits=18,decimal_places=2,min_value=0,required=False)
     key=forms.UUIDField(widget=forms.HiddenInput,initial=uuid.uuid4)
     revision=forms.IntegerField(widget=forms.HiddenInput)
     reason=forms.CharField(label='Motivo da correção',max_length=500,widget=forms.Textarea(attrs={'rows':2}))
@@ -24,6 +27,16 @@ class CorrectionForm(forms.ModelForm):
         self.fields['channel'].required = self.fields['location'].required = True
         self.fields['location'].label = 'Estoque da venda'
         self.fields['location'].help_text = 'A troca devolve a saída ao depósito anterior e registra a saída no novo, preservando o CMV histórico.'
+        self.initial['tax_rate']=self.instance.tax_snapshot.get('rate')
+        self.initial['corrected_tax_amount']=self.instance.tax_amount
+        self.order_fields([*self.Meta.fields,'tax_mode','tax_rate','corrected_tax_amount','reason','key','revision'])
+
+    def clean(self):
+        data=super().clean();data['tax_mode']=data.get('tax_mode') or 'keep'
+        field={'rate':'tax_rate','amount':'corrected_tax_amount'}.get(data['tax_mode'])
+        if field and data.get(field) is None and field not in self.errors:self.add_error(field,'Informe o valor para a opção escolhida.')
+        return data
+
 
 class RecoveryForm(forms.Form):
     key=forms.UUIDField(widget=forms.HiddenInput,initial=uuid.uuid4)

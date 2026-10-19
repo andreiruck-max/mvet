@@ -1,3 +1,7 @@
+## Vendas — correção individual do imposto (19/10/2026)
+
+Corrigir venda oferece manter tratamento atual, informar nova alíquota ou informar valor direto do imposto. Master pode aplicar inclusive zero, com motivo e histórico antes/depois; usa SaleCorrection e as proteções PostgreSQL existentes. A alíquota específica utiliza a base histórica (receita incluindo ajuste gerencial ou produtos menos desconto), já considerando as correções da tela. Sem base histórica, usar valor direto. Valor manual fica fixo; alíquota específica acompanha futuras correções da base. Alteração geral da regra não sobrescreve correções individuais. Não altera outras vendas, CMV ou estoque. DRE e relatórios refletem a correção na data original. ADR 0047.
+
 # Vendas — Fase 3
 Novo pacote (ADR 0029): vendas e recuperações podem deixar estoque negativo pelo último custo local conhecido, exigindo referência explícita quando ausente. CMV permanece histórico; diferenças de reposição aparecem separadamente no resultado da empresa. Regra tributária válida para a data comercial é sugerida e pode ser trocada. Substitui a exigência de saldo suficiente descrita nas fases históricas abaixo.
 Implementação: `apps/sales`. Entrega e evidências de validação no [PR #12](https://github.com/andreiruck-max/mvet/pull/12).

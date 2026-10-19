@@ -29,7 +29,7 @@ def calculate_tax(sale):
 def affected_sales(rule,effective_from):
     if effective_from>=timezone.localdate():return Sale.objects.none()
     following=rule.changes.filter(effective_from__gt=effective_from).order_by('effective_from').first()
-    rows=Sale.objects.filter(tax_rule=rule,status='CONFIRMED',tax_override__isnull=True,date__gte=effective_from)
+    rows=Sale.objects.filter(tax_rule=rule,status='CONFIRMED',tax_override__isnull=True,date__gte=effective_from).exclude(tax_snapshot__override=True)
     if following:rows=rows.filter(date__lt=following.effective_from)
     return rows
 

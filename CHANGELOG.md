@@ -1,3 +1,7 @@
+## Vendas — correção individual do imposto (19/10/2026)
+
+Corrigir venda oferece manter tratamento atual, informar nova alíquota ou informar valor direto do imposto. Master pode aplicar inclusive zero, com motivo e histórico antes/depois; usa SaleCorrection e as proteções PostgreSQL existentes. A alíquota específica utiliza a base histórica (receita incluindo ajuste gerencial ou produtos menos desconto), já considerando as correções da tela. Sem base histórica, usar valor direto. Valor manual fica fixo; alíquota específica acompanha futuras correções da base. Alteração geral da regra não sobrescreve correções individuais. Não altera outras vendas, CMV ou estoque. DRE e relatórios refletem a correção na data original. ADR 0047.
+
 ## Compras — pesquisa e grupos de categorias (16/10/2026)
 
 Categoria sem estoque permite pesquisar por código, nome ou grupo, sem diferenciar acentos/maiúsculas. Plano apresentado com títulos de grupos em negrito e subcategorias selecionáveis; níveis intermediários identificados pelo caminho do grupo. Pesquisa preserva a escolha atual, é independente por item e funciona também em linhas adicionadas na compra manual. Conferência Bling e rascunho manual compartilham o seletor. Cálculos e classificação histórica preservados.
