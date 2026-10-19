@@ -159,6 +159,12 @@ class SaleCorrection(Immutable):
                 rows.append((Sale._meta.get_field(field).verbose_name, self.before.get(field+'_name',str(value)), self.after.get(field+'_name',str(self.after[name]))))
             else:
                 rows.append((Sale._meta.get_field(name).verbose_name, number_format(Decimal(value),2,force_grouping=True), number_format(Decimal(self.after[name]),2,force_grouping=True)))
+        before_tax=self.before.get('tax_snapshot',{});after_tax=self.after.get('tax_snapshot',{})
+        if before_tax.get('rate')!=after_tax.get('rate'):
+            rows.append(('Alíquota (%)',before_tax.get('rate') or 'Valor informado',after_tax.get('rate') or 'Valor informado'))
+        if before_tax.get('correction_mode')!=after_tax.get('correction_mode'):
+            labels={'rate':'Alíquota exclusiva da venda','amount':'Valor informado'}
+            rows.append(('Tratamento do imposto',labels.get(before_tax.get('correction_mode'),'Tratamento anterior'),labels.get(after_tax.get('correction_mode'),'Tratamento anterior')))
         return rows
 
     class Meta:

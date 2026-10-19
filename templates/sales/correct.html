@@ -1,6 +1,8 @@
-{% extends 'base.html' %}{% block content %}
+{% extends 'base.html' %}{% load static %}{% block content %}
 <div class="actions"><a class="button" href="{% url 'sale_detail' sale.pk %}">← Voltar à venda</a></div>
 <h1>Corrigir venda · {{ sale.reference }} / {{ sale.invoice_series }}</h1>
-<p>A correção atualiza os relatórios na data original da venda. Trocar apenas o canal ou valores não movimenta estoque. Trocar o depósito registra uma devolução no anterior e uma saída no novo na data de hoje. Produtos, quantidades e CMV histórico são preservados; diferenças de valorização entram no resultado da empresa na data dos movimentos. Se a receita mudar, o imposto automático usa a alíquota histórica; imposto manual é preservado.</p>
-<form method="post" class="panel">{% csrf_token %}{{ form.as_p }}<button>Salvar correção</button></form>
-{% endblock %}
+<p>A correção atualiza os relatórios na data original da venda. Trocar apenas o canal ou valores não movimenta estoque. Trocar o depósito registra uma devolução no anterior e uma saída no novo na data de hoje. Produtos, quantidades e CMV histórico são preservados; diferenças de valorização entram no resultado da empresa na data dos movimentos. Se a receita mudar, o imposto calculado usa a alíquota histórica ou a específica desta venda; imposto informado diretamente permanece fixo.</p>
+<p>Imposto atual: <strong>R$ {{ sale.tax_amount|floatformat:2 }}</strong>{% if sale.tax_snapshot.rate %} · Alíquota: {{ sale.tax_snapshot.rate }}%{% endif %}. Base histórica: {% if sale.tax_snapshot.base_type == 'REVENUE' %}receita operacional, incluindo ajuste gerencial{% elif sale.tax_snapshot.base_type == 'PRODUCTS' %}produtos menos descontos{% else %}não informada — use valor direto{% endif %}.</p>
+<p>Nova alíquota ou valor informado vale somente nesta venda e não será substituído por alteração da regra geral. Alíquota usa a base após as correções desta tela; valor direto permanece fixo em futuras correções da receita.</p>
+<form method="post" class="panel" id="sale-correction-form">{% csrf_token %}{{ form.as_p }}<button>Salvar correção</button></form>
+<script src="{% static 'sale-tax-correction.js' %}" defer></script>{% endblock %}
