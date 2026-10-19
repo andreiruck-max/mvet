@@ -15,10 +15,12 @@ class PlanningForm(forms.Form):
     history_days = forms.IntegerField(label='Histórico de vendas (dias)', min_value=1, max_value=3650, initial=30)
     coverage_days = forms.IntegerField(label='Comprar para (dias)', min_value=1, max_value=365, initial=30)
     q = forms.CharField(label='SKU ou nome', required=False)
+    need = forms.ChoiceField(label='Exibir', choices=[('needed', 'Somente o que precisa comprar'),
+                                                     ('all', 'Todos os produtos')], initial='needed')
     show_excluded = forms.BooleanField(label='Mostrar fora de linha', required=False)
 
 
-def purchase_plan(*, location, zero_days, history_days, coverage_days, q='', show_excluded=False, today=None):
+def purchase_plan(*, location, zero_days, history_days, coverage_days, q='', show_excluded=False, need='all', today=None):
     today = today or timezone.localdate()
     products = list(catalog({'positive': '0', 'q': q}, location).filter(kind='SIMPLE'))
     ids = [p.pk for p in products]
@@ -45,6 +47,8 @@ def purchase_plan(*, location, zero_days, history_days, coverage_days, q='', sho
         if suggested > 0:
             suggested_count += 1
         if excluded and not show_excluded:
+            continue
+        if need == 'needed' and suggested <= 0:
             continue
         rows.append({'product': product, 'days': days, 'excluded': excluded, 'sold': sold,
                      'pending': pending, 'suggested': suggested})
