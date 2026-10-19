@@ -33,7 +33,7 @@ def planning(request):
         raise PermissionDenied
     from .planning import PlanningForm, purchase_plan
     location, _ = selected_location({})
-    defaults = {'zero_days': 30, 'history_days': 30, 'coverage_days': 30,
+    defaults = {'zero_days': 30, 'history_days': 30, 'coverage_days': 30, 'need': 'needed',
                 'location': location.pk if location else None}
     defaults.update(request.session.get('purchase_plan_filters', {}))
     data = dict(defaults, **request.GET.dict())
@@ -41,7 +41,7 @@ def planning(request):
     rows = []; totals = {}
     if form.is_valid():
         values = form.cleaned_data
-        request.session['purchase_plan_filters'] = {name: values[name] for name in ('zero_days', 'history_days', 'coverage_days')}
+        request.session['purchase_plan_filters'] = {name: values[name] for name in ('zero_days', 'history_days', 'coverage_days', 'need')}
         request.session['purchase_plan_filters']['location'] = values['location'].pk
         rows, totals = purchase_plan(**values)
     page = Paginator(rows, 50).get_page(request.GET.get('page'))
