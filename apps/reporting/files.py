@@ -110,6 +110,7 @@ STYLES=f'''<styleSheet xmlns="{NS}"><numFmts count="3"><numFmt numFmtId="164" fo
 def xlsx(dataset, company):
     from .datasets import Dataset
     sheets=[(dataset, bool(dataset.cash))]
+    sheets.extend((section, False) for section in getattr(dataset, 'sections', []))
     if hasattr(dataset, 'groups'):
         keys=['count','revenue'] + (['cmv'] if 'cmv' in dataset.totals else []) + (['tax_amount','contribution','margin'] if 'contribution' in dataset.totals else [])
         summary=Dataset('Resumo por canal',['Canal']+[METRICS[k] for k in keys],

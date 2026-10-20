@@ -1,3 +1,7 @@
+Atualização 20/10/2026: Apuração mensal de comissões exporta PDF por vendedor e Excel com abas de resumo, liberações/ajustes e pagamentos do mês. Respeita mês e comissionado; funcionário exporta apenas a própria pessoa vinculada. Usa bases/percentuais históricos dos eventos, saldos até o corte e pagamentos/estornos. Explica a diferença entre pago no mês e pago da apuração; não inclui custos, margens ou bancos.
+
+Atualização 20/10/2026: planejamento inclui Marcar todos desta página, Desmarcar todos e contagem da seleção para exportação. Ações selecionam o modo de exportar itens marcados; todos os filtrados de todas as páginas continuam disponíveis no seletor.
+
 ## Planejamento — exportação para cotação (20/10/2026)
 
 PDF e Excel com SKU, produto, unidade e quantidade sugerida, para todos os resultados filtrados ou itens marcados da página. Preserva depósito, prazos, busca e filtro de necessidade; não inclui custos/margens e não cria pedidos. Exige export_purchases além do acesso ao planejamento. Quantidades com quatro casas no PDF e números no Excel.

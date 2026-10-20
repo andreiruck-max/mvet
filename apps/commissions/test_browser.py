@@ -44,6 +44,12 @@ class CommissionBrowser(Fixture,StaticLiveServerTestCase):
             expect(page.get_by_text('Pagamento registrado e alocado',exact=False)).to_be_visible()
             page.goto(self.live_server_url+reverse('commission_monthly'))
             expect(page.locator('main')).to_contain_text('12,50')
+            page.get_by_label('Comissionado:',exact=True).select_option(str(self.payee.pk))
+            for label, extension in [('Exportar PDF', '.pdf'), ('Exportar Excel', '.xlsx')]:
+                with page.expect_download() as download:
+                    page.get_by_role('button',name=label,exact=True).click()
+                self.assertTrue(download.value.suggested_filename.endswith(extension))
+                self.assertIsNone(download.value.failure())
             page.screenshot(path='artifacts/commissions-monthly-desktop.png',full_page=True)
             page.goto(self.live_server_url+reverse('commissions'))
             page.get_by_label('Período das vendas:',exact=True).select_option('today')
