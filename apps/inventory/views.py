@@ -43,9 +43,22 @@ def planning(request):
         values = form.cleaned_data
         request.session['purchase_plan_filters'] = {name: values[name] for name in ('zero_days', 'history_days', 'coverage_days', 'need')}
         request.session['purchase_plan_filters']['location'] = values['location'].pk
-        rows, totals = purchase_plan(**values)
+        if 'export' in request.GET:
+            with transaction.atomic():
+                domain_lock()
+                rows, totals = purchase_plan(**values)
+        else:
+            rows, totals = purchase_plan(**values)
+        if 'export' in request.GET:
+            from .planning_exports import export_plan
+            try:
+                return export_plan(request, rows, values)
+            except ValidationError as error:
+                return HttpResponseBadRequest('; '.join(error.messages))
+    elif 'export' in request.GET:
+        return HttpResponseBadRequest('Filtros inválidos. Confira depósito e prazos no planejamento.')
     page = Paginator(rows, 50).get_page(request.GET.get('page'))
-    return render(request, 'inventory/planning.html', {'form': form, 'page': page, 'totals': totals})
+    return render(request, 'inventory/planning.html', {'form': form, 'page': page, 'totals': totals, 'export_filters': data.items()})
 
 @login_required
 def products(request):

@@ -47,6 +47,12 @@ class BrowserAcceptance(StaticLiveServerTestCase):
             page.locator('#id_need').select_option('needed')
             page.wait_for_url('**need=needed**')
             self.assertEqual(page.locator('tbody tr').count(),1)
+            page.get_by_role('checkbox',name='Selecionar NEED-UI',exact=True).check()
+            for label, extension in [('Exportar Excel', '.xlsx'), ('Exportar PDF', '.pdf')]:
+                with page.expect_download() as download:
+                    page.get_by_role('button',name=label,exact=True).click()
+                self.assertTrue(download.value.suggested_filename.endswith(extension))
+                self.assertIsNone(download.value.failure())
             page.screenshot(path=str(output/'planning-desktop.png'),full_page=True)
             page.set_viewport_size({'width':390,'height':844})
             self.assertFalse(page.evaluate('document.documentElement.scrollWidth > innerWidth'))

@@ -1,3 +1,7 @@
+## Planejamento — exportação para cotação (20/10/2026)
+
+PDF e Excel com SKU, produto, unidade e quantidade sugerida, para todos os resultados filtrados ou itens marcados da página. Preserva depósito, prazos, busca e filtro de necessidade; não inclui custos/margens e não cria pedidos. Exige export_purchases além do acesso ao planejamento. Quantidades com quatro casas no PDF e números no Excel.
+
 ## Estoque — filtro de necessidade no planejamento (19/10/2026)
 
 Planejar compra abre com “Somente o que precisa comprar”: sugestão maior que zero após saldo e compras a receber. Opção “Todos os produtos” disponível e lembrada na sessão. Filtro aplicado antes da paginação, combinado com depósito/prazos/pesquisa e fora de linha; cartões mantêm o universo analisado. Seleção automática, com botão Calcular preservado.
