@@ -47,7 +47,12 @@ class BrowserAcceptance(StaticLiveServerTestCase):
             page.locator('#id_need').select_option('needed')
             page.wait_for_url('**need=needed**')
             self.assertEqual(page.locator('tbody tr').count(),1)
-            page.get_by_role('checkbox',name='Selecionar NEED-UI',exact=True).check()
+            page.get_by_role('button',name='Marcar todos desta página',exact=True).click()
+            self.assertTrue(page.get_by_role('checkbox',name='Selecionar NEED-UI',exact=True).is_checked())
+            page.get_by_role('button',name='Desmarcar todos',exact=True).click()
+            self.assertFalse(page.get_by_role('checkbox',name='Selecionar NEED-UI',exact=True).is_checked())
+            page.get_by_role('button',name='Marcar todos desta página',exact=True).click()
+            self.assertEqual(page.locator('#planning-selection-count').inner_text(), '1 de 1 selecionados nesta página')
             for label, extension in [('Exportar Excel', '.xlsx'), ('Exportar PDF', '.pdf')]:
                 with page.expect_download() as download:
                     page.get_by_role('button',name=label,exact=True).click()

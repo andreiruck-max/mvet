@@ -1,3 +1,5 @@
+Atualização 20/10/2026: Apuração mensal de comissões exporta PDF por vendedor e Excel com abas de resumo, liberações/ajustes e pagamentos do mês. Respeita mês e comissionado; funcionário exporta apenas a própria pessoa vinculada. Usa bases/percentuais históricos dos eventos, saldos até o corte e pagamentos/estornos. Explica a diferença entre pago no mês e pago da apuração; não inclui custos, margens ou bancos.
+
 # Controle de comissões
 
 ## Operação

@@ -145,9 +145,17 @@ def payments(request):
 @require_http_methods(['GET'])
 def monthly(request):
     s.access(request.user)
-    form=forms.MonthForm(request.GET if request.GET else {'month':timezone.localdate().strftime('%Y-%m')},actor=request.user)
+    form=forms.MonthForm(dict({'month':timezone.localdate().strftime('%Y-%m')}, **request.GET.dict()),actor=request.user)
     rows=[];events=[];start=end=None
-    if form.is_valid():rows,events,start,end=q.monthly(request.user,form.cleaned_data['month'],form.cleaned_data.get('payee'))
+    if form.is_valid():
+        if 'export' in request.GET:
+            from .exports import export_monthly
+            from django.http import HttpResponseBadRequest
+            try:
+                return export_monthly(request,form.cleaned_data['month'],form.cleaned_data.get('payee'))
+            except ValidationError as exc:
+                return HttpResponseBadRequest('; '.join(exc.messages))
+        rows,events,start,end=q.monthly(request.user,form.cleaned_data['month'],form.cleaned_data.get('payee'))
     return render(request,'commissions/monthly.html',{'form':form,'rows':rows,'events':events,'start':start,'end':end},status=200 if form.is_valid() else 400)
 
 @login_required

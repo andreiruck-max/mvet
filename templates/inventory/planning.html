@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}Planejar compra{% endblock %}
 {% block content %}<div class="planning-page">
 <div class="page-heading"><div><h1>Planejar compra</h1><p class="muted">Reposição por depósito · estimativa para conferência</p></div><div class="actions"><a class="button" href="{% url 'products' %}">Estoque</a><a class="button" href="{% url 'purchases' %}">Compras</a></div></div>
@@ -11,6 +12,9 @@
 <form id="planning-export" method="get" class="card">
 {% for key,value in export_filters %}{% if key != 'page' and key != 'export' and key != 'scope' and key != 'product' %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endif %}{% endfor %}
 <div class="actions">
+<button type="button" data-planning-select="all" hidden>Marcar todos desta página</button>
+<button type="button" data-planning-select="none" hidden>Desmarcar todos</button>
+<span id="planning-selection-count" role="status" aria-live="polite"></span>
 <label for="export-scope">Exportar</label>
 <select id="export-scope" name="scope"><option value="selected">Itens marcados nesta página</option><option value="filtered">Todos os produtos filtrados (todas as páginas)</option></select>
 <button name="export" value="xlsx">Exportar Excel</button><button name="export" value="pdf">Exportar PDF</button>
@@ -20,4 +24,5 @@
 <div class="table-wrap card"><table><thead><tr>{% if perms.core.export_purchases %}<th>Selecionar</th>{% endif %}<th>SKU / produto</th><th>Un.</th><th>Saldo</th><th>Vendido no período</th><th>A receber</th><th>Sugestão</th><th>Sem movimento</th></tr></thead><tbody>
 {% for row in page %}<tr>{% if perms.core.export_purchases %}<td data-label="Selecionar"><input type="checkbox" form="planning-export" name="product" value="{{ row.product.pk }}" aria-label="Selecionar {{ row.product.sku }}"></td>{% endif %}<td data-label="Produto"><a href="{% url 'product_detail' row.product.pk %}?next={{ request.get_full_path|urlencode }}">{{ row.product.sku }} · {{ row.product.name }}</a>{% if row.excluded %}<small>Fora de linha no planejamento</small>{% endif %}</td><td data-label="Unidade">{{ row.product.unit }}</td><td data-label="Saldo">{{ row.product.stock_quantity|floatformat:4 }}</td><td data-label="Vendido">{{ row.sold|floatformat:4 }}</td><td data-label="A receber">{{ row.pending|floatformat:4 }}</td><td data-label="Sugestão"><strong>{{ row.suggested|floatformat:4 }}</strong></td><td data-label="Sem movimento">{% if row.days != None %}{{ row.days }} dias{% else %}Sem histórico{% endif %}</td></tr>{% empty %}<tr><td colspan="8">Nenhum produto para estes filtros.</td></tr>{% endfor %}
 </tbody></table></div>{% include 'inventory/pagination.html' %}</div>
+<script src="{% static 'planning-selection.js' %}" defer></script>
 {% endblock %}
