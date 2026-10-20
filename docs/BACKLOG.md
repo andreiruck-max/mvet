@@ -1,3 +1,5 @@
+Entregue em 20/10/2026: exportação do planejamento em PDF/Excel, com seleção de itens para cotar por fornecedor ou todos os filtrados.
+
 Entregue em 19/10/2026: filtro de necessidade no planejamento, padrão somente sugestões positivas, opção todos lembrada na sessão e aplicação automática.
 
 ## Vendas — correção individual do imposto (19/10/2026)

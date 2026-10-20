@@ -83,3 +83,59 @@ class PlanningTests(Fixture, TestCase):
         self.assertEqual(response.context['page'].paginator.count, 0)
         self.assertContains(response, 'Nenhum produto para estes filtros.')
         self.assertEqual(self.client.get(url, {'need': 'invalid'}).context['page'].paginator.count, 0)
+
+    def test_exports_all_filtered_rows_and_selected_products(self):
+        from io import BytesIO
+        from zipfile import ZipFile
+        from xml.etree.ElementTree import fromstring
+        from apps.reporting.files import NS
+        from unittest.mock import patch
+        Product.objects.bulk_create([Product(sku=f'EXPORT-{i:03}', name='Cotação', minimum=D('1.2345')) for i in range(51)])
+        self.client.force_login(self.actor)
+        url = reverse('purchase_planning')
+        response = self.client.get(url, {'export': 'xlsx', 'page': 2})
+        self.assertEqual(response.status_code, 200)
+        with ZipFile(BytesIO(response.content)) as book:
+            root = fromstring(book.read('xl/worksheets/sheet1.xml'))
+        strings = [n.text for n in root.iter('{'+NS+'}t')]
+        self.assertIn('EXPORT-000', strings)
+        self.assertIn('EXPORT-050', strings)
+        self.assertNotIn(self.product.sku, strings)
+        self.assertNotIn('CMV', strings)
+        self.assertEqual(len([n for n in root.iter('{'+NS+'}v') if n.text == '1.2345']), 51)
+        chosen = Product.objects.get(sku='EXPORT-050')
+        response = self.client.get(url, {'export':'xlsx', 'scope':'selected', 'product':[chosen.pk]})
+        with ZipFile(BytesIO(response.content)) as book:
+            xml = book.read('xl/worksheets/sheet1.xml').decode()
+        self.assertIn('EXPORT-050', xml)
+        self.assertNotIn('EXPORT-000', xml)
+        with patch('apps.inventory.planning_exports.pdf', return_value=b'%PDF-test') as render:
+            response = self.client.get(url, {'export':'pdf', 'scope':'selected', 'product':[chosen.pk]})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(render.call_args.args[0].rows[0][3], '1,2345')
+        response = self.client.get(url, {'export':'pdf', 'q':chosen.sku})
+        self.assertTrue(response.content.startswith(b'%PDF-'))
+        self.assertEqual(response['Cache-Control'], 'private, no-store')
+
+    def test_export_rejects_invalid_selection_filters_and_permissions(self):
+        from django.contrib.auth.models import Permission
+        self.client.force_login(self.actor)
+        url = reverse('purchase_planning')
+        for params in [
+            {'export':'pdf', 'scope':'selected'},
+            {'export':'pdf', 'scope':'selected', 'product':['bad']},
+            {'export':'pdf', 'scope':'selected', 'product':[self.product.pk]},
+            {'export':'pdf', 'zero_days':0},
+            {'export':'csv'},
+            {'export':'pdf', 'scope':'other'},
+            {'export':'pdf'},
+        ]:
+            self.assertEqual(self.client.get(url, params).status_code, 400)
+        self.operator.user_permissions.add(*Permission.objects.filter(codename__in=['view_stock','operate_purchases']))
+        self.client.force_login(self.operator)
+        self.assertEqual(self.client.get(url).status_code, 200)
+        self.assertNotContains(self.client.get(url), 'Exportar Excel')
+        self.assertEqual(self.client.get(url, {'export':'xlsx'}).status_code, 403)
+        self.operator.user_permissions.clear()
+        self.operator.user_permissions.add(Permission.objects.get(codename='export_purchases'))
+        self.assertEqual(self.client.get(url, {'export':'xlsx'}).status_code, 403)

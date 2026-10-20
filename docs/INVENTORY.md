@@ -1,3 +1,5 @@
+Atualização 20/10/2026: planejamento permite Exportar Excel/PDF. Marque os produtos de cada fornecedor e use “Itens marcados nesta página”, ou escolha “Todos os produtos filtrados (todas as páginas)”. Seleção é reiniciada ao navegar/filtrar. Arquivo para cotação inclui SKU, produto, unidade, quantidade sugerida e parâmetros; não transmite custos nem cria pedido. Não há inferência automática de fornecedor. Requer export_purchases. Limites: 2.000 linhas PDF, 10.000 Excel, com erro explícito sem truncamento.
+
 Atualização 19/10/2026: Planejar compra inicia em **Somente o que precisa comprar** (sugestão maior que zero), com opção **Todos os produtos** lembrada na sessão. Seleção aplica automaticamente e filtra antes da paginação. Cartões continuam mostrando todos os produtos analisados, os que têm sugestão e os fora de linha; produtos fora de linha não têm sugestão, mesmo marcando sua exibição. Cálculo de reposição preservado.
 
 # Estoque — contrato para Fase 2
