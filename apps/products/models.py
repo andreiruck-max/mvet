@@ -22,6 +22,7 @@ class Product(models.Model):
     brand = models.ForeignKey(Brand, verbose_name='Marca', null=True, blank=True, on_delete=models.PROTECT)
     category = models.ForeignKey(ProductCategory, verbose_name='Categoria', null=True, blank=True, on_delete=models.PROTECT)
     markup = models.DecimalField('Markup individual (%)', max_digits=8, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)], help_text='Vazio utiliza o percentual geral definido pelo master.')
+    fixed_sale_price = models.DecimalField('Preço de venda fixo', max_digits=14, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)])
     minimum = models.DecimalField('Estoque mínimo', max_digits=18, decimal_places=4, default=0)
     active = models.BooleanField('Ativo', default=True)
     quantity = models.DecimalField(max_digits=18, decimal_places=4, default=0, editable=False)
@@ -29,7 +30,7 @@ class Product(models.Model):
     average_cost = models.DecimalField(max_digits=24, decimal_places=6, default=0, editable=False)
     class Meta:
         ordering = ['name','pk']
-        constraints = [models.CheckConstraint(condition=Q(markup__isnull=True) | Q(markup__gte=0), name="product_markup_nonnegative"), models.CheckConstraint(condition=Q(average_cost__gte=0, minimum__gte=0), name='product_cost_minimum_nonnegative')]
+        constraints = [models.CheckConstraint(condition=Q(fixed_sale_price__isnull=True) | Q(fixed_sale_price__gte=0), name="product_fixed_price_nonnegative"), models.CheckConstraint(condition=Q(markup__isnull=True) | Q(markup__gte=0), name="product_markup_nonnegative"), models.CheckConstraint(condition=Q(average_cost__gte=0, minimum__gte=0), name='product_cost_minimum_nonnegative')]
     def __str__(self): return f'{self.sku} · {self.name}'
 
 class ProductComposition(models.Model):

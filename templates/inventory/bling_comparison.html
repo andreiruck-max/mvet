@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Conferir estoque e preços com Bling{% endblock %}
+{% block content %}<section class="compact-report">
+<div class="page-heading"><h1>Conferir com Bling</h1><a class="button" href="{% url 'bling_product_catalog' %}">Cadastrar produto do Bling</a><a class="button" href="{% url 'products' %}">Voltar ao estoque</a></div>
+<p>Preço de venda do cadastro × preço de venda da loja MVet. Saldo físico dos depósitos escolhidos. Cada correção altera apenas um campo e um sistema.</p>
+{% if error %}<p class="errorlist" role="alert">{{ error }}</p>{% endif %}
+{% if preview %}
+<section class="card section"><h2>Conferir antes de aplicar</h2><p>{{ preview.product }}</p>
+<p><strong>{{ preview.field }} no {{ preview.destination }}: {{ preview.before }} → {{ preview.after }}</strong></p>
+<p>Depósito MVet: {{ preview.location }} · Depósito Bling: {{ preview.deposit }}</p><p>Motivo: {{ preview.reason }}</p>
+{% if preview.destination == 'MVET' %}<p>Preço importado fica fixo até ser editado ou removido em Editar preço. Estoque gera ajuste atual pelo custo local, preservando o CMV histórico.</p>{% else %}<p>A alteração será enviada ao Bling. Integrações ligadas ao Bling podem transmitir a alteração aos canais de venda.</p>{% endif %}
+<form method="post">{% csrf_token %}<input type="hidden" name="action" value="confirm"><input type="hidden" name="approval" value="{{ preview.approval }}"><button class="primary">Confirmar correção no {{ preview.destination }}</button> <a href="{% url 'bling_stock_comparison' %}">Cancelar</a></form></section>
+{% else %}
+{% if request.method == 'POST' %}<form method="post" class="card form-card">{% csrf_token %}{% include 'inventory/form_fields.html' with form=correct %}<button class="primary">Revisar correção</button></form>{% else %}
+<form method="get" class="filters card">{% include 'inventory/form_fields.html' %}<button class="primary">Consultar Bling e comparar</button></form>
+{% endif %}
+{% if page %}<p>{{ page.paginator.count }} produtos locais · página {{ page.number }} de {{ page.paginator.num_pages }}. O preço MVet sempre usa a regra da loja; o saldo usa o depósito selecionado.</p>
+<div class="table-wrap card"><table><thead><tr><th>SKU / produto</th><th>Preço MVet</th><th>Preço Bling</th><th>Saldo MVet</th><th>Saldo Bling</th><th>Correção</th></tr></thead><tbody>
+{% for row in rows %}<tr><td>{{ row.product.sku }}<br>{{ row.product.name }}<small>{{ row.product.unit }}</small></td>
+{% if row.error %}<td colspan="5">{{ row.error }}</td>{% else %}
+<td>{% if row.price_diff %}<strong class="badge warning">R$ {{ row.local.price|floatformat:"2g" }}</strong>{% else %}R$ {{ row.local.price|floatformat:"2g" }}{% endif %}</td>
+<td>R$ {{ row.remote.price|floatformat:"2g" }}</td>
+<td>{% if row.stock_diff %}<strong class="badge warning">{{ row.local.quantity|floatformat:"4g" }}</strong>{% else %}{{ row.local.quantity|floatformat:"4g" }}{% endif %}</td><td>{{ row.remote.quantity|floatformat:"4g" }}</td>
+<td>{% if row.price_diff or row.stock_diff %}<details><summary>Corrigir diferença</summary><form method="post">{% csrf_token %}<input type="hidden" name="token" value="{{ row.token }}">
+<label>Campo<select name="field">{% if row.price_diff %}<option value="price">Preço de venda</option>{% endif %}{% if row.stock_diff %}<option value="quantity">Saldo físico</option>{% endif %}</select></label>
+<label>Destino<select name="direction"><option value="mvet">Corrigir MVet usando Bling</option><option value="bling">Corrigir Bling usando MVet</option></select></label>
+<label>Motivo<input name="reason" maxlength="350" required></label><button>Revisar correção</button></form></details>{% else %}Conferido{% endif %}</td>{% endif %}</tr>
+{% empty %}<tr><td colspan="6">Nenhuma diferença nesta página.</td></tr>{% endfor %}
+</tbody></table></div>{% include 'inventory/pagination.html' %}{% endif %}{% endif %}
+<h2>Últimas correções</h2><div class="table-wrap card"><table><thead><tr><th>Data / usuário</th><th>Produto</th><th>Campo / destino</th><th>Resultado</th><th>Motivo</th></tr></thead><tbody>
+{% for item in history %}<tr><td>{{ item.created_at|date:'d/m/Y H:i' }}<br>{{ item.actor }}</td><td>{{ item.product }}</td><td>{% if item.field == 'price' %}Preço{% else %}Saldo{% endif %} → {{ item.direction|upper }}</td><td>{{ item.get_status_display }}<small>{{ item.message }}</small>{% if item.direction == 'bling' and item.status == 'UNKNOWN' or item.direction == 'bling' and item.status == 'PENDING' %}<details><summary>Registrar conferência manual</summary><p>Confira no Bling se houve alteração e se existe lançamento de estoque com a referência {{ item.key }}. Encerre apenas após essa conferência.</p><form method="post">{% csrf_token %}<input type="hidden" name="action" value="acknowledge"><input type="hidden" name="correction" value="{{ item.pk }}"><label>Resultado conferido<input name="reason" required maxlength="350"></label><button>Já conferi no Bling; encerrar tentativa</button></form></details>{% endif %}</td><td>{{ item.reason }}</td></tr>{% empty %}<tr><td colspan="5">Nenhuma correção registrada.</td></tr>{% endfor %}
+</tbody></table></div></section>{% endblock %}

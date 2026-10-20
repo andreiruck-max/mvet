@@ -337,3 +337,58 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
         self.assertEqual(purchase.total,Decimal('190'))
         self.assertEqual(list(purchase.items.values_list('allocated_total',flat=True)),[Decimal('90'),Decimal('100')])
         self.assertEqual(Supplier.objects.get().legal_name,'Fornecedor conferido')
+
+    def test_stock_comparison_preview_and_catalog_creation(self):
+        from unittest.mock import patch
+        from decimal import Decimal
+        from pathlib import Path
+        from playwright.sync_api import sync_playwright
+        from apps.products.models import Product
+        self.company.default_stock_location = self.location
+        self.company.save()
+        def remote(path, **kwargs):
+            if path.startswith('/depositos'):
+                return {'data': [{'id': 42, 'descricao': 'Depósito Bling sintético', 'situacao': 1}]}
+            is_new = path == '/produtos/100' or 'NEW-UI' in path
+            data = {'id': 100 if is_new else 99, 'codigo': 'NEW-UI' if is_new else self.product.sku,
+                    'nome': 'Produto novo sintético' if is_new else self.product.name,
+                    'preco': Decimal('9.10'), 'tipo': 'P', 'formato': 'S', 'situacao': 'A', 'unidade': 'UN'}
+            if path.startswith('/produtos?'): return {'data': [data]}
+            if path.startswith('/produtos/'): return {'data': data}
+            if path.startswith('/estoques/saldos/42'):
+                return {'data': [{'produto': {'id': 100 if '100' in path else 99}, 'saldoFisicoTotal': 7}]}
+            raise AssertionError(path)
+        client = Client(); client.force_login(self.actor)
+        with patch('apps.integrations.bling.read', side_effect=remote), sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            context = browser.new_context(viewport={'width': 1440, 'height': 1000})
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page = context.new_page()
+            page.goto(self.live_server_url + '/estoque/conferir-bling/')
+            page.get_by_label('Depósito MVet', exact=True).select_option(str(self.location.pk))
+            page.get_by_label('Depósito Bling', exact=True).select_option('42')
+            page.get_by_role('button', name='Consultar Bling e comparar').click()
+            page.get_by_text('Corrigir diferença', exact=True).click()
+            page.get_by_label('Motivo', exact=True).fill('Preço conferido')
+            page.get_by_role('button', name='Revisar correção').click()
+            page.get_by_role('button', name='Confirmar correção no MVET').click()
+            page.get_by_text('Correção concluída.', exact=False).wait_for()
+            self.product.refresh_from_db()
+            self.assertEqual(self.product.fixed_sale_price, Decimal('9.10'))
+            captures = Path('artifacts'); captures.mkdir(exist_ok=True)
+            page.screenshot(path=str(captures/'bling-stock-desktop.png'), full_page=True)
+            page.set_viewport_size({'width': 390, 'height': 844})
+            self.assertFalse(page.evaluate('document.documentElement.scrollWidth > innerWidth'))
+            page.set_viewport_size({'width': 1440, 'height': 1000})
+            page.get_by_role('link', name='Cadastrar produto do Bling', exact=True).click()
+            page.get_by_label('Depósito MVet', exact=True).select_option(str(self.location.pk))
+            page.get_by_label('Depósito Bling', exact=True).select_option('42')
+            page.get_by_label('Pesquisar por', exact=True).select_option('sku')
+            page.get_by_label('Buscar no Bling', exact=True).fill('NEW-UI')
+            page.get_by_role('button', name='Buscar produtos no Bling').click()
+            page.get_by_role('link', name='Cadastrar no MVet', exact=True).click()
+            page.get_by_label('Motivo', exact=True).fill('Cadastro conferido')
+            page.get_by_role('button', name='Confirmar cadastro no MVet').click()
+            page.get_by_text('Produto NEW-UI cadastrado no MVet.', exact=True).wait_for()
+            self.assertEqual(Product.objects.get(sku='NEW-UI').quantity, 0)
+            browser.close()

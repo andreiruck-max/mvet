@@ -266,17 +266,21 @@ def product_count(request, pk, location_id):
 def pricing(request, pk=None):
     from django import forms
     from apps.accounts.access import master
-    from apps.products.pricing import configure_pricing
+    from apps.products.pricing import configure_pricing, configure_fixed_price
     master(request.user)
     product = get_object_or_404(Product, pk=pk) if pk else None
     class PricingForm(forms.Form):
         markup = forms.DecimalField(label='Markup individual (%)' if product else 'Markup geral (%)', required=not bool(product), min_value=0, max_digits=8, decimal_places=2,
             help_text='Vazio usa o markup geral. Zero é um percentual válido.' if product else 'Aplicado aos produtos sem percentual individual. Preço = custo médio da loja Mercadovet × (1 + markup/100).')
+    if product:
+        PricingForm.base_fields['fixed_sale_price'] = forms.DecimalField(label='Preço de venda fixo (R$)', required=False, min_value=0, max_digits=14, decimal_places=2, help_text='Quando preenchido, prevalece sobre o markup. Apague para voltar ao preço calculado pelo custo.')
     initial = product.markup if product else Company.objects.get(pk=1).default_markup
-    form = PricingForm(request.POST or None, initial={'markup':initial})
+    form = PricingForm(request.POST or None, initial={'markup':initial, 'fixed_sale_price':product.fixed_sale_price if product else None})
     if request.method == 'POST' and form.is_valid():
-        configure_pricing(actor=request.user, markup=form.cleaned_data['markup'], product_id=pk)
-        messages.success(request, 'Markup atualizado. Os preços da loja acompanham o custo médio da Mercadovet; vendas anteriores permanecem iguais.')
+        with transaction.atomic():
+            configure_pricing(actor=request.user, markup=form.cleaned_data['markup'], product_id=pk)
+            if product: configure_fixed_price(actor=request.user, product_id=pk, price=form.cleaned_data['fixed_sale_price'])
+        messages.success(request, 'Regra de preço atualizada. Preço fixo prevalece sobre markup; vendas anteriores permanecem iguais.')
         return redirect(return_url(request, url_reverse('products')))
     return render(request, 'inventory/form.html', {'form':form, 'title':f'Preço de venda · {product}' if product else 'Preços de venda · markup geral'})
 

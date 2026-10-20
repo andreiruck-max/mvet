@@ -2,6 +2,21 @@ from django.conf import settings
 from django.db import models
 
 
+class BlingStockCorrection(models.Model):
+    """Durable intent; remote calls may succeed even when their response is lost."""
+    key = models.UUIDField(unique=True)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    product = models.ForeignKey('products.Product', on_delete=models.PROTECT)
+    snapshot = models.JSONField()
+    field = models.CharField(max_length=10)
+    direction = models.CharField(max_length=10)
+    reason = models.CharField(max_length=350)
+    status = models.CharField(max_length=12, default='PENDING', choices=[('PENDING', 'Em execução'), ('DONE', 'Concluída'), ('FAILED', 'Não aplicada'), ('UNKNOWN', 'Conferir no Bling'), ('REVIEWED', 'Conferida manualmente')])
+    message = models.CharField(max_length=500, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True)
+
+
 class BlingConnection(models.Model):
     """One local company. Secrets encrypted with a separate environment key."""
     issuer = models.CharField(max_length=14, unique=True)
