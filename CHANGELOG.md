@@ -1,3 +1,5 @@
+Atualização 21/10/2026: conferência Bling ordenada por SKU numérico crescente antes da paginação de 50 produtos, usando a mesma regra do estoque. Consulta salva mantém seus itens e é ordenada sem nova chamada à API.
+
 ## Conferência Bling — consulta preservada (21/10/2026)
 
 Busca local por SKU exato, filtro imediato sem nova chamada remota e última página consultada persistida por usuário. Retorno após correção preserva parâmetros e atualiza a linha confirmada. Valores externos normalizados com Decimal (2 casas preço, 4 saldo); saldo inválido bloqueia somente o item.
