@@ -47,10 +47,7 @@ def catalog(params, location=None):
     order = params.get('sort', 'sku')
     if order not in {'name', 'sku', 'quantity', '-quantity'}: order = 'sku'
     if order == 'sku':
-        # Numeric(60,0) covers the entire SKU field without integer overflow.
-        rows = rows.annotate(sku_group=Case(When(sku__regex=r'^[0-9]+$', then=Value(0)), default=Value(1), output_field=IntegerField()),
-            sku_number=Case(When(sku__regex=r'^[0-9]+$', then=Cast('sku', DecimalField(max_digits=60, decimal_places=0))), default=None))
-        return rows.order_by('sku_group', 'sku_number', 'sku', 'pk')
+        return order_by_sku(rows)
     if order in {'quantity', '-quantity'}: order = order.replace('quantity', 'stock_quantity')
     return rows.order_by(order, 'pk')
 
@@ -74,3 +71,12 @@ def kit_summary(product):
     available=min((int(i.component.quantity//i.quantity) for i in parts),default=0)
     cost=sum((i.component.average_cost*i.quantity for i in parts),Decimal('0'))
     return parts,available,cost
+
+
+def order_by_sku(rows):
+    from django.db.models import Case, When, Value, DecimalField, IntegerField
+    from django.db.models.functions import Cast
+    # Numeric(60,0) covers the entire SKU field without integer overflow.
+    rows = rows.annotate(sku_group=Case(When(sku__regex=r'^[0-9]+$', then=Value(0)), default=Value(1), output_field=IntegerField()),
+        sku_number=Case(When(sku__regex=r'^[0-9]+$', then=Cast('sku', DecimalField(max_digits=60, decimal_places=0))), default=None))
+    return rows.order_by('sku_group', 'sku_number', 'sku', 'pk')

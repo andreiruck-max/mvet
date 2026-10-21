@@ -286,3 +286,29 @@ class StockComparisonTests(Fixture, TestCase):
         with patch('apps.integrations.bling.read', side_effect=AssertionError('Unexpected API call')):
             self.assertEqual(self.client.get(url, {'differences': 'on'}).context['rows'], [])
             self.assertEqual(len(self.client.get(url, {'differences': ''}).context['rows']), 1)
+
+
+    def test_numeric_sku_order_before_pagination_and_saved_page(self):
+        from apps.products.models import Product
+        from .models import BlingComparisonCache
+        Product.objects.filter(pk=self.product.pk).update(active=False)
+        skus = [str(n) for n in range(55, 0, -1)] + ['A1']
+        for sku in skus:
+            Product.objects.create(sku=sku, name='Ordenação sintética', kind='SIMPLE', unit='UN')
+        def compare(**kwargs):
+            return [{'product': p, 'error': 'Sem vínculo externo'} for p in kwargs['products']]
+        self.client.force_login(self.actor)
+        url = reverse('bling_stock_comparison')
+        params = {'location': self.location.pk, 'deposit': '42'}
+        with patch('apps.integrations.stock_comparison.comparison', side_effect=compare):
+            first = self.client.get(url, params)
+            self.assertEqual([r['product']['sku'] for r in first.context['rows']],
+                             [str(n) for n in range(1, 51)])
+            second = self.client.get(url, dict(params, page='2'))
+            self.assertEqual([r['product']['sku'] for r in second.context['rows']], ['51', '52', '53', '54', '55', 'A1'])
+        cache = BlingComparisonCache.objects.get(actor=self.actor)
+        cache.payload['rows'].reverse()
+        cache.save()
+        with patch('apps.integrations.bling.read', side_effect=AssertionError('Unexpected API call')):
+            restored = self.client.get(url)
+            self.assertEqual([r['product']['sku'] for r in restored.context['rows']], ['51', '52', '53', '54', '55', 'A1'])

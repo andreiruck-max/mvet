@@ -15,6 +15,7 @@ from django.views.decorators.http import require_http_methods
 from apps.accounts.access import master
 from apps.products.models import Product
 from apps.inventory.models import StockLocation
+from apps.inventory.selectors import order_by_sku
 from . import stock_comparison as service
 from .models import BlingStockCorrection, BlingComparisonCache
 
@@ -88,16 +89,20 @@ def comparison(request):
                 old_params = {k: str(saved.get('params', {}).get(k, '')) for k in query_params}
                 if saved.get('rows') is not None and query_params == old_params and not refresh:
                     rows = saved['rows']
-                    page = Paginator(range(saved['count']), 10).get_page(saved['page'])
+                    page = Paginator(range(saved['count']), saved.get('page_size', 10)).get_page(saved['page'])
                 else:
-                    products = Product.objects.filter(active=True, kind='SIMPLE').order_by('sku', 'pk')
+                    products = order_by_sku(Product.objects.filter(active=True, kind='SIMPLE'))
                     query = form.cleaned_data['q'].strip()
                     if query: products = products.filter(sku=query)
-                    page = Paginator(products, 10).get_page(params.get('page'))
+                    page = Paginator(products, 50).get_page(params.get('page'))
                     rows = service.comparison(actor=request.user, products=list(page), location=form.cleaned_data['location'], deposit=form.cleaned_data['deposit'])
                     rows = [dict(r, product={'pk': r['product'].pk, 'sku': r['product'].sku, 'name': r['product'].name, 'unit': r['product'].unit}) for r in rows]
-                    saved = {'rows': rows, 'count': page.paginator.count, 'page': page.number, 'deposits': choices,
+                    saved = {'rows': rows, 'count': page.paginator.count, 'page': page.number, 'page_size': 50, 'deposits': choices,
                              'consulted_at': timezone.now().isoformat()}
+                rows = sorted(rows, key=lambda r: (0, int(r['product']['sku']), r['product']['sku'], r['product']['pk'])
+                              if r['product']['sku'].isascii() and r['product']['sku'].isdecimal()
+                              else (1, 0, r['product']['sku'], r['product']['pk']))
+                saved['rows'] = rows
                 saved['params'] = {k: v for k, v in params.items() if k != 'refresh'}
                 cache.payload = saved
                 cache.save(update_fields=['payload'])
