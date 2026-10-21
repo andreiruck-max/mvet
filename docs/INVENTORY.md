@@ -1,3 +1,7 @@
+## Bling — comparação de estoque, preço e cadastro (20/10/2026)
+
+Estoque → Conferir com Bling, exclusivo master: saldo físico por depósitos escolhidos e preço de venda lado a lado, diferenças destacadas, busca e paginação. Correção individual nos dois sentidos com prévia, motivo, releitura e histórico; falha ambígua não é reenviada. Preço fixo opcional preserva valor exato importado; estoque usa movimentos atuais sem reescrever CMV. Catálogo externo permite cadastrar produto com revisão de descrição/preço e estoque opcional mediante custo informado. ADR 0048. Requer novos escopos e reautorização; homologação real ainda depende da instalação do usuário.
+
 Atualização 20/10/2026: planejamento inclui Marcar todos desta página, Desmarcar todos e contagem da seleção para exportação. Ações selecionam o modo de exportar itens marcados; todos os filtrados de todas as páginas continuam disponíveis no seletor.
 
 Atualização 20/10/2026: planejamento permite Exportar Excel/PDF. Marque os produtos de cada fornecedor e use “Itens marcados nesta página”, ou escolha “Todos os produtos filtrados (todas as páginas)”. Seleção é reiniciada ao navegar/filtrar. Arquivo para cotação inclui SKU, produto, unidade, quantidade sugerida e parâmetros; não transmite custos nem cria pedido. Não há inferência automática de fornecedor. Requer export_purchases. Limites: 2.000 linhas PDF, 10.000 Excel, com erro explícito sem truncamento.

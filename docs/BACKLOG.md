@@ -1,3 +1,7 @@
+## Bling — comparação de estoque, preço e cadastro (20/10/2026)
+
+Estoque → Conferir com Bling, exclusivo master: saldo físico por depósitos escolhidos e preço de venda lado a lado, diferenças destacadas, busca e paginação. Correção individual nos dois sentidos com prévia, motivo, releitura e histórico; falha ambígua não é reenviada. Preço fixo opcional preserva valor exato importado; estoque usa movimentos atuais sem reescrever CMV. Catálogo externo permite cadastrar produto com revisão de descrição/preço e estoque opcional mediante custo informado. ADR 0048. Requer novos escopos e reautorização; homologação real ainda depende da instalação do usuário.
+
 Atualização 20/10/2026: Apuração mensal de comissões exporta PDF por vendedor e Excel com abas de resumo, liberações/ajustes e pagamentos do mês. Respeita mês e comissionado; funcionário exporta apenas a própria pessoa vinculada. Usa bases/percentuais históricos dos eventos, saldos até o corte e pagamentos/estornos. Explica a diferença entre pago no mês e pago da apuração; não inclui custos, margens ou bancos.
 
 Atualização 20/10/2026: planejamento inclui Marcar todos desta página, Desmarcar todos e contagem da seleção para exportação. Ações selecionam o modo de exportar itens marcados; todos os filtrados de todas as páginas continuam disponíveis no seletor.

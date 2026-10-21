@@ -1,6 +1,9 @@
 from django.urls import path
 from . import views
+from apps.integrations.stock_views import comparison, catalog
 urlpatterns=[
+ path("conferir-bling/cadastrar/", catalog, name="bling_product_catalog"),
+ path("conferir-bling/", comparison, name="bling_stock_comparison"),
  path("conciliar/modelo/", views.inventory_template, name="inventory_template"),
  path("conciliar/", views.reconcile_inventory, name="inventory_reconcile"),
  path("precos/", views.pricing, name="stock_pricing"),

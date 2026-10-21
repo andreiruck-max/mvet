@@ -1,6 +1,7 @@
-"""Read-only commercial adapter. OAuth is the only remote POST allowed."""
+"""Allowlisted fiscal reads and explicit catalog/stock reconciliation calls."""
 import base64
 import json
+import re
 import time
 from datetime import timedelta
 from decimal import Decimal
@@ -50,13 +51,19 @@ def configured():
     return issuer
 
 
-def request_json(path, *, token=None, form=None):
-    # Paths are generated internally; reject arbitrary URLs and all fiscal writes.
+def request_json(path, *, token=None, form=None, method="GET", payload=None):
     if form is not None:
-        if path != '/oauth/token': raise BlingError('Operação remota não permitida.')
-    elif path != '/nfe' and not (path.startswith('/nfe/') and path[5:].isascii() and path[5:].isdecimal()):
-        # List query is passed separately below through form-free URL encoding.
-        if not path.startswith('/nfe?'): raise BlingError('Consulta remota não permitida.')
+        if path != '/oauth/token' or payload is not None: raise BlingError('Operação remota não permitida.')
+    elif method == 'GET' and payload is None:
+        if not re.fullmatch(r'/(?:nfe(?:/[0-9]+)?|produtos(?:/[0-9]+)?|depositos(?:/[0-9]+)?|estoques/saldos/[0-9]+)(?:\?[^#]*)?', path):
+            raise BlingError('Consulta remota não permitida.')
+    elif method == 'PATCH' and re.fullmatch(r'/produtos/[0-9]+', path):
+        if not isinstance(payload, dict) or set(payload) != {'preco'}: raise BlingError('Somente preço pode ser alterado.')
+    elif method == 'POST' and path == '/estoques':
+        if not isinstance(payload, dict) or set(payload) != {'produto', 'deposito', 'operacao', 'quantidade', 'observacoes'} or payload['operacao'] != 'B':
+            raise BlingError('Somente balanço explícito de estoque é permitido.')
+    else:
+        raise BlingError('Operação remota não permitida.')
     headers = {'Accept': 'application/json', 'enable-jwt': '1'}
     data = None
     if form is not None:
@@ -66,11 +73,14 @@ def request_json(path, *, token=None, form=None):
         data = urlencode(form).encode()
     elif token:
         headers['Authorization'] = 'Bearer ' + token
+    if payload is not None:
+        headers['Content-Type'] = 'application/json'
+        data = decimal_json(payload).encode()
     try:
-        with build_opener(NoRedirect()).open(Request(BASE + path, data=data, headers=headers), timeout=8) as response:
+        with build_opener(NoRedirect()).open(Request(BASE + path, data=data, headers=headers, method='POST' if form is not None else method), timeout=8) as response:
             raw = response.read(2_000_001)
         if len(raw) > 2_000_000: raise BlingError('Resposta excede o limite de segurança.')
-        result = json.loads(raw, parse_float=Decimal)
+        result = json.loads(raw, parse_float=Decimal) if raw else {}
         if not isinstance(result, dict): raise ValueError
         return result
     except HTTPError as exc:
@@ -114,7 +124,7 @@ def disconnect(*, actor):
 
 
 @transaction.atomic
-def get(path):
+def get(path, *, method="GET", payload=None):
     """Serialize requests/refresh across workers; never hold the inventory lock."""
     obj = BlingConnection.objects.select_for_update(nowait=True).get(pk=1)
     if not obj.tokens: raise BlingError('Bling desconectado. Solicite autorização ao master.')
@@ -127,14 +137,16 @@ def get(path):
         time.sleep(max(0, .4 - (timezone.now() - obj.last_request_at).total_seconds()))
     # Capture errors inside the transaction so a rotated refresh token is committed.
     failure = None
-    try: result = request_json(path, token=tokens['access'])
+    try:
+        result = request_json(path, token=tokens['access']) if method == 'GET' else request_json(path, token=tokens['access'], method=method, payload=payload)
     except BlingError as exc: failure = exc; result = None
     obj.last_request_at = timezone.now(); obj.save(update_fields=['last_request_at'])
     return result, failure
 
 
-def read(path):
-    try: result, failure = get(path)
+def read(path, *, method="GET", payload=None):
+    try: result, failure = get(path) if method == "GET" else get(path, method=method, payload=payload)
+    except BlingConnection.DoesNotExist: raise BlingError("Conecte o Bling antes de consultar.") from None
     except DatabaseError: raise BlingError('Outra consulta está usando a conexão. Tente novamente em instantes.') from None
     if failure: raise failure
     return result
@@ -212,3 +224,13 @@ def refresh_invoice(*, actor, invoice_id):
         raise BlingError('Detalhe inválido.')
     from .services import stage
     return stage(actor=actor, connection=obj.connection, payload=enrich(payload))
+
+
+def decimal_json(value):
+    """Keep Decimal as JSON numbers without a binary float round trip."""
+    if isinstance(value, Decimal):
+        if not value.is_finite(): raise BlingError('Número inválido.')
+        return format(value, 'f')
+    if isinstance(value, dict):
+        return '{' + ','.join(json.dumps(k) + ':' + decimal_json(v) for k, v in value.items()) + '}'
+    return json.dumps(value, ensure_ascii=False)

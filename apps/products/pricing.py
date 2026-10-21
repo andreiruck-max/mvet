@@ -10,6 +10,8 @@ from .models import Product
 
 
 def sale_price(product, cost, default_markup):
+    if product.fixed_sale_price is not None:
+        return product.fixed_sale_price
     markup = product.markup if product.markup is not None else default_markup
     return (cost * (Decimal(1) + markup / Decimal(100))).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)
 
@@ -27,6 +29,22 @@ def configure_pricing(*, actor, markup, product_id=None):
     obj.full_clean()
     obj.save(update_fields=[field])
     audit(actor, obj, 'configure_pricing', before, {field: str(markup)})
+    return obj
+
+
+@transaction.atomic
+def configure_fixed_price(*, actor, product_id, price):
+    master(actor)
+    if price is not None:
+        from apps.inventory.services import number
+        number(price, Decimal('.01'), zero=True)
+    domain_lock()
+    obj = Product.objects.select_for_update().get(pk=product_id)
+    before = {'fixed_sale_price': str(obj.fixed_sale_price)}
+    obj.fixed_sale_price = price
+    obj.full_clean()
+    obj.save(update_fields=['fixed_sale_price'])
+    audit(actor, obj, 'configure_fixed_price', before, {'fixed_sale_price': str(price)})
     return obj
 
 

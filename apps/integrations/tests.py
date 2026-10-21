@@ -284,7 +284,7 @@ class AdapterTests(Fixture, TestCase):
             auth.assert_called_once()
 
     def test_adapter_rejects_remote_writes_and_arbitrary_paths(self):
-        for path in ['/nfe/1000/cancelar', 'https://example.com/', '/produtos']:
+        for path in ['/nfe/1000/cancelar', 'https://example.com/', '/produtos/1/excluir']:
             with self.assertRaises(bling.BlingError): bling.request_json(path, form={'operation': 'write'})
             with self.assertRaises(bling.BlingError): bling.request_json(path)
 

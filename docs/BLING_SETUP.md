@@ -2,14 +2,14 @@
 
 ## Escopo entregue
 
-Conexão OAuth pelo master; consulta de NF-e emitidas; fila separada, vínculo de códigos, conferência de deduções e confirmação pelos serviços do MVet. Nenhuma escrita fiscal/comercial no Bling. Caixa/bancos, pedidos, webhooks, sincronização de estoque e importação financeira não fazem parte desta entrega.
+Conexão OAuth pelo master; consulta de NF-e emitidas; fila separada, vínculo de códigos, conferência de deduções e confirmação pelos serviços do MVet. Conferência de estoque/preços (ADR 0048) permite correções comerciais explícitas e cadastro local. Não há escrita fiscal, sincronização automática, caixa/bancos, pedidos, webhooks ou importação financeira.
 
 Sem credenciais a interface mostra conexão pendente. Testes usam exclusivamente respostas sintéticas; homologar com notas reais antes do uso operacional.
 
 ## Preparar o servidor
 
 1. Atualizar o código, instalar requirements e aplicar migrations (`python manage.py migrate`).
-2. Cadastrar aplicativo na conta Bling com apenas consulta de notas fiscais. Não habilitar escrita, produtos/estoque ou financeiro para este fluxo. Confirmar a disponibilidade dos escopos no plano contratado.
+2. Cadastrar aplicativo na conta Bling com consulta de notas fiscais. Para a conferência de estoque/preços, incluir leitura e alteração de Produtos, consulta e criação de Estoques e leitura de Depósitos. Alterar escopos revoga a autorização: salvar e reautorizar pelo MVet. Não é necessário trocar client ID/secret. Confirmar a disponibilidade dos escopos no plano contratado.
 3. Configurar, somente no `.env` privado do servidor: `BLING_CLIENT_ID`, `BLING_CLIENT_SECRET`, `BLING_ISSUER_CNPJ` (14 dígitos) e `BLING_REDIRECT_URI` (endereço exato do MVet seguido de `/integracoes/bling/retorno/`). O mesmo retorno deve constar no aplicativo Bling. O Bling usa o retorno cadastrado no aplicativo, não um parâmetro arbitrário enviado pelo cliente.
 4. Gerar `BLING_TOKEN_KEY` com `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. Guardar a chave em cofre/backup protegido separado do dump; não enviar segredos no chat nem commitá-los. Tokens rotativos ficam criptografados no PostgreSQL.
 5. Reiniciar a aplicação. Master abre **Conexão Bling → Autorizar no Bling**, autentica e concede acesso. Apenas o navegador do usuário precisa alcançar o retorno interno; não expor PostgreSQL nem abrir um receptor público de webhook.
@@ -82,3 +82,11 @@ Após atualizar, reconsulte a página ou a nota com erro antigo. Não apague reg
 A tela consulta lotes sequenciais até a última página, sem cliques intermediários. Não confirma vendas. Documentos inválidos ficam registrados como pendência, mas não interrompem a leitura dos demais. Falhas técnicas, autenticação, limite da API ou consulta parcial interrompem na página corrente: **Retomar busca** repete essa página de forma idempotente. Interromper aguarda o lote em andamento; retomar na mesma aba continua do próximo lote concluído. Alterar período/situação ou recarregar a página inicia outra varredura desde o início, sem duplicar notas. Não há job persistente no servidor; fechar a aba interrompe a sequência.
 
 Histórico permanece por lote. A contagem indica notas consultadas, incluindo já existentes, não novas vendas. O resumo só indica conclusão após uma página final bem-sucedida. Alterações simultâneas no Bling podem deslocar páginas; uma nova consulta do período reconcilia os registros. Máximo técnico de 10.000 páginas; reduza o período ao atingir esse limite.
+
+## Conferir com Bling
+
+No estoque, abrir **Conferir com Bling**, escolher depósitos e consultar. O filtro de diferenças atua na página atual, indicada na tela. Preço MVet usa a regra da loja, independentemente do depósito de saldo. Corrigir diferença → escolher campo e destino → motivo → revisar e confirmar. Reconsultar após cada correção. Somente master.
+
+**Cadastrar produto do Bling** permite buscar descrição ou SKU exato e revisar um produto ainda não cadastrado. Estoque é opcional; saldo positivo exige custo unitário conferido. Nenhum custo médio externo é importado.
+
+Resultados incertos ficam no histórico e impedem novo envio ao Bling para o produto até conferência manual. Confira o valor e, para estoque, a referência MVet no lançamento do Bling antes de encerrar a tentativa.
