@@ -359,7 +359,7 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
                 return {'data': [{'produto': {'id': 100 if '100' in path else 99}, 'saldoFisicoTotal': 7}]}
             raise AssertionError(path)
         client = Client(); client.force_login(self.actor)
-        with patch('apps.integrations.bling.read', side_effect=remote), sync_playwright() as pw:
+        with patch('apps.integrations.bling.read', side_effect=remote) as remote_mock, sync_playwright() as pw:
             browser = pw.chromium.launch()
             context = browser.new_context(viewport={'width': 1440, 'height': 1000})
             context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
@@ -368,11 +368,23 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
             page.locator('#id_location').select_option(str(self.location.pk))
             page.locator('#id_deposit').select_option('42')
             page.get_by_role('button', name='Consultar Bling e comparar').click()
+            page.get_by_text('Consulta salva em', exact=False).wait_for()
+            calls = remote_mock.call_count
+            page.locator('#id_differences').check()
+            page.wait_for_url('**differences=on')
+            page.locator('#id_differences').uncheck()
+            page.wait_for_url('**differences=')
+            self.assertEqual(remote_mock.call_count, calls)
             page.get_by_text('Corrigir diferença', exact=True).click()
             page.get_by_label('Motivo', exact=True).fill('Preço conferido')
             page.get_by_role('button', name='Revisar correção').click()
             page.get_by_role('button', name='Confirmar correção no MVET').click()
             page.get_by_text('Correção concluída.', exact=False).wait_for()
+            page.get_by_text('Consulta salva em', exact=False).wait_for()
+            calls = remote_mock.call_count
+            page.reload()
+            page.get_by_text('Consulta salva em', exact=False).wait_for()
+            self.assertEqual(remote_mock.call_count, calls)
             captures = Path('artifacts'); captures.mkdir(exist_ok=True)
             page.screenshot(path=str(captures/'bling-stock-desktop.png'), full_page=True)
             page.set_viewport_size({'width': 390, 'height': 844})

@@ -120,3 +120,9 @@ class PurchaseInvoiceImport(models.Model):
     class Meta:
         ordering = ['-issued_on', '-pk']
         constraints = [models.UniqueConstraint(fields=['connection', 'external_id'], name='bling_unique_purchase_invoice')]
+
+
+class BlingComparisonCache(models.Model):
+    """Last consulted page per master; never an authority for writes."""
+    actor = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    payload = models.JSONField(default=dict)

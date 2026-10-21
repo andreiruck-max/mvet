@@ -4,20 +4,25 @@ from django.contrib.auth.decorators import login_required
 from django.core import signing
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.utils import timezone
+from datetime import datetime
+from decimal import Decimal
+from uuid import uuid4
 from django.shortcuts import render, redirect
+from django.urls import reverse
+from urllib.parse import urlencode
 from django.views.decorators.http import require_http_methods
 from apps.accounts.access import master
 from apps.products.models import Product
 from apps.inventory.models import StockLocation
 from . import stock_comparison as service
-from .models import BlingStockCorrection
+from .models import BlingStockCorrection, BlingComparisonCache
 
 
 class CompareForm(forms.Form):
     location = forms.ModelChoiceField(label='Depósito MVet', queryset=StockLocation.objects.filter(active=True))
     deposit = forms.ChoiceField(label='Depósito Bling')
-    q = forms.CharField(label='SKU ou nome', max_length=100, required=False)
+    q = forms.CharField(label='SKU exato', max_length=100, required=False)
     differences = forms.BooleanField(label='Somente diferenças nesta página', required=False)
 
 
@@ -37,7 +42,15 @@ def comparison(request):
     page = None
     preview = None
     correct = CorrectForm(request.POST or None)
-    form = CompareForm(request.GET or None)
+    cache, _ = BlingComparisonCache.objects.get_or_create(actor=request.user)
+    saved = cache.payload
+    params = dict(saved.get('params', {}))
+    params.update(request.GET.dict())
+    if request.GET.get('refresh') == '1':
+        params = request.GET.dict()
+        params.setdefault('page', '1')
+    form = CompareForm(params or None)
+    consulted_at = None
     try:
         if request.method == 'POST':
             if request.POST.get('action') == 'acknowledge':
@@ -50,7 +63,9 @@ def comparison(request):
                 try: approved = signing.loads(request.POST.get('approval', ''), salt='bling.correction.approval', max_age=600)
                 except signing.BadSignature: raise ValidationError('Confirmação expirada. Prepare a correção novamente.') from None
                 result = service.apply(actor=request.user, **approved)
-                if result.status == 'DONE': messages.success(request, 'Correção concluída. Consulte novamente para atualizar a comparação.')
+                if result.status == 'DONE':
+                    update_saved_correction(cache, result, request.user)
+                    messages.success(request, 'Correção concluída. Última consulta preservada.')
                 elif result.status in ('UNKNOWN', 'PENDING'): messages.warning(request, 'Resultado pendente de conferência no Bling. A mesma solicitação não será reenviada. ' + result.message)
                 else: messages.error(request, 'Correção não aplicada. ' + result.message)
                 return redirect('bling_stock_comparison')
@@ -65,15 +80,30 @@ def comparison(request):
                            'location': StockLocation.objects.get(pk=snapshot['location']), 'deposit': snapshot['deposit'],
                            'approval': signing.dumps(data, salt='bling.correction.approval')}
         else:
-            form.fields['deposit'].choices = service.deposits()
-            if request.GET and form.is_valid():
-                products = Product.objects.filter(active=True, kind='SIMPLE').order_by('sku', 'pk')
-                query = form.cleaned_data['q'].strip()
-                if query:
-                    exact = products.filter(sku=query)
-                    products = exact if exact.exists() else products.filter(Q(sku__icontains=query) | Q(name__icontains=query))
-                page = Paginator(products, 10).get_page(request.GET.get('page'))
-                rows = service.comparison(actor=request.user, products=list(page), location=form.cleaned_data['location'], deposit=form.cleaned_data['deposit'])
+            refresh = request.GET.get('refresh') == '1'
+            choices = service.deposits() if refresh or not saved.get('deposits') else saved['deposits']
+            form.fields['deposit'].choices = choices
+            if params and form.is_valid():
+                query_params = {k: str(params.get(k, '')) for k in ('location', 'deposit', 'q', 'page')}
+                old_params = {k: str(saved.get('params', {}).get(k, '')) for k in query_params}
+                if saved.get('rows') is not None and query_params == old_params and not refresh:
+                    rows = saved['rows']
+                    page = Paginator(range(saved['count']), 10).get_page(saved['page'])
+                else:
+                    products = Product.objects.filter(active=True, kind='SIMPLE').order_by('sku', 'pk')
+                    query = form.cleaned_data['q'].strip()
+                    if query: products = products.filter(sku=query)
+                    page = Paginator(products, 10).get_page(params.get('page'))
+                    rows = service.comparison(actor=request.user, products=list(page), location=form.cleaned_data['location'], deposit=form.cleaned_data['deposit'])
+                    rows = [dict(r, product={'pk': r['product'].pk, 'sku': r['product'].sku, 'name': r['product'].name, 'unit': r['product'].unit}) for r in rows]
+                    saved = {'rows': rows, 'count': page.paginator.count, 'page': page.number, 'deposits': choices,
+                             'consulted_at': timezone.now().isoformat()}
+                saved['params'] = {k: v for k, v in params.items() if k != 'refresh'}
+                cache.payload = saved
+                cache.save(update_fields=['payload'])
+                if refresh:
+                    return redirect(reverse('bling_stock_comparison') + '?' + urlencode(saved['params']))
+                consulted_at = datetime.fromisoformat(saved['consulted_at'])
                 if form.cleaned_data['differences']:
                     rows = [r for r in rows if r.get('error') or r['price_diff'] or r['stock_diff']]
     except (Product.DoesNotExist, StockLocation.DoesNotExist, BlingStockCorrection.DoesNotExist):
@@ -81,9 +111,27 @@ def comparison(request):
     except ValidationError as exc:
         error = '; '.join(exc.messages)
     response = render(request, 'inventory/bling_comparison.html', {'form': form, 'correct': correct, 'rows': rows,
-        'page': page, 'preview': preview, 'error': error, 'history': BlingStockCorrection.objects.select_related('product', 'actor').order_by('-pk')[:30]})
+        'consulted_at': consulted_at, 'page': page, 'preview': preview, 'error': error, 'history': BlingStockCorrection.objects.select_related('product', 'actor').order_by('-pk')[:30]})
     response['Cache-Control'] = 'private, no-store'
     return response
+
+
+def update_saved_correction(cache, result, actor):
+    """Update only the confirmed field, retaining the original consultation date."""
+    saved = cache.payload
+    snapshot = result.snapshot
+    for row in saved.get('rows', []):
+        if not row.get('token') or service.decode(actor, row['token']) != snapshot:
+            continue
+        current = service.local(Product.objects.get(pk=result.product_id), StockLocation.objects.get(pk=snapshot['location']))
+        remote = dict(snapshot['remote'])
+        if result.direction == 'bling': remote[result.field] = snapshot['local'][result.field]
+        fresh = dict(snapshot, local=current, remote=remote, key=str(uuid4()))
+        row.update(local=current, remote=remote, token=signing.dumps(fresh, salt=service.SALT),
+                   price_diff=Decimal(current['price']) != Decimal(remote['price']),
+                   stock_diff=Decimal(current['quantity']) != Decimal(remote['quantity']))
+    cache.payload = saved
+    cache.save(update_fields=['payload'])
 
 
 class NewProductForm(forms.Form):

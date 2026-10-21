@@ -21,3 +21,9 @@ Busca paginada no catálogo externo; prévia copia SKU/unidade/nome/preço de pr
 ## Verificação
 
 Testes sintéticos para os dois sentidos/campos, CMV, identidade/unidade, saldo ausente, prévia vencida/adulterada, permissão, replay e resposta remota perdida, cadastro sem/com estoque. Aceitação Chromium cobre prévia/confirmação e cadastro. Credenciais e dados reais não são versionados; homologação com conta real ocorre no ambiente do usuário.
+
+## Revisão de 21/10/2026 — consulta persistida e precisão externa
+
+Autorizada pelo usuário: guardar a última página por master em BlingComparisonCache, sem expiração temporal. Filtro e retorno reaproveitam a consulta; outra página ou botão de consulta fazem leitura explícita. Snapshot assinado da comparação deixa de expirar em 30 minutos; aprovação da gravação continua válida por 10 minutos e cada aplicação revalida identidade, depósito, preço e saldo locais/remotos. Replay e resultado incerto continuam protegidos. Cache não autoriza escrita nem substitui as verificações.
+
+Valores válidos do Bling são normalizados com Decimal e ROUND_HALF_UP para 2 casas de preço e 4 de quantidade. Ausentes, não finitos e fora do limite não são zero. Saldo inválido bloqueia o produto sem derrubar a página. Consulta e prévia usam a mesma precisão; UI informa o arredondamento. Não há alteração de CMV ou custo histórico.

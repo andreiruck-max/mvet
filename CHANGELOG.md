@@ -1,3 +1,7 @@
+## Conferência Bling — consulta preservada (21/10/2026)
+
+Busca local por SKU exato, filtro imediato sem nova chamada remota e última página consultada persistida por usuário. Retorno após correção preserva parâmetros e atualiza a linha confirmada. Valores externos normalizados com Decimal (2 casas preço, 4 saldo); saldo inválido bloqueia somente o item.
+
 ## Bling — comparação de estoque, preço e cadastro (20/10/2026)
 
 Estoque → Conferir com Bling, exclusivo master: saldo físico por depósitos escolhidos e preço de venda lado a lado, diferenças destacadas, busca e paginação. Correção individual nos dois sentidos com prévia, motivo, releitura e histórico; falha ambígua não é reenviada. Preço fixo opcional preserva valor exato importado; estoque usa movimentos atuais sem reescrever CMV. Catálogo externo permite cadastrar produto com revisão de descrição/preço e estoque opcional mediante custo informado. ADR 0048. Requer novos escopos e reautorização; homologação real ainda depende da instalação do usuário.
