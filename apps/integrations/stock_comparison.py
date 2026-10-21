@@ -1,5 +1,5 @@
 """Explicit, master-only reconciliation. No scheduled synchronization."""
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from uuid import uuid4
 from urllib.parse import urlencode
 from django.core import signing
@@ -23,9 +23,11 @@ SALT = 'bling.stock.comparison.v1'
 def decimal(value, places):
     try:
         number = Decimal(str(value))
-        if not number.is_finite() or abs(number) >= Decimal('1000000000000') or number != number.quantize(Decimal(places)):
+        if not number.is_finite() or abs(number) >= Decimal('1000000000000'):
             raise ValueError
-        return number
+        rounded = number.quantize(Decimal(places), rounding=ROUND_HALF_UP)
+        if abs(rounded) >= Decimal('1000000000000'): raise ValueError
+        return rounded
     except (InvalidOperation, ValueError, TypeError):
         raise ValidationError('Valor inválido ou precisão incompatível recebida do Bling.') from None
 
@@ -51,7 +53,8 @@ def remote_products(products):
     found = {}
     for row in rows:
         if not isinstance(row, dict): raise ValidationError('Produto externo inválido.')
-        found.setdefault(str(row.get('codigo', '')), []).append(row)
+        if str(row.get('codigo', '')) in {p.sku for p in products}:
+            found.setdefault(str(row.get('codigo', '')), []).append(row)
     return found
 
 
@@ -64,7 +67,10 @@ def remote_balances(deposit, ids):
     for row in rows:
         pk = identifier(row.get('produto', {}).get('id'))
         if pk in result: raise ValidationError('Saldo duplicado recebido do Bling.')
-        result[pk] = str(decimal(row.get('saldoFisicoTotal'), '.0001'))
+        try:
+            result[pk] = str(decimal(row.get('saldoFisicoTotal'), '.0001'))
+        except ValidationError:
+            result[pk] = None
     return result
 
 
@@ -106,7 +112,7 @@ def comparison(*, actor, products, location, deposit):
                     raise ValidationError('SKU não encontrado no Bling.' if not matches else 'SKU duplicado no Bling. Corrija o cadastro antes de comparar.')
                 row = matches[0]
                 pk = identifier(row['id'])
-                if pk not in balances: raise ValidationError('Bling não retornou o saldo deste produto; não será tratado como zero.')
+                if pk not in balances or balances[pk] is None: raise ValidationError('Bling não retornou o saldo deste produto; não será tratado como zero.')
                 detail = details[pk]
                 if not isinstance(detail, dict) or identifier(detail.get('id')) != pk or detail.get('codigo') != product.sku:
                     raise ValidationError('Detalhe não corresponde ao produto solicitado.')
@@ -126,7 +132,7 @@ def comparison(*, actor, products, location, deposit):
 
 def decode(actor, token):
     master(actor)
-    try: snapshot = signing.loads(token, salt=SALT, max_age=1800)
+    try: snapshot = signing.loads(token, salt=SALT)
     except signing.BadSignature: raise ValidationError('Comparação expirada. Consulte os valores novamente.') from None
     if snapshot['actor'] != actor.pk: raise ValidationError('Comparação pertence a outro usuário.')
     return snapshot
@@ -141,7 +147,7 @@ def check_remote(snapshot):
     if not isinstance(data, dict) or identifier(data.get('id')) != snapshot['remote']['id']:
         raise ValidationError('Detalhe do produto inválido.')
     balances = remote_balances(snapshot['deposit'], [snapshot['remote']['id']])
-    if snapshot['remote']['id'] not in balances: raise ValidationError('Saldo não retornado pelo Bling.')
+    if snapshot['remote']['id'] not in balances or balances[snapshot['remote']['id']] is None: raise ValidationError('Saldo não retornado pelo Bling.')
     current = external(data, balances[snapshot['remote']['id']])
     expected = snapshot['remote']
     if any(current[k] != expected[k] for k in ('id', 'sku', 'unit')) or any(Decimal(current[k]) != Decimal(expected[k]) for k in ('price', 'quantity')):
@@ -260,7 +266,7 @@ def new_product_preview(*, actor, remote_id, location, deposit):
     data = bling.read('/produtos/' + remote_id).get('data')
     if not isinstance(data, dict) or identifier(data.get('id')) != remote_id: raise ValidationError('Produto externo inválido.')
     balances = remote_balances(deposit, [remote_id])
-    if remote_id not in balances: raise ValidationError('Saldo não informado pelo Bling.')
+    if remote_id not in balances or balances[remote_id] is None: raise ValidationError('Saldo não informado pelo Bling.')
     source = external(data, balances[remote_id])
     source['name'] = str(data.get('nome', '')).strip()
     if not source['sku'] or not source['unit'] or not source['name']: raise ValidationError('Produto sem SKU, unidade ou descrição.')

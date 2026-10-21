@@ -85,7 +85,7 @@ Histórico permanece por lote. A contagem indica notas consultadas, incluindo j�
 
 ## Conferir com Bling
 
-No estoque, abrir **Conferir com Bling**, escolher depósitos e consultar. O filtro de diferenças atua na página atual, indicada na tela. Preço MVet usa a regra da loja, independentemente do depósito de saldo. Corrigir diferença → escolher campo e destino → motivo → revisar e confirmar. Reconsultar após cada correção. Somente master.
+No estoque, abrir **Conferir com Bling**, escolher depósitos e consultar. O filtro de diferenças atua na página atual, indicada na tela. Preço MVet usa a regra da loja, independentemente do depósito de saldo. Corrigir diferença → escolher campo e destino → motivo → revisar e confirmar. A última página consultada e seus parâmetros ficam salvos por usuário, inclusive após novo login. Marcar/desmarcar diferenças não chama a API. Voltar da correção preserva a consulta e atualiza a linha confirmada. O botão Consultar Bling e comparar renova os dados; navegar para outra página consulta a página solicitada. A data exibida é a da consulta original. A busca usa SKU exato. Somente master.
 
 **Cadastrar produto do Bling** permite buscar descrição ou SKU exato e revisar um produto ainda não cadastrado. Estoque é opcional; saldo positivo exige custo unitário conferido. Nenhum custo médio externo é importado.
 

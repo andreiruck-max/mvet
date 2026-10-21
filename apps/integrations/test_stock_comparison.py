@@ -207,3 +207,82 @@ class StockComparisonTests(Fixture, TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(Product.objects.get(sku='CATALOG-NEW').fixed_sale_price, D('8.5'))
         self.assertEqual(self.client.post(url, dict(token='invalid', name='X', price='2', reason='X')).status_code, 200)
+
+
+    def test_extra_decimals_are_normalized_but_invalid_values_rejected(self):
+        self.remote_price = D('9.105')
+        self.remote_quantity = D('7.123456')
+        row = self.row()
+        self.assertEqual(row['remote']['price'], '9.11')
+        self.assertEqual(row['remote']['quantity'], '7.1235')
+        self.assertEqual(self.apply(row).status, 'DONE')
+        for invalid in (None, '', 'NaN', 'Infinity', '1e50'):
+            with self.assertRaises(ValidationError): service.decimal(invalid, '.01')
+        self.remote_quantity = None
+        self.assertIn('error', self.row())
+
+    def test_saved_query_filter_return_logout_and_explicit_refresh(self):
+        url = reverse('bling_stock_comparison')
+        self.client.force_login(self.actor)
+        params = {'location': self.location.pk, 'deposit': '42', 'q': self.product.sku}
+        first = self.client.get(url, params)
+        self.assertEqual(len(first.context['rows']), 1)
+        with patch('apps.integrations.bling.read', side_effect=AssertionError('Unexpected API call')):
+            for filters in ({}, {'differences': 'on'}, {'differences': ''}):
+                response = self.client.get(url, filters)
+                self.assertEqual(len(response.context['rows']), 1)
+                self.assertEqual(response.context['form']['q'].value(), self.product.sku)
+            self.client.logout()
+            self.client.force_login(self.actor)
+            self.assertEqual(len(self.client.get(url).context['rows']), 1)
+        self.remote_price = D('12.00')
+        response = self.client.get(url, dict(params, refresh='1'), follow=True)
+        self.assertEqual(response.context['rows'][0]['remote']['price'], '12.00')
+        self.assertNotIn('refresh=', response.redirect_chain[-1][0])
+
+    def test_search_sku_exact_and_only_matching_remote_products(self):
+        self.client.force_login(self.actor)
+        url = reverse('bling_stock_comparison')
+        response = self.client.get(url, {'location': self.location.pk, 'deposit': '42', 'q': self.product.name})
+        self.assertEqual(response.context['page'].paginator.count, 0)
+        original = self.remote
+        def unrelated(path, **kwargs):
+            result = original(path, **kwargs)
+            if path.startswith('/produtos?'):
+                result['data'].append(dict(result['data'][0], codigo='UNRELATED', id=101))
+            return result
+        with patch('apps.integrations.bling.read', side_effect=unrelated):
+            self.assertNotIn('error', self.row())
+
+    def test_saved_result_after_correction_and_stale_values_still_blocked(self):
+        self.client.force_login(self.actor)
+        url = reverse('bling_stock_comparison')
+        response = self.client.get(url, {'location': self.location.pk, 'deposit': '42'})
+        token = response.context['rows'][0]['token']
+        preview = self.client.post(url, {'token': token, 'field': 'price', 'direction': 'mvet', 'reason': 'Conferido'})
+        self.client.post(url, {'action': 'confirm', 'approval': preview.context['preview']['approval']})
+        with patch('apps.integrations.bling.read', side_effect=AssertionError('Unexpected API call')):
+            response = self.client.get(url)
+        row = response.context['rows'][0]
+        self.assertFalse(row['price_diff'])
+        self.assertEqual(row['local']['price'], '9.10')
+        self.remote_quantity = D('100')
+        self.assertEqual(self.apply(row, field='quantity').status, 'FAILED')
+
+    def test_saved_snapshot_remains_valid_after_thirty_minutes(self):
+        from django.core import signing
+        with patch('django.core.signing.time.time', return_value=1000):
+            token = self.row()['token']
+        self.assertEqual(service.decode(self.actor, token)['product'], self.product.pk)
+        with self.assertRaises(ValidationError): service.decode(self.actor, token + 'tampered')
+
+
+    def test_difference_filter_hides_and_restores_matching_row_without_api(self):
+        self.remote_price = D(service.local(self.product, self.location)['price'])
+        self.remote_quantity = D(service.local(self.product, self.location)['quantity'])
+        self.client.force_login(self.actor)
+        url = reverse('bling_stock_comparison')
+        self.client.get(url, {'location': self.location.pk, 'deposit': '42'})
+        with patch('apps.integrations.bling.read', side_effect=AssertionError('Unexpected API call')):
+            self.assertEqual(self.client.get(url, {'differences': 'on'}).context['rows'], [])
+            self.assertEqual(len(self.client.get(url, {'differences': ''}).context['rows']), 1)
