@@ -51,6 +51,7 @@ def comparison(request):
         params = request.GET.dict()
         params.setdefault('page', '1')
     form = CompareForm(params or None)
+    form.fields['deposit'].choices = saved.get('deposits', [])
     consulted_at = None
     try:
         if request.method == 'POST':
@@ -84,6 +85,9 @@ def comparison(request):
             refresh = request.GET.get('refresh') == '1'
             choices = service.deposits() if refresh or not saved.get('deposits') else saved['deposits']
             form.fields['deposit'].choices = choices
+            saved['deposits'] = choices
+            cache.payload = saved
+            cache.save(update_fields=['payload'])
             if params and form.is_valid():
                 query_params = {k: str(params.get(k, '')) for k in ('location', 'deposit', 'q', 'page')}
                 old_params = {k: str(saved.get('params', {}).get(k, '')) for k in query_params}
@@ -115,6 +119,19 @@ def comparison(request):
         error = 'Produto, depósito ou tentativa indisponível. Consulte novamente.'
     except ValidationError as exc:
         error = '; '.join(exc.messages)
+        if request.method == 'GET':
+            if saved.get('rows') is not None:
+                form = CompareForm(saved.get('params') or None)
+                form.fields['deposit'].choices = saved.get('deposits', [])
+                rows = saved['rows']
+                page = Paginator(range(saved['count']), saved.get('page_size', 10)).get_page(saved['page'])
+                consulted_at = datetime.fromisoformat(saved['consulted_at'])
+                if saved.get('params', {}).get('differences'):
+                    rows = [r for r in rows if r.get('error') or r['price_diff'] or r['stock_diff']]
+                error += ' A consulta não foi atualizada. Exibindo a última consulta salva.'
+            elif not form.fields['deposit'].choices:
+                # No fetched choices means validation cannot determine whether the ID is valid.
+                form = CompareForm(initial=params)
     response = render(request, 'inventory/bling_comparison.html', {'form': form, 'correct': correct, 'rows': rows,
         'consulted_at': consulted_at, 'page': page, 'preview': preview, 'error': error, 'history': BlingStockCorrection.objects.select_related('product', 'actor').order_by('-pk')[:30]})
     response['Cache-Control'] = 'private, no-store'
@@ -186,6 +203,8 @@ def catalog(request):
         error = 'Produto, depósito ou tentativa indisponível. Consulte novamente.'
     except ValidationError as exc:
         error = '; '.join(exc.messages)
+        if request.method == 'GET' and not search.fields['deposit'].choices:
+            search = SearchForm(initial=request.GET.dict())
         if request.method == 'POST':
             try: preview = service.decode_new(request.user, request.POST.get('token', ''))
             except ValidationError: preview = None

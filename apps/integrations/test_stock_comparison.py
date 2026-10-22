@@ -312,3 +312,50 @@ class StockComparisonTests(Fixture, TestCase):
         with patch('apps.integrations.bling.read', side_effect=AssertionError('Unexpected API call')):
             restored = self.client.get(url)
             self.assertEqual([r['product']['sku'] for r in restored.context['rows']], ['51', '52', '53', '54', '55', 'A1'])
+
+
+    def test_deposit_failure_does_not_report_invalid_selection(self):
+        self.client.force_login(self.actor)
+        params = {'location': self.location.pk, 'deposit': '12345678901', 'refresh': '1'}
+        with patch('apps.integrations.stock_comparison.deposits', side_effect=bling.BlingError('Consulta Bling falhou (HTTP 500).')):
+            response = self.client.get(reverse('bling_stock_comparison'), params)
+        self.assertContains(response, 'HTTP 500')
+        self.assertNotContains(response, 'Faça uma escolha válida')
+        self.assertFalse(response.context['form'].is_bound)
+
+    def test_deposit_refresh_failure_preserves_saved_query(self):
+        self.client.force_login(self.actor)
+        url = reverse('bling_stock_comparison')
+        params = {'location': self.location.pk, 'deposit': '42'}
+        first = self.client.get(url, params)
+        with patch('apps.integrations.stock_comparison.deposits', side_effect=bling.BlingError('Consulta Bling falhou (HTTP 500).')):
+            response = self.client.get(url, dict(params, refresh='1'))
+        self.assertContains(response, 'última consulta salva')
+        self.assertNotContains(response, 'Faça uma escolha válida')
+        self.assertEqual(response.context['rows'], first.context['rows'])
+        self.assertEqual(response.context['form']['deposit'].value(), '42')
+        self.assertEqual(response.context['consulted_at'], first.context['consulted_at'])
+
+    def test_first_load_saves_deposit_options_before_query(self):
+        from .models import BlingComparisonCache
+        self.client.force_login(self.actor)
+        url = reverse('bling_stock_comparison')
+        self.client.get(url)
+        self.assertEqual(BlingComparisonCache.objects.get(actor=self.actor).payload['deposits'], [['42', 'Loja externa']])
+        with patch('apps.integrations.stock_comparison.deposits', side_effect=bling.BlingError('Consulta Bling falhou (HTTP 500).')):
+            response = self.client.get(url, {'location': self.location.pk, 'deposit': '42', 'refresh': '1'})
+        self.assertNotContains(response, 'Faça uma escolha válida')
+        self.assertContains(response, 'Loja externa')
+
+    def test_read_retries_only_transient_get_once(self):
+        failure = bling.BlingError('HTTP 500', code='http_500')
+        with patch('apps.integrations.bling.get', side_effect=[(None, failure), ({'data': []}, None)]) as get, patch('apps.integrations.bling.time.sleep'):
+            # Call the actual adapter; the fixture patches bling.read for other tests.
+            original_read = self.mock.temp_original
+            self.assertEqual(original_read('/depositos'), {'data': []})
+            self.assertEqual(get.call_count, 2)
+        for method, error, expected in [('GET', failure, 2), ('PATCH', failure, 1), ('POST', failure, 1),
+                                         ('GET', bling.BlingError('HTTP 403', code='http_403'), 1)]:
+            with patch('apps.integrations.bling.get', return_value=(None, error)) as get, patch('apps.integrations.bling.time.sleep'):
+                with self.assertRaises(ValidationError): original_read('/produtos/99', method=method, payload={'preco': D(1)} if method != 'GET' else None)
+                self.assertEqual(get.call_count, expected)
