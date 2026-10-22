@@ -1,4 +1,5 @@
 from django import forms
+from django.http import JsonResponse
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core import signing
@@ -24,6 +25,7 @@ class CompareForm(forms.Form):
     location = forms.ModelChoiceField(label='Depósito MVet', queryset=StockLocation.objects.filter(active=True))
     deposit = forms.ChoiceField(label='Depósito Bling')
     q = forms.CharField(label='SKU exato', max_length=100, required=False)
+    scope = forms.ChoiceField(label='Comparar', required=False, choices=[('all', 'Saldos e preços'), ('quantity', 'Somente saldos / quantidades'), ('price', 'Somente preços')])
     differences = forms.BooleanField(label='Somente diferenças nesta página', required=False)
 
 
@@ -42,6 +44,8 @@ def comparison(request):
     rows = []
     page = None
     preview = None
+    bulk_preview = None
+    bulk_progress = None
     correct = CorrectForm(request.POST or None)
     cache, _ = BlingComparisonCache.objects.get_or_create(actor=request.user)
     saved = cache.payload
@@ -55,13 +59,35 @@ def comparison(request):
     consulted_at = None
     try:
         if request.method == 'POST':
-            if request.POST.get('action') == 'acknowledge':
+            if request.POST.get('action') in ('bulk_preview', 'bulk_confirm', 'bulk_item'):
+                if request.POST['action'] in ('bulk_confirm', 'bulk_item'):
+                    try: approved = signing.loads(request.POST.get('approval', ''), salt='bling.bulk.approval', max_age=600)
+                    except signing.BadSignature: raise ValidationError('Confirmação expirada. Prepare o lote novamente.') from None
+                    items = service.bulk_preview(actor=request.user, **approved)
+                    if request.POST['action'] == 'bulk_item':
+                        try: index = int(request.POST.get('index', ''))
+                        except ValueError: raise ValidationError('Item do lote inválido.') from None
+                        if not 0 <= index < len(items): raise ValidationError('Item do lote inválido.')
+                        result = service.apply_bulk(actor=request.user, **dict(approved, tokens=[items[index]['token']]))[0]
+                        if result['status'] == 'DONE': update_saved_correction(cache, result['correction'], request.user)
+                        return JsonResponse({'sku': result['sku'], 'status': result['status'], 'message': result['message']})
+                    bulk_progress = {'approval': request.POST['approval'], 'items': items}
+
+                else:
+                    data = {'tokens': request.POST.getlist('tokens'), 'field': request.POST.get('field', ''),
+                            'direction': request.POST.get('direction', ''), 'reason': request.POST.get('reason', '').strip()}
+                    items = service.bulk_preview(actor=request.user, **data)
+                    data['tokens'] = [item['token'] for item in items]
+                    bulk_preview = {'items': items, 'field': 'Preço' if data['field'] == 'price' else 'Saldo',
+                                    'destination': data['direction'].upper(), 'reason': data['reason'],
+                                    'approval': signing.dumps(data, salt='bling.bulk.approval')}
+            elif request.POST.get('action') == 'acknowledge':
                 try: correction_id = int(request.POST.get('correction', ''))
                 except ValueError: raise ValidationError('Tentativa inválida.')
                 service.acknowledge(actor=request.user, correction_id=correction_id, reason=request.POST.get('reason', ''))
                 messages.success(request, 'Conferência registrada. Consulte os valores novamente antes de qualquer nova correção.')
                 return redirect('bling_stock_comparison')
-            if request.POST.get('action') == 'confirm':
+            elif request.POST.get('action') == 'confirm':
                 try: approved = signing.loads(request.POST.get('approval', ''), salt='bling.correction.approval', max_age=600)
                 except signing.BadSignature: raise ValidationError('Confirmação expirada. Prepare a correção novamente.') from None
                 result = service.apply(actor=request.user, **approved)
@@ -71,7 +97,7 @@ def comparison(request):
                 elif result.status in ('UNKNOWN', 'PENDING'): messages.warning(request, 'Resultado pendente de conferência no Bling. A mesma solicitação não será reenviada. ' + result.message)
                 else: messages.error(request, 'Correção não aplicada. ' + result.message)
                 return redirect('bling_stock_comparison')
-            if correct.is_valid():
+            elif correct.is_valid():
                 data = correct.cleaned_data
                 snapshot = service.decode(request.user, data['token'])
                 source = 'remote' if data['direction'] == 'mvet' else 'local'
@@ -113,12 +139,12 @@ def comparison(request):
                 if refresh:
                     return redirect(reverse('bling_stock_comparison') + '?' + urlencode(saved['params']))
                 consulted_at = datetime.fromisoformat(saved['consulted_at'])
-                if form.cleaned_data['differences']:
-                    rows = [r for r in rows if r.get('error') or r['price_diff'] or r['stock_diff']]
+                rows = filter_rows(rows, form.cleaned_data.get('scope'), form.cleaned_data['differences'])
     except (Product.DoesNotExist, StockLocation.DoesNotExist, BlingStockCorrection.DoesNotExist):
         error = 'Produto, depósito ou tentativa indisponível. Consulte novamente.'
     except ValidationError as exc:
         error = '; '.join(exc.messages)
+        if request.POST.get('action') == 'bulk_item': return JsonResponse({'error': error}, status=400)
         if request.method == 'GET':
             if saved.get('rows') is not None:
                 form = CompareForm(saved.get('params') or None)
@@ -126,16 +152,26 @@ def comparison(request):
                 rows = saved['rows']
                 page = Paginator(range(saved['count']), saved.get('page_size', 10)).get_page(saved['page'])
                 consulted_at = datetime.fromisoformat(saved['consulted_at'])
-                if saved.get('params', {}).get('differences'):
-                    rows = [r for r in rows if r.get('error') or r['price_diff'] or r['stock_diff']]
+                rows = filter_rows(rows, saved.get('params', {}).get('scope'), saved.get('params', {}).get('differences'))
                 error += ' A consulta não foi atualizada. Exibindo a última consulta salva.'
             elif not form.fields['deposit'].choices:
                 # No fetched choices means validation cannot determine whether the ID is valid.
                 form = CompareForm(initial=params)
     response = render(request, 'inventory/bling_comparison.html', {'form': form, 'correct': correct, 'rows': rows,
-        'consulted_at': consulted_at, 'page': page, 'preview': preview, 'error': error, 'history': BlingStockCorrection.objects.select_related('product', 'actor').order_by('-pk')[:30]})
+        'consulted_at': consulted_at, 'page': page, 'preview': preview, 'scope': params.get('scope', 'all'),
+        'bulk_preview': bulk_preview, 'bulk_progress': bulk_progress, 'error': error, 'history': BlingStockCorrection.objects.select_related('product', 'actor').order_by('-pk')[:30]})
     response['Cache-Control'] = 'private, no-store'
     return response
+
+
+def filter_rows(rows, scope, differences):
+    result = []
+    for original in rows:
+        row = dict(original)
+        row['can_correct'] = (scope != 'quantity' and row.get('price_diff')) or (scope != 'price' and row.get('stock_diff'))
+        if not differences or row.get('error') or row['can_correct']:
+            result.append(row)
+    return result
 
 
 def update_saved_correction(cache, result, actor):

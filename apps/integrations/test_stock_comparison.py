@@ -113,9 +113,9 @@ class StockComparisonTests(Fixture, TestCase):
         result.refresh_from_db()
         self.assertEqual(result.status, 'REVIEWED')
 
-    def test_missing_duplicate_and_unit_mismatch_are_not_zero(self):
+    def test_missing_and_duplicate_are_not_zero(self):
         original = self.remote
-        for mode in ('missing', 'duplicate', 'unit'):
+        for mode in ('missing', 'duplicate'):
             def bad(path, **kwargs):
                 result = original(path, **kwargs)
                 if mode == 'missing' and path.startswith('/estoques'): result['data'] = []
@@ -359,3 +359,70 @@ class StockComparisonTests(Fixture, TestCase):
             with patch('apps.integrations.bling.get', return_value=(None, error)) as get, patch('apps.integrations.bling.time.sleep'):
                 with self.assertRaises(ValidationError): original_read('/produtos/99', method=method, payload={'preco': D(1)} if method != 'GET' else None)
                 self.assertEqual(get.call_count, expected)
+
+    def test_unit_labels_do_not_block_sku_comparison_or_correction(self):
+        original = self.remote
+        def different_unit(path, **kwargs):
+            result = original(path, **kwargs)
+            if path == '/produtos/99': result['data']['unidade'] = 'CX'
+            return result
+        row = self.row()
+        self.product.unit = 'KG'
+        self.product.save(update_fields=['unit'])
+        with patch('apps.integrations.bling.read', side_effect=different_unit):
+            self.assertNotIn('error', self.row())
+            self.assertEqual(self.apply(row).status, 'DONE')
+            self.assertEqual(self.apply(self.row(), field='quantity').status, 'DONE')
+        self.product.refresh_from_db()
+        self.assertEqual(self.product.unit, 'KG')
+        self.assertEqual(StockBalance.objects.get(product=self.product, location=self.location).quantity, 7)
+
+    def test_scope_filters_saved_differences_without_remote_calls(self):
+        self.client.force_login(self.actor)
+        url = reverse('bling_stock_comparison')
+        self.remote_quantity = StockBalance.objects.get(product=self.product, location=self.location).quantity
+        self.client.get(url, {'location': self.location.pk, 'deposit': 42})
+        with patch('apps.integrations.bling.read', side_effect=AssertionError('Unexpected API call')):
+            response = self.client.get(url, {'scope': 'quantity', 'differences': 'on'})
+            self.assertEqual(response.context['rows'], [])
+            self.assertNotContains(response, '<th>Preço MVet</th>')
+            response = self.client.get(url, {'scope': 'price', 'differences': 'on'})
+            self.assertEqual(len(response.context['rows']), 1)
+            self.assertNotContains(response, '<th>Saldo MVet</th>')
+            self.assertEqual(self.client.get(url).context['scope'], 'price')
+            response = self.client.get(url, {'scope': 'quantity', 'differences': ''})
+            self.assertEqual(len(response.context['rows']), 1)
+            self.assertFalse(response.context['rows'][0]['can_correct'])
+
+    def test_bulk_web_preview_confirm_item_replay_and_tamper(self):
+        self.client.force_login(self.actor)
+        url = reverse('bling_stock_comparison')
+        page = self.client.get(url, {'location': self.location.pk, 'deposit': 42})
+        token = page.context['rows'][0]['token']
+        preview = self.client.post(url, {'action': 'bulk_preview', 'tokens': [token], 'field': 'price', 'direction': 'bling', 'reason': 'Lote sintético'})
+        self.assertContains(preview, 'Conferir correção em massa')
+        self.assertFalse(BlingStockCorrection.objects.exists())
+        approval = preview.context['bulk_preview']['approval']
+        progress = self.client.post(url, {'action': 'bulk_confirm', 'approval': approval})
+        self.assertContains(progress, 'bling-bulk-run')
+        self.assertFalse(BlingStockCorrection.objects.exists())
+        for _ in range(2):
+            response = self.client.post(url, {'action': 'bulk_item', 'approval': approval, 'index': 0})
+            self.assertEqual(response.json()['status'], 'DONE')
+        self.assertEqual(len(self.remote_calls), 1)
+        self.assertEqual(BlingStockCorrection.objects.count(), 1)
+        self.assertEqual(self.client.post(url, {'action': 'bulk_item', 'approval': 'tampered', 'index': 0}).status_code, 400)
+        self.assertEqual(self.client.post(url, {'action': 'bulk_item', 'approval': approval, 'index': -1}).status_code, 400)
+        self.client.force_login(self.operator)
+        self.assertEqual(self.client.post(url, {'action': 'bulk_item', 'approval': approval, 'index': 0}).status_code, 403)
+
+    def test_bulk_validates_entire_selection_before_writes_and_reports_failures(self):
+        token = self.row()['token']
+        args = {'actor': self.actor, 'field': 'price', 'direction': 'bling', 'reason': 'Conferência'}
+        for tokens in ([], [token, token], [token, 'tampered'], [token] * 51):
+            with self.assertRaises(ValidationError): service.apply_bulk(tokens=tokens, **args)
+        self.assertFalse(self.remote_calls)
+        self.remote_price = D('123')
+        results = service.apply_bulk(tokens=[token], **args)
+        self.assertEqual(results[0]['status'], 'FAILED')
+        self.assertFalse(self.remote_calls)

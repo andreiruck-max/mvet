@@ -209,3 +209,8 @@ Tela exclusiva do master com modelo XLSX, depósito por seleção/coluna, quanti
 DRE e produtos/saldos reduzem o topo. Ações secundárias recolhíveis, sem ocultar avisos de resultado parcial. Menu em acordeão (busca expande resultados), ordem por arraste ou setas salva por usuário/navegador, com restauração. Sininho substitui item lateral de notificações; permissões mantidas no servidor.
 
 - Entregue: desconto explícito do XML Bling no pré-preenchimento de vendas e compras, com validação de identidade e itens e preservação de ajustes manuais.
+
+
+### Conferência Bling: filtros e correção em massa (22/10/2026)
+
+Comparar saldos, preços ou ambos, com filtro imediato das diferenças do campo escolhido e preservação da consulta salva. Seleção de até 50 produtos da página, campo e destino explícitos, prévia e confirmação do lote. Execução sequencial por produto no navegador, com resultado individual, revalidação e proteção contra reenvio; manter a página aberta até concluir. Erros de transporte interrompem os itens seguintes, preservando os concluídos. SKU exato e único determina o vínculo; unidade diferente não bloqueia nem converte valores. Consultas antigas bloqueadas por unidade precisam de nova consulta explícita.
