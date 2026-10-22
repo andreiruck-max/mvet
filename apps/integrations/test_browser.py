@@ -358,6 +358,8 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
             if path.startswith('/estoques/saldos/42'):
                 return {'data': [{'produto': {'id': 100 if '100' in path else 99}, 'saldoFisicoTotal': 7}]}
             raise AssertionError(path)
+        for n in range(6):
+            Product.objects.create(sku=f'UNMATCHED-{n}', name='Produto sem vínculo sintético', unit='UN', kind='SIMPLE')
         client = Client(); client.force_login(self.actor)
         with patch('apps.integrations.bling.read', side_effect=remote) as remote_mock, sync_playwright() as pw:
             browser = pw.chromium.launch()
@@ -370,6 +372,14 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
             page.get_by_role('button', name='Consultar Bling e comparar').click()
             page.get_by_text('Consulta salva em', exact=False).wait_for()
             calls = remote_mock.call_count
+            page.locator('#id_match').select_option('missing')
+            page.wait_for_url('**match=missing')
+            self.assertEqual(page.get_by_text('SKU não encontrado no Bling.', exact=True).count(), 6)
+            self.assertEqual(page.get_by_text('Corrigir diferença', exact=True).count(), 0)
+            page.locator('#id_match').select_option('found')
+            page.wait_for_url('**match=found')
+            self.assertEqual(page.get_by_text('SKU não encontrado no Bling.', exact=True).count(), 0)
+            self.assertEqual(remote_mock.call_count, calls)
             page.locator('#id_differences').check()
             page.wait_for_url('**differences=on')
             page.locator('#id_differences').uncheck()

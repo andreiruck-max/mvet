@@ -108,6 +108,7 @@ def comparison(*, actor, products, location, deposit):
             item = {'product': product}
             try:
                 matches = found.get(product.sku, [])
+                item['found'] = bool(matches)
                 if len(matches) != 1:
                     raise ValidationError('SKU não encontrado no Bling.' if not matches else 'SKU duplicado no Bling. Corrija o cadastro antes de comparar.')
                 row = matches[0]

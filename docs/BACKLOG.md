@@ -214,3 +214,8 @@ DRE e produtos/saldos reduzem o topo. Ações secundárias recolhíveis, sem ocu
 ### Conferência Bling: filtros e correção em massa (22/10/2026)
 
 Comparar saldos, preços ou ambos, com filtro imediato das diferenças do campo escolhido e preservação da consulta salva. Seleção de até 50 produtos da página, campo e destino explícitos, prévia e confirmação do lote. Execução sequencial por produto no navegador, com resultado individual, revalidação e proteção contra reenvio; manter a página aberta até concluir. Erros de transporte interrompem os itens seguintes, preservando os concluídos. SKU exato e único determina o vínculo; unidade diferente não bloqueia nem converte valores. Consultas antigas bloqueadas por unidade precisam de nova consulta explícita.
+
+
+### SKUs encontrados e paginação após filtros (22/10/2026)
+
+Filtro Todos/Encontrados/Não encontrados no Bling. Existência do SKU é independente de erros de saldo, unidade ou duplicidade; erro não significa ausência. A consulta completa é feita em pequenos lotes com progresso no navegador, preservando o resultado anterior até concluir. Após a consulta, filtros e paginação usam apenas os dados salvos, em ordem numérica de SKU, até 50 resultados filtrados por página. Trocar filtro volta à primeira página. Consulta antiga de uma página é preservada com aviso para atualização explícita.
