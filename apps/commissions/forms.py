@@ -17,6 +17,8 @@ class PlanForm(ActionForm):
     payee=forms.ModelChoiceField(label='Comissionado',queryset=Payee.objects.filter(active=True))
     customer=forms.CharField(label='Cliente (somente identificação)',max_length=240,required=False)
     rate=forms.DecimalField(label='Percentual manual (%) — vazio usa o padrão',min_value=0,max_value=100,max_digits=7,decimal_places=4,required=False)
+    override_total=forms.DecimalField(label='Valor manual da comissão (R$) — opcional',min_value=0,max_digits=18,decimal_places=2,required=False,localize=True,
+        help_text='Preenchido, substitui o cálculo percentual. Vazio usa o percentual manual ou o padrão do comissionado/global. Zero define comissão de R$ 0,00.')
     count=forms.IntegerField(label='Quantidade de parcelas iguais',min_value=1,max_value=60,initial=1)
     first_date=forms.DateField(label='Primeiro vencimento',initial=timezone.localdate,widget=DateInput())
     days=forms.IntegerField(label='Intervalo entre parcelas (dias)',min_value=1,max_value=365,initial=30)

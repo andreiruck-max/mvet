@@ -9,3 +9,6 @@ O módulo não reintroduz contas a receber automáticas (ADR 0022) nem movimento
 Alteração do percentual/total gera ajuste de liberação hoje e correção de custo da venda. Alterações da base na venda propagam ao plano, mantendo cronograma original e evidenciando divergências. Cancelamento, recuperação e estorno têm contrapartidas; pagamento prévio gera compensação negativa, nunca exclusão de histórico. Apuração usa eventos até o encerramento e pagamentos por data; saldo de competência e caixa pago são colunas distintas.
 
 Operações compartilham mutex do domínio e possuem idempotência. Funcionário só consulta sua pessoa vinculada; gestor de comissões opera o módulo sem receber acesso a custos/caixa/DRE. Livro protegido por triggers PostgreSQL. Não há migração de negócios/valores existentes ou automatismo sobre vendas não selecionadas.
+
+
+Revisão 22/10/2026: a criação do plano também aceita override_total opcional, anteriormente disponível apenas no ajuste. Valor explícito (inclusive zero) prevalece; ausência preserva a seleção do percentual. Sem percentual configurado, total explícito é permitido com taxa de referência zero. Auditoria, idempotência, rateio e correção do custo usam os mecanismos existentes.

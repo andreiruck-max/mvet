@@ -45,6 +45,42 @@ class CommissionTests(Fixture,TestCase):
         self.assertFalse(FinancialTitle.objects.filter(sale=self.sale).exists());self.assertFalse(FinancialEntry.objects.exists())
         self.assertEqual(s.total(Entry.objects.all(),'released'),0)
 
+    def test_create_manual_total_cost_allocation_release_and_replay(self):
+        key=uuid4();plan=self.plan(override_total=D('37.51'),key=key)
+        self.assertEqual(plan.override_total,D('37.51'))
+        self.assertEqual(plan.total,D('37.51'))
+        self.assertEqual(sum(i.forecast for i in plan.installments.all()),D('37.51'))
+        self.sale.refresh_from_db();self.assertEqual(self.sale.commission,D('37.51'))
+        self.assertEqual(self.plan(override_total=D('37.51'),key=key).pk,plan.pk)
+        with self.assertRaises(ValidationError): self.plan(override_total=D('37.52'),key=key)
+        self.receipt(plan);self.receipt(plan,index=1)
+        self.assertEqual(s.total(Entry.objects.all(),'released'),D('37.51'))
+        self.assertFalse(FinancialEntry.objects.exists())
+
+    def test_create_manual_zero_without_default_and_invalid_amount(self):
+        self.payee.default_rate=None;self.payee.save()
+        for amount in (D('-1'),D('1.001'),D('NaN')):
+            with self.assertRaises(ValidationError): self.plan(override_total=amount)
+        plan=self.plan(override_total=D('0'))
+        self.assertEqual(plan.total,0);self.assertEqual(plan.override_total,0)
+        self.sale.refresh_from_db();self.assertEqual(self.sale.commission,0)
+
+    def test_manual_total_web_accepts_brazilian_decimal_and_empty_uses_default(self):
+        self.client.force_login(self.actor)
+        url=reverse('commission_sale',args=[self.sale.pk])
+        data={'sale':self.sale.pk,'payee':self.payee.pk,'customer':'Cliente sintético',
+              'rate':'','override_total':'37,51','count':2,'first_date':str(self.today),'days':30,
+              'key':str(uuid4()),'reason':'Valor negociado'}
+        self.assertContains(self.client.get(url),'Valor manual da comissão')
+        response=self.client.post(url,data)
+        self.assertEqual(response.status_code,302)
+        self.assertEqual(CommissionPlan.objects.get(sale=self.sale).total,D('37.51'))
+        other=self.confirmed(invoice_number='MANUAL-2',products_amount=D('1000'),discount=D('100'),shipping_received=D('50'))
+        data.update(sale=other.pk,override_total='',key=str(uuid4()))
+        self.assertEqual(self.client.post(reverse('commission_sale',args=[other.pk]),data).status_code,302)
+        plan=CommissionPlan.objects.get(sale=other)
+        self.assertIsNone(plan.override_total);self.assertEqual(plan.total,45)
+
     def test_partial_receipts_and_unequal_allocations_conserve_total(self):
         plan=self.plan(installments=[(self.today,D('300')),(self.today,D('650'))])
         parts=list(plan.installments.all());self.assertEqual(sum(i.forecast for i in parts),45)

@@ -71,7 +71,7 @@ def create(request,sale_id=None):
     form=forms.PlanForm(request.POST if request.method=='POST' else None,initial=initial)
     if request.method=='POST' and form.is_valid():
         d=form.cleaned_data
-        try:plan=s.create_plan(actor=request.user,sale_id=d['sale'].pk,payee_id=d['payee'].pk,customer=d['customer'],rate=d['rate'],installments=d['installments'],key=d['key'],reason=d['reason'])
+        try:plan=s.create_plan(actor=request.user,sale_id=d['sale'].pk,payee_id=d['payee'].pk,customer=d['customer'],rate=d['rate'],override_total=d['override_total'],installments=d['installments'],key=d['key'],reason=d['reason'])
         except (ValidationError,IntegrityError) as exc:error(form,exc)
         else:messages.success(request,'Comissão prevista criada; o custo da venda foi atualizado.');return redirect('commission_detail',pk=plan.pk)
     defaults=CommissionSettings.objects.filter(pk=1).first()
