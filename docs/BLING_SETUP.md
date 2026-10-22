@@ -94,3 +94,8 @@ Resultados incertos ficam no histórico e impedem novo envio ao Bling para o pro
 ### Falha temporária da API
 
 HTTP 500/502/503/504 em leitura recebe uma única nova tentativa após breve intervalo. Se persistir, a comparação mantém os dados salvos com sua data original e informa que não foram atualizados. Opções de depósito ficam guardadas desde a abertura da tela; falha ao carregá-las não significa depósito inválido. A validação real continua exigindo opções consultadas. Escritas, autorização e erros de permissão não são repetidos.
+
+
+### Conferência Bling: filtros e correção em massa (22/10/2026)
+
+Comparar saldos, preços ou ambos, com filtro imediato das diferenças do campo escolhido e preservação da consulta salva. Seleção de até 50 produtos da página, campo e destino explícitos, prévia e confirmação do lote. Execução sequencial por produto no navegador, com resultado individual, revalidação e proteção contra reenvio; manter a página aberta até concluir. Erros de transporte interrompem os itens seguintes, preservando os concluídos. SKU exato e único determina o vínculo; unidade diferente não bloqueia nem converte valores. Consultas antigas bloqueadas por unidade precisam de nova consulta explícita.

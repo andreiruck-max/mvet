@@ -339,3 +339,8 @@ Indicadores como início autorizado, mês completo com datas visíveis, cartões
 
 ## Correção — desconto do XML Bling
 - Conferência de vendas preenche o desconto explícito do XML; compras preservam o desconto por item sem duplicar o desconto geral. Ajustes manuais continuam prioritários.
+
+
+### Conferência Bling: filtros e correção em massa (22/10/2026)
+
+Comparar saldos, preços ou ambos, com filtro imediato das diferenças do campo escolhido e preservação da consulta salva. Seleção de até 50 produtos da página, campo e destino explícitos, prévia e confirmação do lote. Execução sequencial por produto no navegador, com resultado individual, revalidação e proteção contra reenvio; manter a página aberta até concluir. Erros de transporte interrompem os itens seguintes, preservando os concluídos. SKU exato e único determina o vínculo; unidade diferente não bloqueia nem converte valores. Consultas antigas bloqueadas por unidade precisam de nova consulta explícita.

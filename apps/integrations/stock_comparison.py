@@ -118,7 +118,6 @@ def comparison(*, actor, products, location, deposit):
                     raise ValidationError('Detalhe não corresponde ao produto solicitado.')
                 remote = external(detail, balances[pk])
                 current = local(product, location)
-                if remote['unit'] != current['unit']: raise ValidationError('Unidades diferentes entre MVet e Bling. Confira o cadastro.')
                 snapshot = {'actor': actor.pk, 'product': product.pk, 'location': location.pk, 'deposit': deposit,
                             'local': current, 'remote': remote, 'key': str(uuid4())}
                 item.update(local=current, remote=remote, token=signing.dumps(snapshot, salt=SALT),
@@ -150,7 +149,7 @@ def check_remote(snapshot):
     if snapshot['remote']['id'] not in balances or balances[snapshot['remote']['id']] is None: raise ValidationError('Saldo não retornado pelo Bling.')
     current = external(data, balances[snapshot['remote']['id']])
     expected = snapshot['remote']
-    if any(current[k] != expected[k] for k in ('id', 'sku', 'unit')) or any(Decimal(current[k]) != Decimal(expected[k]) for k in ('price', 'quantity')):
+    if any(current[k] != expected[k] for k in ('id', 'sku')) or any(Decimal(current[k]) != Decimal(expected[k]) for k in ('price', 'quantity')):
         raise ValidationError('Preço, saldo ou cadastro mudou no Bling. Consulte novamente antes de corrigir.')
     if snapshot['deposit'] not in dict(deposits()): raise ValidationError('Depósito Bling inativo ou indisponível.')
 
@@ -160,7 +159,7 @@ def check_local(snapshot):
     location = StockLocation.objects.get(pk=snapshot['location'], active=True)
     if not product.active or product.kind != 'SIMPLE': raise ValidationError('Produto local indisponível.')
     current = local(product, location)
-    if current != snapshot['local']: raise ValidationError('Dados do MVet mudaram. Consulte novamente antes de corrigir.')
+    if {k: v for k, v in current.items() if k != 'unit'} != {k: v for k, v in snapshot['local'].items() if k != 'unit'}: raise ValidationError('Dados do MVet mudaram. Consulte novamente antes de corrigir.')
     return product, location
 
 
@@ -325,3 +324,42 @@ def create_product(*, actor, token, name, price, include_stock, cost, reason):
             'product': product.pk, 'remote_id': source['id'], 'source': source, 'price': str(price),
             'quantity': str(qty), 'cost': str(cost) if qty > 0 else None, 'location': location.pk, 'deposit': data['deposit'], 'reason': reason})
         return product
+
+
+def bulk_preview(*, actor, tokens, field, direction, reason):
+    """Validate the complete selection before allowing any batch write."""
+    master(actor)
+    if not tokens or len(tokens) > 50:
+        raise ValidationError('Selecione de 1 a 50 produtos da página.')
+    if field not in ('price', 'quantity') or direction not in ('mvet', 'bling'):
+        raise ValidationError('Selecione o campo e o sistema que será corrigido.')
+    if not reason.strip() or len(reason) > 350:
+        raise ValidationError('Informe um motivo de até 350 caracteres.')
+    rows, seen = [], set()
+    for token in tokens:
+        snapshot = decode(actor, token)
+        if snapshot['product'] in seen:
+            raise ValidationError('Produto repetido na seleção.')
+        seen.add(snapshot['product'])
+        source = 'remote' if direction == 'mvet' else 'local'
+        destination = 'local' if direction == 'mvet' else 'remote'
+        before, after = snapshot[destination][field], snapshot[source][field]
+        if Decimal(before) == Decimal(after):
+            continue
+        rows.append({'token': token, 'sku': snapshot['local']['sku'], 'before': before, 'after': after})
+    if not rows:
+        raise ValidationError('Os produtos selecionados não têm diferenças no campo escolhido.')
+    return rows
+
+
+def apply_bulk(*, actor, tokens, field, direction, reason):
+    rows = bulk_preview(actor=actor, tokens=tokens, field=field, direction=direction, reason=reason)
+    results = []
+    for row in rows:
+        try:
+            correction = apply(actor=actor, token=row['token'], field=field, direction=direction, reason=reason)
+            results.append({'sku': row['sku'], 'correction': correction, 'status': correction.status, 'message': correction.message})
+        except (ValidationError, Product.DoesNotExist, StockLocation.DoesNotExist) as exc:
+            message = '; '.join(exc.messages) if isinstance(exc, ValidationError) else 'Produto ou depósito indisponível.'
+            results.append({'sku': row['sku'], 'correction': None, 'status': 'FAILED', 'message': message})
+    return results
