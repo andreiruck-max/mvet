@@ -90,3 +90,7 @@ No estoque, abrir **Conferir com Bling**, escolher depósitos e consultar. O fil
 **Cadastrar produto do Bling** permite buscar descrição ou SKU exato e revisar um produto ainda não cadastrado. Estoque é opcional; saldo positivo exige custo unitário conferido. Nenhum custo médio externo é importado.
 
 Resultados incertos ficam no histórico e impedem novo envio ao Bling para o produto até conferência manual. Confira o valor e, para estoque, a referência MVet no lançamento do Bling antes de encerrar a tentativa.
+
+### Falha temporária da API
+
+HTTP 500/502/503/504 em leitura recebe uma única nova tentativa após breve intervalo. Se persistir, a comparação mantém os dados salvos com sua data original e informa que não foram atualizados. Opções de depósito ficam guardadas desde a abertura da tela; falha ao carregá-las não significa depósito inválido. A validação real continua exigindo opções consultadas. Escritas, autorização e erros de permissão não são repetidos.

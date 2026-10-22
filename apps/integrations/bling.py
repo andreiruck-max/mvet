@@ -86,7 +86,7 @@ def request_json(path, *, token=None, form=None, method="GET", payload=None):
     except HTTPError as exc:
         if exc.code == 429: raise BlingError('Limite do Bling atingido. Aguarde e reexecute a página; nenhum lançamento será duplicado.') from None
         if exc.code in (400, 401, 403): raise BlingError('Acesso ao Bling recusado. O master deve conferir autorização e escopos.') from None
-        raise BlingError(f'Consulta Bling falhou (HTTP {exc.code}). Reexecute a página.') from None
+        raise BlingError(f'Consulta Bling falhou (HTTP {exc.code}). Reexecute a página.', code=f'http_{exc.code}') from None
     except (URLError, TimeoutError, OSError, ValueError):
         raise BlingError('Falha de comunicação ou resposta inválida do Bling. Reexecute a página.') from None
 
@@ -145,11 +145,16 @@ def get(path, *, method="GET", payload=None):
 
 
 def read(path, *, method="GET", payload=None):
-    try: result, failure = get(path) if method == "GET" else get(path, method=method, payload=payload)
-    except BlingConnection.DoesNotExist: raise BlingError("Conecte o Bling antes de consultar.") from None
-    except DatabaseError: raise BlingError('Outra consulta está usando a conexão. Tente novamente em instantes.') from None
-    if failure: raise failure
-    return result
+    for attempt in range(2):
+        try: result, failure = get(path) if method == "GET" else get(path, method=method, payload=payload)
+        except BlingConnection.DoesNotExist: raise BlingError("Conecte o Bling antes de consultar.") from None
+        except DatabaseError: raise BlingError('Outra consulta está usando a conexão. Tente novamente em instantes.') from None
+        if not failure: return result
+        # Only retry a read, never an ambiguous write or an OAuth authorization.
+        if method == 'GET' and attempt == 0 and getattr(failure, 'code', None) in ('http_500', 'http_502', 'http_503', 'http_504'):
+            time.sleep(.5)
+            continue
+        raise failure
 
 
 def sync_page(*, actor, start, end, page=1, source_status=5, kind="SALE", number=None, series=None):

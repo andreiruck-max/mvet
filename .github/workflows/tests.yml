@@ -11,7 +11,7 @@ jobs:
         shell: powershell
         run: ./scripts/test_update_windows.ps1
   postgres:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16
