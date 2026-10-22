@@ -1,5 +1,6 @@
 from django import forms
 from django.http import JsonResponse
+from django.db import transaction
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core import signing
@@ -26,7 +27,8 @@ class CompareForm(forms.Form):
     deposit = forms.ChoiceField(label='Depósito Bling')
     q = forms.CharField(label='SKU exato', max_length=100, required=False)
     scope = forms.ChoiceField(label='Comparar', required=False, choices=[('all', 'Saldos e preços'), ('quantity', 'Somente saldos / quantidades'), ('price', 'Somente preços')])
-    differences = forms.BooleanField(label='Somente diferenças nesta página', required=False)
+    match = forms.ChoiceField(label='SKU no Bling', required=False, choices=[('all', 'Todos'), ('found', 'Encontrados'), ('missing', 'Não encontrados')])
+    differences = forms.BooleanField(label='Somente diferenças', required=False)
 
 
 class CorrectForm(forms.Form):
@@ -46,6 +48,7 @@ def comparison(request):
     preview = None
     bulk_preview = None
     bulk_progress = None
+    query_progress = None
     correct = CorrectForm(request.POST or None)
     cache, _ = BlingComparisonCache.objects.get_or_create(actor=request.user)
     saved = cache.payload
@@ -54,11 +57,15 @@ def comparison(request):
     if request.GET.get('refresh') == '1':
         params = request.GET.dict()
         params.setdefault('page', '1')
+    if any(k in request.GET and request.GET[k] != saved.get('params', {}).get(k, '') for k in ('match', 'scope', 'differences')):
+        params['page'] = '1'
     form = CompareForm(params or None)
     form.fields['deposit'].choices = saved.get('deposits', [])
     consulted_at = None
     try:
         if request.method == 'POST':
+            if request.POST.get('action') == 'query_chunk':
+                return JsonResponse(query_chunk(cache, request.user, request.POST.get('query_id', '')))
             if request.POST.get('action') in ('bulk_preview', 'bulk_confirm', 'bulk_item'):
                 if request.POST['action'] in ('bulk_confirm', 'bulk_item'):
                     try: approved = signing.loads(request.POST.get('approval', ''), salt='bling.bulk.approval', max_age=600)
@@ -115,63 +122,118 @@ def comparison(request):
             cache.payload = saved
             cache.save(update_fields=['payload'])
             if params and form.is_valid():
-                query_params = {k: str(params.get(k, '')) for k in ('location', 'deposit', 'q', 'page')}
+                query_params = {k: str(params.get(k, '')) for k in ('location', 'deposit', 'q')}
                 old_params = {k: str(saved.get('params', {}).get(k, '')) for k in query_params}
-                if saved.get('rows') is not None and query_params == old_params and not refresh:
-                    rows = saved['rows']
-                    page = Paginator(range(saved['count']), saved.get('page_size', 10)).get_page(saved['page'])
-                else:
+                if saved.get('rows') is None or query_params != old_params or refresh:
                     products = order_by_sku(Product.objects.filter(active=True, kind='SIMPLE'))
                     query = form.cleaned_data['q'].strip()
                     if query: products = products.filter(sku=query)
-                    page = Paginator(products, 50).get_page(params.get('page'))
-                    rows = service.comparison(actor=request.user, products=list(page), location=form.cleaned_data['location'], deposit=form.cleaned_data['deposit'])
-                    rows = [dict(r, product={'pk': r['product'].pk, 'sku': r['product'].sku, 'name': r['product'].name, 'unit': r['product'].unit}) for r in rows]
-                    saved = {'rows': rows, 'count': page.paginator.count, 'page': page.number, 'page_size': 50, 'deposits': choices,
-                             'consulted_at': timezone.now().isoformat()}
-                rows = sorted(rows, key=lambda r: (0, int(r['product']['sku']), r['product']['sku'], r['product']['pk'])
-                              if r['product']['sku'].isascii() and r['product']['sku'].isdecimal()
-                              else (1, 0, r['product']['sku'], r['product']['pk']))
-                saved['rows'] = rows
-                saved['params'] = {k: v for k, v in params.items() if k != 'refresh'}
-                cache.payload = saved
-                cache.save(update_fields=['payload'])
-                if refresh:
-                    return redirect(reverse('bling_stock_comparison') + '?' + urlencode(saved['params']))
-                consulted_at = datetime.fromisoformat(saved['consulted_at'])
-                rows = filter_rows(rows, form.cleaned_data.get('scope'), form.cleaned_data['differences'])
+                    params['page'] = '1'
+                    if products.count() > 5:
+                        work = {'id': str(uuid4()), 'ids': list(products.values_list('pk', flat=True)), 'offset': 0, 'rows': [],
+                                'params': {k: v for k, v in params.items() if k != 'refresh'}, 'deposits': choices}
+                        saved['building'] = work
+                        cache.payload = saved
+                        cache.save(update_fields=['payload'])
+                        query_progress = work
+                    else:
+                        rows = serialize_rows(service.comparison(actor=request.user, products=list(products), location=form.cleaned_data['location'], deposit=form.cleaned_data['deposit']))
+                        saved = {'rows': rows, 'count': len(rows), 'page_size': 50, 'deposits': choices, 'complete': True,
+                                 'consulted_at': timezone.now().isoformat()}
+                if not query_progress:
+                    saved['rows'] = sort_rows(saved['rows'])
+                    saved['params'] = {k: v for k, v in params.items() if k != 'refresh'}
+                    page = saved_page(saved, params)
+                    rows = list(page)
+                    saved['page'] = page.number
+                    saved['params']['page'] = str(page.number)
+                    cache.payload = saved
+                    cache.save(update_fields=['payload'])
+                    if refresh:
+                        return redirect(reverse('bling_stock_comparison') + '?' + urlencode(saved['params']))
+                    consulted_at = datetime.fromisoformat(saved['consulted_at'])
+
     except (Product.DoesNotExist, StockLocation.DoesNotExist, BlingStockCorrection.DoesNotExist):
         error = 'Produto, depósito ou tentativa indisponível. Consulte novamente.'
+        if request.POST.get('action') == 'query_chunk': return JsonResponse({'error': error}, status=400)
     except ValidationError as exc:
         error = '; '.join(exc.messages)
-        if request.POST.get('action') == 'bulk_item': return JsonResponse({'error': error}, status=400)
+        if request.POST.get('action') in ('bulk_item', 'query_chunk'): return JsonResponse({'error': error}, status=400)
         if request.method == 'GET':
             if saved.get('rows') is not None:
                 form = CompareForm(saved.get('params') or None)
                 form.fields['deposit'].choices = saved.get('deposits', [])
-                rows = saved['rows']
-                page = Paginator(range(saved['count']), saved.get('page_size', 10)).get_page(saved['page'])
+                params = saved.get('params', {})
+                page = saved_page(saved, params)
+                rows = list(page)
                 consulted_at = datetime.fromisoformat(saved['consulted_at'])
-                rows = filter_rows(rows, saved.get('params', {}).get('scope'), saved.get('params', {}).get('differences'))
                 error += ' A consulta não foi atualizada. Exibindo a última consulta salva.'
             elif not form.fields['deposit'].choices:
                 # No fetched choices means validation cannot determine whether the ID is valid.
                 form = CompareForm(initial=params)
     response = render(request, 'inventory/bling_comparison.html', {'form': form, 'correct': correct, 'rows': rows,
         'consulted_at': consulted_at, 'page': page, 'preview': preview, 'scope': params.get('scope', 'all'),
+        'query_progress': query_progress, 'legacy_query': bool(saved.get('rows') is not None and not saved.get('complete')), 'total_consulted': saved.get('count', 0),
         'bulk_preview': bulk_preview, 'bulk_progress': bulk_progress, 'error': error, 'history': BlingStockCorrection.objects.select_related('product', 'actor').order_by('-pk')[:30]})
     response['Cache-Control'] = 'private, no-store'
     return response
 
 
-def filter_rows(rows, scope, differences):
+def filter_rows(rows, scope, differences, match=None):
     result = []
     for original in rows:
         row = dict(original)
+        found = row.get('found', row.get('error') != 'SKU não encontrado no Bling.')
+        if match == 'found' and not found or match == 'missing' and found:
+            continue
         row['can_correct'] = (scope != 'quantity' and row.get('price_diff')) or (scope != 'price' and row.get('stock_diff'))
         if not differences or row.get('error') or row['can_correct']:
             result.append(row)
     return result
+
+
+def serialize_rows(rows):
+    return [dict(r, product={'pk': r['product'].pk, 'sku': r['product'].sku, 'name': r['product'].name, 'unit': r['product'].unit}) for r in rows]
+
+
+def sort_rows(rows):
+    return sorted(rows, key=lambda r: (0, int(r['product']['sku']), r['product']['sku'], r['product']['pk'])
+                  if r['product']['sku'].isascii() and r['product']['sku'].isdecimal()
+                  else (1, 0, r['product']['sku'], r['product']['pk']))
+
+
+def saved_page(saved, params):
+    rows = filter_rows(sort_rows(saved['rows']), params.get('scope'), params.get('differences'), params.get('match'))
+    return Paginator(rows, 50).get_page(params.get('page', 1))
+
+
+def query_chunk(cache, actor, query_id):
+    """Read small batches, then atomically publish a complete consultation."""
+    saved = cache.payload
+    work = saved.get('building')
+    if not work or work['id'] != query_id:
+        if query_id and saved.get('query_id') == query_id:
+            return {'done': True, 'url': reverse('bling_stock_comparison')}
+        raise ValidationError('Consulta substituída. Volte à conferência para consultar novamente.')
+    offset = work['offset']
+    ids = work['ids'][offset:offset + 5]
+    products = order_by_sku(Product.objects.filter(pk__in=ids, active=True, kind='SIMPLE'))
+    location = StockLocation.objects.get(pk=work['params']['location'], active=True)
+    rows = serialize_rows(service.comparison(actor=actor, products=list(products), location=location, deposit=work['params']['deposit']))
+    with transaction.atomic():
+        current = BlingComparisonCache.objects.select_for_update().get(pk=cache.pk)
+        pending = current.payload.get('building')
+        if not pending or pending['id'] != query_id or pending['offset'] != offset:
+            raise ValidationError('Consulta alterada em outra aba. Volte à conferência.')
+        pending['rows'].extend(rows)
+        pending['offset'] += len(ids)
+        done = pending['offset'] >= len(pending['ids'])
+        if done:
+            current.payload = {'rows': sort_rows(pending['rows']), 'count': len(pending['rows']), 'page': 1, 'page_size': 50,
+                               'params': pending['params'], 'deposits': pending['deposits'], 'complete': True,
+                               'query_id': query_id, 'consulted_at': timezone.now().isoformat()}
+        current.save(update_fields=['payload'])
+    return {'done': done, 'processed': pending['offset'], 'total': len(pending['ids']), 'url': reverse('bling_stock_comparison')}
 
 
 def update_saved_correction(cache, result, actor):

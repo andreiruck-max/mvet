@@ -301,7 +301,11 @@ class StockComparisonTests(Fixture, TestCase):
         url = reverse('bling_stock_comparison')
         params = {'location': self.location.pk, 'deposit': '42'}
         with patch('apps.integrations.stock_comparison.comparison', side_effect=compare):
-            first = self.client.get(url, params)
+            loading = self.client.get(url, params)
+            query_id = loading.context['query_progress']['id']
+            while not self.client.post(url, {'action': 'query_chunk', 'query_id': query_id}).json()['done']:
+                pass
+            first = self.client.get(url)
             self.assertEqual([r['product']['sku'] for r in first.context['rows']],
                              [str(n) for n in range(1, 51)])
             second = self.client.get(url, dict(params, page='2'))
@@ -426,3 +430,78 @@ class StockComparisonTests(Fixture, TestCase):
         results = service.apply_bulk(tokens=[token], **args)
         self.assertEqual(results[0]['status'], 'FAILED')
         self.assertFalse(self.remote_calls)
+
+
+    def test_match_filter_before_pagination_and_saved_navigation(self):
+        from .models import BlingComparisonCache
+        self.client.force_login(self.actor)
+        url = reverse('bling_stock_comparison')
+        self.client.get(url, {'location': self.location.pk, 'deposit': 42})
+        cache = BlingComparisonCache.objects.get(actor=self.actor)
+        rows = []
+        for n in range(1, 122):
+            found = n % 2 == 1
+            rows.append({'product': {'pk': n, 'sku': str(n), 'name': 'Produto sintético', 'unit': 'UN'},
+                         'found': found, 'error': 'Saldo indisponível' if found else 'SKU não encontrado no Bling.'})
+        cache.payload.update(rows=list(reversed(rows)), count=121, complete=True)
+        cache.save()
+        with patch('apps.integrations.bling.read', side_effect=AssertionError('Unexpected API call')):
+            first = self.client.get(url, {'match': 'found', 'differences': 'on'})
+            self.assertEqual(len(first.context['rows']), 50)
+            self.assertEqual(first.context['page'].paginator.count, 61)
+            self.assertEqual([r['product']['sku'] for r in first.context['rows']], [str(n) for n in range(1, 100, 2)])
+            second = self.client.get(url, {'page': 2})
+            self.assertEqual(len(second.context['rows']), 11)
+            self.assertEqual(self.client.get(url).context['page'].number, 2)
+            missing = self.client.get(url, {'match': 'missing', 'page': 2})
+            self.assertEqual(missing.context['page'].number, 1)
+            self.assertEqual(len(missing.context['rows']), 50)
+            self.assertTrue(all(not row['found'] for row in missing.context['rows']))
+            all_rows = self.client.get(url, {'match': 'all'})
+            self.assertEqual(all_rows.context['page'].paginator.count, 121)
+
+    def test_chunked_query_failure_preserves_previous_and_complete_retry(self):
+        from apps.products.models import Product
+        from .models import BlingComparisonCache
+        self.client.force_login(self.actor)
+        url = reverse('bling_stock_comparison')
+        self.client.get(url, {'location': self.location.pk, 'deposit': 42})
+        before = BlingComparisonCache.objects.get(actor=self.actor).payload
+        for n in range(6): Product.objects.create(sku=f'CHUNK-{n}', name='Produto sintético', kind='SIMPLE', unit='UN')
+        loading = self.client.get(url, {'refresh': '1', 'location': self.location.pk, 'deposit': 42})
+        query_id = loading.context['query_progress']['id']
+        with patch('apps.integrations.stock_comparison.comparison', side_effect=ValidationError('Falha sintética')):
+            self.assertEqual(self.client.post(url, {'action': 'query_chunk', 'query_id': query_id}).status_code, 400)
+        saved = BlingComparisonCache.objects.get(actor=self.actor).payload
+        self.assertEqual(saved['rows'], before['rows'])
+        self.assertEqual(saved['consulted_at'], before['consulted_at'])
+        def compare(**kwargs):
+            return [{'product': p, 'found': False, 'error': 'SKU não encontrado no Bling.'} for p in kwargs['products']]
+        with patch('apps.integrations.stock_comparison.comparison', side_effect=compare):
+            part = self.client.post(url, {'action': 'query_chunk', 'query_id': query_id}).json()
+            self.assertFalse(part['done'])
+            self.assertEqual(part['processed'], 5)
+            done = self.client.post(url, {'action': 'query_chunk', 'query_id': query_id}).json()
+            self.assertTrue(done['done'])
+            self.assertTrue(self.client.post(url, {'action': 'query_chunk', 'query_id': query_id}).json()['done'])
+        saved = BlingComparisonCache.objects.get(actor=self.actor).payload
+        self.assertEqual(len(saved['rows']), 7)
+        self.assertTrue(saved['complete'])
+        self.assertNotIn('building', saved)
+        self.client.force_login(self.operator)
+        self.assertEqual(self.client.post(url, {'action': 'query_chunk', 'query_id': query_id}).status_code, 403)
+
+    def test_found_status_is_independent_of_balance_and_duplicate_errors(self):
+        original = self.remote
+        for mode in ('missing', 'duplicate', 'balance'):
+            def remote(path, **kwargs):
+                result = original(path, **kwargs)
+                if path.startswith('/produtos?'):
+                    if mode == 'missing': result['data'] = []
+                    if mode == 'duplicate': result['data'] *= 2
+                if mode == 'balance' and path.startswith('/estoques'): result['data'] = []
+                return result
+            with patch('apps.integrations.bling.read', side_effect=remote):
+                row = self.row()
+                self.assertEqual(row['found'], mode != 'missing')
+                self.assertIn('error', row)

@@ -34,3 +34,8 @@ Valores válidos do Bling são normalizados com Decimal e ROUND_HALF_UP para 2 c
 Por solicitação explícita do master, diferenças de unidade deixam de bloquear a conferência e a revalidação. O vínculo permanece por SKU exato e único, confirmado pelo ID externo. Não há conversão de quantidade nem alteração da unidade de cadastro. A regra anterior de unidades coincidentes fica substituída.
 
 Filtro visual por preço, saldo ou ambos reaproveita a consulta persistida, inclusive ao aplicar somente diferenças. Lote limitado aos 50 produtos selecionados da página, um campo e destino por lote, com prévia assinada por dez minutos. Cada item é uma requisição sequencial independente e reutiliza o serviço auditado/idempotente; não há atomicidade entre produtos ou sistemas. Falhas de validação são individuais; transporte interrompe o restante. Resultado incerto não é reenviado e exige conferência no histórico.
+
+
+## Revisão de 22/10/2026 — filtros antes da paginação
+
+A consulta explícita passa a ler todos os produtos simples ativos da busca em lotes de cinco e publicar o resultado completo ao final. A leitura intermediária fica separada da consulta válida anterior; erros não apagam a última consulta. Paginação não consulta mais a API. Filtros de existência do SKU, campo e diferenças precedem a paginação de 50 itens, sempre por SKU. Cache anterior de uma página permanece disponível até nova consulta solicitada pelo usuário.
