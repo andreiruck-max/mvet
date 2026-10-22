@@ -30,3 +30,8 @@ Cenários automatizados: frete/desconto; rateio desigual e centavos; recebimento
 
 ## Filtros rápidos
 Controle e conferência de comissões oferecem períodos prontos para as datas de venda: hoje, ontem, últimos 7 dias, semana atual (segunda a domingo), semana passada, mês atual, mês passado e ano atual. Usam a data local do MVet. Selecionar aplica automaticamente e mantém os demais critérios. Editar uma data muda para personalizado. Datas de recebimento permanecem independentes.
+
+
+### Valor manual na definição de comissão (22/10/2026)
+
+A tela Definir comissão da venda aceita valor total manual em R$, opcional. Preenchido, prevalece sobre o percentual; vazio mantém a prioridade percentual manual, padrão do comissionado e padrão global. Zero é valor explícito. O total manual é auditado, rateado nas parcelas e substitui a comissão da venda sem duplicar custo. Funciona também sem percentual configurado.

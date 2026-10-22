@@ -92,11 +92,14 @@ def configure_default(*,actor,rate,reason):
     audit(actor,obj,'commission_default',{'rate':before},{'rate':str(rate),'reason':reason})
 
 @transaction.atomic
-def create_plan(*,actor,sale_id,payee_id,customer,rate,installments,key,reason):
+def create_plan(*,actor,sale_id,payee_id,customer,rate,installments,key,reason,override_total=None):
     manage(actor);domain_lock()
     sale=Sale.objects.select_for_update().get(pk=sale_id)
     rows=[(date,number(amount,CENT)) for date,amount in installments]
     payload=[sale_id,payee_id,customer,str(rate),[(str(d),str(a)) for d,a in rows]]
+    if override_total is not None:
+        override_total=number(override_total,CENT,zero=True)
+        payload.append(str(override_total))
     cmd,fresh=command(actor,key,'CREATE',reason,payload)
     if not fresh:return CommissionPlan.objects.get(sale=sale)
     if sale.status!='CONFIRMED' or CommissionPlan.objects.filter(sale=sale).exists():
@@ -107,12 +110,14 @@ def create_plan(*,actor,sale_id,payee_id,customer,rate,installments,key,reason):
     face=sale.products_amount-sale.discount+sale.shipping_received
     if sum((a for d,a in rows),ZERO)!=face:raise ValidationError(f'As parcelas devem somar produtos − desconto + frete: R$ {face:.2f}. Ajuste a diferença antes de salvar.')
     default=CommissionSettings.objects.filter(pk=1).first()
-    if rate is None and payee.default_rate is None and default is None:
+    if override_total is None and rate is None and payee.default_rate is None and default is None:
         raise ValidationError('Informe um percentual na venda ou configure o percentual do comissionado / padrão global.')
     source='MANUAL' if rate is not None else 'PAYEE' if payee.default_rate is not None else 'DEFAULT'
-    selected=rate if rate is not None else payee.default_rate if payee.default_rate is not None else default.default_rate
+    selected=rate if rate is not None else payee.default_rate if payee.default_rate is not None else default.default_rate if default else ZERO
+    if default is None and rate is None and payee.default_rate is None: source='MANUAL'
     plan=CommissionPlan(sale=sale,payee=payee,customer=customer.strip(),rate=selected,rate_source=source,
-        base=sale.products_amount-sale.discount,total=rounded((sale.products_amount-sale.discount)*selected/100))
+        base=sale.products_amount-sale.discount,override_total=override_total,
+        total=override_total if override_total is not None else rounded((sale.products_amount-sale.discount)*selected/100))
     plan.full_clean();plan.save()
     parts=[Installment.objects.create(plan=plan,number=n,due_date=d,amount=a) for n,(d,a) in enumerate(rows,1)]
     weights(plan.total,parts)

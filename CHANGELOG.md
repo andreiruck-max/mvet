@@ -349,3 +349,8 @@ Comparar saldos, preços ou ambos, com filtro imediato das diferenças do campo 
 ### SKUs encontrados e paginação após filtros (22/10/2026)
 
 Filtro Todos/Encontrados/Não encontrados no Bling. Existência do SKU é independente de erros de saldo, unidade ou duplicidade; erro não significa ausência. A consulta completa é feita em pequenos lotes com progresso no navegador, preservando o resultado anterior até concluir. Após a consulta, filtros e paginação usam apenas os dados salvos, em ordem numérica de SKU, até 50 resultados filtrados por página. Trocar filtro volta à primeira página. Consulta antiga de uma página é preservada com aviso para atualização explícita.
+
+
+### Valor manual na definição de comissão (22/10/2026)
+
+A tela Definir comissão da venda aceita valor total manual em R$, opcional. Preenchido, prevalece sobre o percentual; vazio mantém a prioridade percentual manual, padrão do comissionado e padrão global. Zero é valor explícito. O total manual é auditado, rateado nas parcelas e substitui a comissão da venda sem duplicar custo. Funciona também sem percentual configurado.

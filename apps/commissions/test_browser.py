@@ -21,6 +21,7 @@ class CommissionBrowser(Fixture,StaticLiveServerTestCase):
             page.goto(self.live_server_url+reverse('commission_sale',args=[self.sale.pk]))
             page.get_by_label('Comissionado:',exact=True).select_option(str(self.payee.pk))
             page.get_by_label('Cliente (somente identificação):',exact=True).fill('Cliente de demonstração')
+            page.locator('#id_override_total').fill('40,00')
             page.get_by_label('Quantidade de parcelas iguais:',exact=True).fill('2')
             page.get_by_role('button',name='Salvar',exact=True).click()
             expect(page.get_by_role('heading',name='Parcelas',exact=True)).to_be_visible()
@@ -43,7 +44,7 @@ class CommissionBrowser(Fixture,StaticLiveServerTestCase):
             page.get_by_role('button',name='Salvar',exact=True).click()
             expect(page.get_by_text('Pagamento registrado e alocado',exact=False)).to_be_visible()
             page.goto(self.live_server_url+reverse('commission_monthly'))
-            expect(page.locator('main')).to_contain_text('12,50')
+            expect(page.locator('main')).to_contain_text('10,00')
             page.get_by_label('Comissionado:',exact=True).select_option(str(self.payee.pk))
             for label, extension in [('Exportar PDF', '.pdf'), ('Exportar Excel', '.xlsx')]:
                 with page.expect_download() as download:
@@ -65,5 +66,5 @@ class CommissionBrowser(Fixture,StaticLiveServerTestCase):
             self.assertLessEqual(p.evaluate('document.documentElement.scrollWidth'),390)
             p.screenshot(path='artifacts/commissions-employee-mobile.png',full_page=True)
             self.assertEqual(errors,[]);browser.close()
-        self.assertEqual(CommissionPlan.objects.get().total,45)
+        self.assertEqual(CommissionPlan.objects.get().total,40)
         self.assertEqual(Payment.objects.get().amount,10)
