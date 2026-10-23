@@ -59,8 +59,12 @@ class FinanceTests(Fixture,TestCase):
         purchase.supplier.save()
         title.refresh_from_db()
         self.assertEqual(title.counterparty_display,'Fornecedor')
-        from apps.purchases.models import PurchaseInstallment
-        installment=PurchaseInstallment.objects.create(purchase=purchase,number=2,due_date=self.today,amount=D('10'))
+        legacy=purchases.save_draft(actor=self.admin,key=uuid4(),
+            data=dict(supplier=purchase.supplier,document='LEGACY-SUPPLIER',series='',date=self.today,
+                location=purchase.location,discount=D('0'),freight=D('0'),other_costs=D('0'),notes=''),
+            items=[(Product.objects.get(sku='F01').pk,D('1'),D('10'))],
+            installments=[(self.today,D('10'),'')])
+        installment=legacy.installments.get()
         title=Title.objects.create(direction='PAY',description='Parcela antiga',counterparty='',account=self.a,
             purchase_installment=installment,date=self.today,due_date=self.today,amount=D('10'),actor=self.admin,source='purchase')
         self.assertEqual(title.counterparty_display,'Fornecedor atualizado')
