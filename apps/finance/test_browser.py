@@ -19,11 +19,13 @@ class FinanceBrowser(StaticLiveServerTestCase):
         today=timezone.localdate();Company.objects.create(pk=1)
         actor=User.objects.create_superuser('bank-flow-browser')
         account=save_account(actor=actor,data=dict(name='Banco sintético',kind='BANK',opening_date=today,opening_balance=Decimal('1000')))
+        Title.objects.create(direction='PAY',description='Compra sintética · parcela 1',counterparty='Fornecedor demonstrativo',date=today,due_date=today,amount=Decimal('25'),actor=actor)
         client=Client();client.force_login(actor);output=Path('artifacts');output.mkdir(exist_ok=True)
         with sync_playwright() as pw:
             browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1050},locale='pt-BR')
             context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
             page=context.new_page();page.goto(self.live_server_url+'/financeiro/')
+            self.assertTrue(page.locator('.cash-payments-table').get_by_text('Fornecedor / favorecido: Fornecedor demonstrativo',exact=True).is_visible())
             self.assertEqual(page.locator('.cash-date').count(),16)
             self.assertEqual(page.locator('.cash-page nav[aria-label="Paginação"]').count(),0)
             self.assertEqual(page.locator('.cash-date.cash-today').count(),1)

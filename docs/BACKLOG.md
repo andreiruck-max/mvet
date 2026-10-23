@@ -224,3 +224,8 @@ Filtro Todos/Encontrados/Não encontrados no Bling. Existência do SKU é indepe
 ### Valor manual na definição de comissão (22/10/2026)
 
 A tela Definir comissão da venda aceita valor total manual em R$, opcional. Preenchido, prevalece sobre o percentual; vazio mantém a prioridade percentual manual, padrão do comissionado e padrão global. Zero é valor explícito. O total manual é auditado, rateado nas parcelas e substitui a comissão da venda sem duplicar custo. Funciona também sem percentual configurado.
+
+
+### Fornecedor nos pagamentos pendentes (23/10/2026)
+
+Saldos e fluxo de caixa e pendências da conta exibem fornecedor/favorecido abaixo da descrição. Usam o nome gravado no título; para título antigo vazio de compra, consultam o fornecedor da compra vinculada. Títulos de compra continuam gravando o nome do fornecedor em cada parcela e rejeitam fornecedor sem nome. Não altera valores, vencimentos ou liquidações.

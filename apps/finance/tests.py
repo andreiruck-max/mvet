@@ -49,6 +49,32 @@ class Fixture:
 
 
 class FinanceTests(Fixture,TestCase):
+    def test_purchase_supplier_snapshot_and_pending_display(self):
+        purchase=self.purchase()
+        title=Title.objects.get(purchase_installment__purchase=purchase)
+        self.assertEqual(title.counterparty,'Fornecedor')
+        self.client.force_login(self.admin)
+        self.assertContains(self.client.get(url('finance')),'Fornecedor / favorecido: Fornecedor')
+        purchase.supplier.legal_name='Fornecedor atualizado'
+        purchase.supplier.save()
+        title.refresh_from_db()
+        self.assertEqual(title.counterparty_display,'Fornecedor')
+        from apps.purchases.models import PurchaseInstallment
+        installment=PurchaseInstallment.objects.create(purchase=purchase,number=2,due_date=self.today,amount=D('10'))
+        title=Title.objects.create(direction='PAY',description='Parcela antiga',counterparty='',account=self.a,
+            purchase_installment=installment,date=self.today,due_date=self.today,amount=D('10'),actor=self.admin,source='purchase')
+        self.assertEqual(title.counterparty_display,'Fornecedor atualizado')
+        self.assertContains(self.client.get(url('finance')),'Fornecedor / favorecido: Fornecedor atualizado')
+        self.assertContains(self.client.get(url('financial_account',args=[self.a.pk])),'Fornecedor / favorecido: Fornecedor atualizado')
+        self.assertFalse(Entry.objects.exists())
+
+    def test_manual_counterparty_and_absence(self):
+        title=self.title(counterparty='Favorecido sintético')
+        self.assertEqual(title.counterparty_display,'Favorecido sintético')
+        title.counterparty=''
+        self.assertEqual(title.counterparty_display,'')
+
+
     def test_obligation_does_not_move_cash(self):
         t=self.title();self.assertEqual(Entry.objects.count(),0)
         rows,_=selectors.daily_cash(self.today,self.today,self.a.pk)

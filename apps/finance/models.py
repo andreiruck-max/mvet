@@ -28,6 +28,14 @@ class FinancialAccount(models.Model):
 class FinancialTitle(models.Model):
     DIRECTIONS = [('PAY','Pagar'),('RECEIVE','Receber')]
     CATEGORIES = [('OPERATING','Operacional'),('FINANCIAL','Financeiro / juros'),('PRINCIPAL','Patrimonial / principal'),('OPENING','Pendência de abertura'),('OTHER','A classificar')]
+    @property
+    def counterparty_display(self):
+        if self.counterparty.strip():
+            return self.counterparty
+        if self.purchase_installment_id:
+            return str(self.purchase_installment.purchase.supplier)
+        return ''
+
     key = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     fingerprint = models.CharField(max_length=64, blank=True, editable=False)
     direction = models.CharField('Tipo', max_length=8, choices=DIRECTIONS)
