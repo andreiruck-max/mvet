@@ -1,0 +1,17 @@
+{% extends 'base.html' %}{% load static %}
+{% block title %}Transferir vários produtos{% endblock %}
+{% block content %}
+<h1>Transferir vários produtos</h1>
+<p>Escolha os depósitos e adicione os produtos do envio. Confira as quantidades antes de confirmar. Se algum item não puder ser transferido, nenhum será movimentado.</p>
+<form method="post" class="card form-card" id="transfer-batch-form">
+{% csrf_token %}{% include 'inventory/form_fields.html' %}
+<h2>Produtos do envio</h2>
+<p>Busque por SKU ou nome. Use uma linha por produto, até 200 produtos. Marque Excluir para retirar uma linha.</p>
+{{ formset.management_form }}{{ formset.non_form_errors }}
+<div id="component-rows">{% for form in formset %}<fieldset class="component-row"><legend>Produto {{ forloop.counter }}</legend>{% include 'inventory/form_fields.html' %}</fieldset>{% endfor %}</div>
+<template id="component-empty"><fieldset class="component-row"><legend>Produto adicional</legend>{% with form=formset.empty_form %}{% include 'inventory/form_fields.html' %}{% endwith %}</fieldset></template>
+<div class="actions"><button type="button" id="add-component">Adicionar produto</button><button class="primary">Confirmar transferência de todos</button></div>
+</form>
+{{ labels|json_script:'component-labels' }}
+<script src="{% static 'inventory.js' %}" defer></script>
+{% endblock %}

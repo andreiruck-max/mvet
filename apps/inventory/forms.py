@@ -77,3 +77,19 @@ class InventoryUploadForm(forms.Form):
             elif data['base_date'] > timezone.localdate():
                 self.add_error('base_date','A data-base não pode ser futura.')
         return data
+
+
+class TransferBatchForm(forms.Form):
+    key = forms.UUIDField(widget=forms.HiddenInput, initial=uuid.uuid4)
+    date = forms.DateField(label='Data', initial=timezone.localdate, widget=forms.DateInput(attrs={'type':'date'}, format='%Y-%m-%d'))
+    location = forms.ModelChoiceField(label='Local de origem', queryset=StockLocation.objects.filter(active=True))
+    target_location = forms.ModelChoiceField(label='Local de destino', queryset=StockLocation.objects.filter(active=True))
+    reason = forms.CharField(label='Motivo / documento do envio', max_length=500, widget=forms.Textarea(attrs={'rows':2}))
+
+
+class TransferItemForm(forms.Form):
+    product = forms.ModelChoiceField(label='Produto', queryset=Product.objects.filter(active=True,kind='SIMPLE'), widget=forms.HiddenInput(attrs={'data-product-lookup':'true'}))
+    quantity = forms.DecimalField(label='Quantidade a transferir', max_digits=18, decimal_places=4, min_value=Decimal('0.0001'))
+
+
+TransferItems = forms.formset_factory(TransferItemForm, extra=1, can_delete=True, min_num=1, validate_min=True, max_num=200, validate_max=True, absolute_max=200)

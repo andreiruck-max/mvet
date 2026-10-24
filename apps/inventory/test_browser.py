@@ -215,3 +215,39 @@ class BrowserAcceptance(StaticLiveServerTestCase):
             browser.close()
         p.refresh_from_db();self.assertEqual((p.quantity,p.average_cost),(4,15))
         self.assertEqual(Product.objects.get(sku='EXCEL-NEW').quantity,2)
+
+    def test_batch_transfer_multiple_products(self):
+        from playwright.sync_api import sync_playwright
+        from django.utils import timezone
+        from .models import StockBalance, StockOperation
+        Company.objects.create(pk=1)
+        actor=User.objects.create_superuser('batch-ui-owner')
+        origin=StockLocation.objects.create(name='Loja teste')
+        target=StockLocation.objects.create(name='Full teste')
+        for sku in ['BATCH-01','BATCH-02']:
+            product=Product.objects.create(sku=sku,name='Produto '+sku)
+            execute(actor=actor,key=uuid4(),kind='RECEIPT',date=timezone.localdate(),reason='Teste',
+                product_id=product.pk,location_id=origin.pk,quantity=Decimal('10'),cost=Decimal('5'))
+        client=Client();client.force_login(actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch()
+            context=browser.new_context(viewport={'width':1440,'height':1050})
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page()
+            page.goto(self.live_server_url+'/estoque/transferir-varios/')
+            page.locator('#id_location').select_option(str(origin.pk))
+            page.locator('#id_target_location').select_option(str(target.pk))
+            page.locator('#id_reason').fill('Envio Full teste navegador')
+            for index,sku in enumerate(['BATCH-01','BATCH-02']):
+                page.locator(f'#id_form-{index}-product_search').fill(sku)
+                page.get_by_role('button',name=sku+' · Produto '+sku,exact=True).click()
+                page.locator(f'#id_form-{index}-quantity').fill(str(index+2))
+            page.get_by_role('button',name='Adicionar produto',exact=True).click()
+            self.assertEqual(page.locator('#component-rows fieldset').count(),3)
+            page.locator('#id_form-2-DELETE').check()
+            page.set_viewport_size({'width':390,'height':844})
+            page.get_by_role('button',name='Confirmar transferência de todos',exact=True).click()
+            page.wait_for_url('**/movimentos/*/')
+            self.assertEqual(StockOperation.objects.get(reason='Envio Full teste navegador').movements.count(),4)
+            self.assertEqual(list(StockBalance.objects.filter(location=target).order_by('product__sku').values_list('quantity',flat=True)),[Decimal('2'),Decimal('3')])
+            browser.close()

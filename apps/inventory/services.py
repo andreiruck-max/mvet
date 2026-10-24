@@ -231,3 +231,47 @@ def prior_local_average(movement):
         return quant(totals['v'] / totals['q'])
     last = previous.order_by('-pk').first()
     return last.unit_cost if last else ZERO
+
+
+@transaction.atomic
+def transfer_batch(*, actor, key, date, reason, location_id, target_location_id, items):
+    """One immutable operation for the entire shipment, with atomic replay protection."""
+    require(actor, 'core.operate_stock')
+    require(actor, 'core.transfer_stock')
+    if not reason or not reason.strip() or len(reason) > 500:
+        raise ValidationError('Informe o motivo (até 500 caracteres).')
+    try:
+        key = uuid.UUID(str(key))
+        location_id, target_location_id = int(location_id), int(target_location_id)
+    except (ValueError, TypeError):
+        raise ValidationError('Identificador ou depósito inválido.')
+    if location_id == target_location_id:
+        raise ValidationError('Escolha outro local de destino.')
+    if not 1 <= len(items) <= 200:
+        raise ValidationError('Informe entre 1 e 200 produtos.')
+    normalized = []
+    for product_id, quantity in items:
+        try: product_id = int(product_id)
+        except (ValueError, TypeError): raise ValidationError('Produto inválido.')
+        normalized.append((product_id, number(quantity, QTY)))
+    normalized.sort()
+    ids = [pk for pk, quantity in normalized]
+    if len(set(ids)) != len(ids):
+        raise ValidationError('Produto repetido. Informe a quantidade total em uma única linha por SKU.')
+    fingerprint = _fingerprint([actor.pk, 'TRANSFER_BATCH', date, reason, location_id, target_location_id, normalized])
+    domain_lock()
+    previous = _repeat(key, fingerprint)
+    if previous: return previous
+    products = {p.pk:p for p in Product.objects.select_for_update().filter(pk__in=ids).order_by('pk')}
+    if len(products) != len(ids) or any(not p.active or p.kind != 'SIMPLE' for p in products.values()):
+        raise ValidationError('Selecione somente produtos simples e ativos.')
+    locations = {loc.pk:loc for loc in StockLocation.objects.select_for_update().filter(pk__in=[location_id,target_location_id]).order_by('pk')}
+    if len(locations) != 2 or any(not loc.active for loc in locations.values()):
+        raise ValidationError('Selecione depósitos ativos.')
+    _date(date, products.values())
+    values = {pk:_value_out(products[pk], quantity, locations[location_id]) for pk,quantity in normalized}
+    operation = StockOperation.objects.create(key=key, fingerprint=fingerprint, kind='TRANSFER', date=date, reason=reason.strip(), actor=actor)
+    for pk, quantity in normalized:
+        _apply(operation, products[pk], locations[location_id], -quantity, -values[pk])
+        _apply(operation, products[pk], locations[target_location_id], quantity, values[pk])
+    return operation

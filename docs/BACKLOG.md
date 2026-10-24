@@ -229,3 +229,7 @@ A tela Definir comissão da venda aceita valor total manual em R$, opcional. Pre
 ### Fornecedor nos pagamentos pendentes (23/10/2026)
 
 Saldos e fluxo de caixa e pendências da conta exibem fornecedor/favorecido abaixo da descrição. Usam o nome gravado no título; para título antigo vazio de compra, consultam o fornecedor da compra vinculada. Títulos de compra continuam gravando o nome do fornecedor em cada parcela e rejeitam fornecedor sem nome. Não altera valores, vencimentos ou liquidações.
+
+## Transferência de vários produtos (24/10/2026)
+
+Produtos e estoque ou Movimentar estoque → Transferir vários produtos. Informe origem, destino, data e motivo/documento uma vez; busque cada SKU/nome e preencha sua quantidade. Até 200 produtos simples ativos, uma linha por SKU; Excluir retira a linha. Confirmação cria uma única transferência com todos os movimentos e estorno conjunto pelo histórico. Saldo insuficiente ou qualquer item inválido bloqueia o envio inteiro. Validação usa saldo atual sob lock; reenvio idêntico não duplica. Permissões operate_stock e transfer_stock, sem exigir acesso a custos.
