@@ -336,3 +336,30 @@ def inventory_template(request):
     response = HttpResponse(template_xlsx(), content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename="modelo_estoque_mvet.xlsx"'
     return response
+
+
+@login_required
+@permission_required(('core.operate_stock','core.transfer_stock'), raise_exception=True)
+def transfer_batch_new(request):
+    from .forms import TransferBatchForm, TransferItems
+    from .services import transfer_batch
+    data = request.POST if request.method == 'POST' else None
+    form = TransferBatchForm(data, initial={'location':request.GET.get('location')})
+    formset = TransferItems(data)
+    if request.method == 'POST':
+        valid = form.is_valid()
+        items_valid = formset.is_valid()
+        if valid and items_valid:
+            d = form.cleaned_data
+            try:
+                op = transfer_batch(actor=request.user, key=d['key'], date=d['date'], reason=d['reason'],
+                    location_id=d['location'].pk, target_location_id=d['target_location'].pk,
+                    items=[(f.cleaned_data['product'].pk,f.cleaned_data['quantity']) for f in formset
+                           if f.cleaned_data and not f.cleaned_data.get('DELETE')])
+                messages.success(request, 'Transferência de todos os produtos confirmada.')
+                return redirect(detail_url(request, 'operation_detail', op.pk))
+            except ValidationError as exc:
+                form.add_error(None, '; '.join(exc.messages))
+    ids = [f['product'].value() for f in formset if str(f['product'].value()).isdigit()]
+    labels = {str(p.pk):str(p) for p in Product.objects.filter(pk__in=ids)}
+    return render(request, 'inventory/transfer_batch.html', {'form':form,'formset':formset,'labels':labels})

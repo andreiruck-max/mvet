@@ -104,3 +104,7 @@ Inativar preserva saldo, custos e histórico; produtos inativos continuam compon
 Markup inicial 35%, editável pelo master em Produtos e estoque → Configurar markup / preços; cada produto pode sobrescrever ou voltar a herdar. Coluna e API usam custo da loja, nunca custo Full. Funcionário sem permissão de custos vê quantidade e preço, sem valores de estoque/markup.
 
 Master: Atualizar posição de estoque → enviar JSON versão 2 → Conferir arquivo → Aplicar conciliação no MVet. Revisar data-base, base completa/parcial, novos SKUs e diferenças. Em base completa, SKUs ausentes são zero na base. Movimentos posteriores são mantidos. Mesmo arquivo não duplica. Finalizar notas antigas da base antes da aplicação. CLI equivalente: `reconcile_inventory arquivo.json --username LOGIN` e, após conferir, `--commit --revision HASH_DA_PREVIA`. Dados reais ficam fora do repositório.
+
+## Transferência de vários produtos (24/10/2026)
+
+Produtos e estoque ou Movimentar estoque → Transferir vários produtos. Informe origem, destino, data e motivo/documento uma vez; busque cada SKU/nome e preencha sua quantidade. Até 200 produtos simples ativos, uma linha por SKU; Excluir retira a linha. Confirmação cria uma única transferência com todos os movimentos e estorno conjunto pelo histórico. Saldo insuficiente ou qualquer item inválido bloqueia o envio inteiro. Validação usa saldo atual sob lock; reenvio idêntico não duplica. Permissões operate_stock e transfer_stock, sem exigir acesso a custos.
