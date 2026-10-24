@@ -248,6 +248,6 @@ class BrowserAcceptance(StaticLiveServerTestCase):
             page.set_viewport_size({'width':390,'height':844})
             page.get_by_role('button',name='Confirmar transferência de todos',exact=True).click()
             page.wait_for_url('**/movimentos/*/')
-            self.assertEqual(StockOperation.objects.get(reason='Envio Full teste navegador').movements.count(),4)
-            self.assertEqual(list(StockBalance.objects.filter(location=target).order_by('product__sku').values_list('quantity',flat=True)),[Decimal('2'),Decimal('3')])
             browser.close()
+        self.assertEqual(StockOperation.objects.get(reason='Envio Full teste navegador').movements.count(),4)
+        self.assertEqual(list(StockBalance.objects.filter(location=target).order_by('product__sku').values_list('quantity',flat=True)),[Decimal('2'),Decimal('3')])
