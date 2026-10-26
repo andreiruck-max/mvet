@@ -64,3 +64,7 @@ Total da empresa/estoque primeiro; canais/depósitos em ordem decrescente de val
 
 ## Interface unificada — 12/10/2026
 A camada `static/interface.css` define cores, controles, foco, cartões e tabelas comuns, com temas claro/escuro. Os layouts de domínio continuam em `mvet.css`. Menu pesquisável apenas entre destinos autorizados; a tela atual e seu módulo ficam indicados. Busca ignora acentos, Escape limpa a busca e fecha o menu móvel; ações continuam disponíveis sem JavaScript. A matriz de caixa mantém bancos nas linhas e dias nas colunas, com total fixo ao rolar. Preferências de privacidade e permissões permanecem independentes da apresentação.
+
+## 26/10/2026 — resultado antes do imposto e ordem dos cartões
+
+Dashboard inclui Resultado antes do imposto: receita operacional − CMV histórico efetivo − frete pago − taxas. Segue período/canal e exige view_margins. Não deduz imposto, DIFAL, comissão, extras/MDR ou outros custos; não substitui contribuição ou resultado da empresa. Cartões podem ser reorganizados pela alça (mouse/toque) ou setas do teclado. Ordem salva no banco por usuário, preservada entre acessos/dispositivos; novos cartões autorizados aparecem ao final. Falha de salvamento é exibida com opção de tentar novamente. Migração aditiva DashboardPreference, sem alterar lançamentos.

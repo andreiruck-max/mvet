@@ -188,3 +188,10 @@ main.workspace{padding:12px 14px}
 .today-label { font-weight: 800; text-transform: uppercase; font-size: .8em; }
 [data-theme="dark"] .cash-matrix .cash-today { background: #20344e; }
 [data-theme="dark"] .cash-matrix .cash-date.cash-today { background: #174c8d; }
+
+/* Dashboard cards retain links; only the handle initiates a reorder. */
+#dashboard-cards .metric { position:relative; }
+#dashboard-cards .metric h2 { padding-right:28px; }
+#dashboard-cards .card-move { position:absolute; top:5px; right:5px; padding:2px 7px; min-height:28px; cursor:grab; touch-action:none; }
+#dashboard-cards .moving { outline:2px solid #4357b5; }
+#card-order-config { margin:0 0 6px; }

@@ -20,7 +20,7 @@ class Dataset:
 def metrics_for(user, metrics):
     keys = ['name', 'id', 'count', 'products_amount', 'discount', 'shipping_received', 'revenue_adjustment', 'revenue', 'ticket']
     if user.has_perm('core.view_costs'): keys += ['cmv']
-    if user.has_perm('core.view_margins'): keys += ['contribution', 'margin', 'shipping_paid', 'fees', 'extra_costs_total', 'tax_amount', 'difal', 'commission', 'other_costs']
+    if user.has_perm('core.view_margins'): keys += ['before_tax', 'contribution', 'margin', 'shipping_paid', 'fees', 'extra_costs_total', 'tax_amount', 'difal', 'commission', 'other_costs']
     return {key: metrics[key] for key in keys if key in metrics}
 
 
@@ -90,7 +90,7 @@ def build(kind, user, query):
         keys = ['name','count','products_amount','discount','shipping_received','revenue_adjustment','revenue','ticket']
         headers = ['Canal','Vendas','Produtos','Desconto','Frete recebido','Ajuste gerencial da receita','Receita operacional','Ticket médio']
         if user.has_perm('core.view_costs'): keys += ['cmv']; headers += ['CMV']
-        if user.has_perm('core.view_margins'): keys += ['contribution','margin']; headers += ['Contribuição','Margem (pontos percentuais)']
+        if user.has_perm('core.view_margins'): keys += ['before_tax', 'contribution','margin']; headers += ['Resultado antes do imposto','Contribuição','Margem (pontos percentuais)']
         result = Dataset('Faturamento por canal',headers,[[r.get(k) for k in keys] for r in rows],totals=metrics_for(user,selectors.sales_summary(selectors.sale_rows(d))))
     elif kind == 'stock':
         from apps.inventory.selectors import catalog, selected_location, location_values

@@ -24,6 +24,7 @@ def metrics(values):
     result={f:values.get(f) or ZERO for f in FIELDS}
     result['count']=values.get('count',0)
     result['revenue']=result['products_amount']-result['discount']+result['shipping_received']+result['revenue_adjustment']
+    result['before_tax']=result['revenue']-result['cmv']-result['shipping_paid']-result['fees']
     result['contribution']=result['revenue']-sum((result[f] for f in COST_FIELDS),ZERO)
     result['margin']=result['contribution']/result['revenue']*100 if result['revenue'] else None
     result['ticket']=result['revenue']/result['count'] if result['count'] else ZERO
