@@ -237,3 +237,5 @@ Produtos e estoque ou Movimentar estoque → Transferir vários produtos. Inform
 ## 26/10/2026 — resultado antes do imposto e ordem dos cartões
 
 Dashboard inclui Resultado antes do imposto: receita operacional − CMV histórico efetivo − frete pago − taxas. Segue período/canal e exige view_margins. Não deduz imposto, DIFAL, comissão, extras/MDR ou outros custos; não substitui contribuição ou resultado da empresa. Cartões podem ser reorganizados pela alça (mouse/toque) ou setas do teclado. Ordem salva no banco por usuário, preservada entre acessos/dispositivos; novos cartões autorizados aparecem ao final. Falha de salvamento é exibida com opção de tentar novamente. Migração aditiva DashboardPreference, sem alterar lançamentos.
+
+26/10/2026: arraste dos cartões destaca o destino e só reorganiza ao soltar, permitindo movimentos horizontais/verticais sem perder a captura do ponteiro durante a troca de posição. Alça de quatro direções; teclado sobe/desce por linha e move esquerda/direita por posição. Testes de navegador cobrem ambos os lados e persistência após recarga.

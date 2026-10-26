@@ -3,7 +3,7 @@
 <header class="page-heading"><div><h1>Dashboard gerencial</h1><p class="muted report-caption">Indicadores da empresa · {{ range.start|date:'d/m/Y' }} a {{ range.end|date:'d/m/Y' }}</p></div>{% include 'reporting/export_buttons.html' with kind='dashboard' allowed=perms.core.export_dashboard %}</header>
 {% include 'reporting/filter.html' %}
 {% if totals %}
-<form id="card-order-config" data-url="{% url 'dashboard_order' %}">{% csrf_token %}<small id="card-order-status" role="status">Arraste pela alça ↕ para organizar. Pelo teclado, use as setas na alça.</small><button type="button" id="card-order-retry" hidden>Salvar ordem novamente</button></form>
+<form id="card-order-config" data-url="{% url 'dashboard_order' %}">{% csrf_token %}<small id="card-order-status" role="status">Arraste pela alça ✥ para os lados, para cima ou para baixo. Pelo teclado, use as setas na alça.</small><button type="button" id="card-order-retry" hidden>Salvar ordem novamente</button></form>
 {{ card_order|json_script:'dashboard-card-order' }}
 <section id="dashboard-cards" class="metric-grid" aria-label="Indicadores do período">
 <article class="card metric" data-card="revenue">{% if perms.core.view_sales_report %}<a class="metric-link" href="{% url 'sales_sheet' %}?{{ dates }}{% if channel %}&amp;channel={{ channel.pk }}{% endif %}">{% endif %}<h2>Receita operacional</h2><strong>R$ {{ totals.revenue|floatformat:'2g' }}</strong><small>{{ totals.count }} vendas · ticket R$ {{ totals.ticket|floatformat:'2g' }} · {{ channel|default:'Todos os canais' }}</small>{% if perms.core.view_sales_report %}</a>{% endif %}</article>

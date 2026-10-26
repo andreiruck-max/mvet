@@ -195,3 +195,5 @@ main.workspace{padding:12px 14px}
 #dashboard-cards .card-move { position:absolute; top:5px; right:5px; padding:2px 7px; min-height:28px; cursor:grab; touch-action:none; }
 #dashboard-cards .moving { outline:2px solid #4357b5; }
 #card-order-config { margin:0 0 6px; }
+
+#dashboard-cards .drop-target { outline:2px dashed #4357b5; background-color:var(--surface-hover, #eef1ff); }
