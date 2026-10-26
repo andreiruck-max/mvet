@@ -55,3 +55,8 @@ class AuditLog(models.Model):
         verbose_name = "Registro de auditoria"
         verbose_name_plural = "Auditoria"
         ordering = ["-occurred_at", "-pk"]
+
+
+class DashboardPreference(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    card_order = models.JSONField(default=list)

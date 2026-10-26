@@ -308,3 +308,37 @@ class NavigationPayablesTests(ReportingFixture, TestCase):
         supplier=p.supplier
         with self.assertRaisesMessage(ValidationError,'R$ 20,00 a menos'):
             purchases.save_draft(actor=self.actor,key=uuid4(),data=dict(supplier=supplier,document='C-3',series='',date=self.today,location=self.location,discount=D('0'),freight=D('0'),other_costs=D('0'),notes=''),items=[(self.product.pk,D('10'),D('5'))],installments=[(self.today,D('30'),'')])
+
+
+class DashboardCustomizationTests(ReportingFixture, TestCase):
+    def test_before_tax_exact_formula_and_permissions(self):
+        values={key:D(value) for key,value in dict(products_amount='200',discount='10',shipping_received='5',revenue_adjustment='2',cmv='70',shipping_paid='15',fees='12',tax_amount='20',difal='3',commission='4',extra_costs_total='6',other_costs='7').items()}
+        totals=s.metrics(values)
+        self.assertEqual(totals['before_tax'],D('100'))
+        self.assertEqual(totals['contribution'],D('60'))
+        from .datasets import metrics_for
+        user=User.objects.create_user('dashboard-limited')
+        user.user_permissions.add(Permission.objects.get(codename='view_dashboard'))
+        self.assertNotIn('before_tax',metrics_for(user,totals))
+        self.client.force_login(user)
+        self.assertNotContains(self.client.get(reverse('dashboard')),'Resultado antes do imposto')
+        self.client.force_login(self.actor)
+        self.assertContains(self.client.get(reverse('dashboard')),'Resultado antes do imposto')
+
+    def test_card_order_is_per_user_validated_and_persistent(self):
+        from apps.core.models import DashboardPreference
+        self.client.force_login(self.actor)
+        endpoint=reverse('dashboard_order')
+        order=['stock','before_tax','revenue']
+        self.assertEqual(self.client.post(endpoint,{'order':order},content_type='application/json').status_code,200)
+        self.assertEqual(self.client.get(reverse('dashboard')).context['card_order'],order)
+        for invalid in [['stock','stock'],['invalid'],[{}],None,'stock']:
+            self.assertEqual(self.client.post(endpoint,{'order':invalid},content_type='application/json').status_code,400)
+        self.assertEqual(self.client.get(endpoint).status_code,405)
+        other=User.objects.create_superuser('another-dashboard')
+        self.client.force_login(other)
+        self.assertEqual(self.client.get(reverse('dashboard')).context['card_order'],[])
+        self.assertEqual(DashboardPreference.objects.get(user=self.actor).card_order,order)
+        unauthorized=User.objects.create_user('no-dashboard')
+        self.client.force_login(unauthorized)
+        self.assertEqual(self.client.post(endpoint,{'order':[]},content_type='application/json').status_code,403)

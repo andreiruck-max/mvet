@@ -8,7 +8,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 from apps.inventory.services import domain_lock
 from apps.products.models import Product
 from apps.finance.selectors import cash_summary
@@ -52,6 +52,8 @@ def dashboard(request):
             ctx['unallocated']=projection['unallocated']
             ctx['overdue']=FinancialTitle.objects.filter(direction='PAY',status='OPEN',due_date__lt=today).aggregate(value=Sum(F('amount')-F('settled')))['value'] or selectors.ZERO
             ctx['payables']=selectors.payable_totals(selectors.payables({**d,'status':'pending'}))
+    from apps.core.models import DashboardPreference
+    ctx['card_order'] = DashboardPreference.objects.filter(user=request.user).values_list('card_order',flat=True).first() or []
     template='reporting/dashboard.html'
     return render(request,template,ctx,status=200 if d else 400)
 
@@ -143,3 +145,21 @@ def dre_api(request):
     domain_lock();form,d=bind(request,forms.PeriodForm)
     if not d:return JsonResponse({'errors':form.errors.get_json_data()},status=400)
     return JsonResponse(selectors.dre(d))
+
+
+@login_required
+@permission_required('core.view_dashboard', raise_exception=True)
+@require_POST
+def dashboard_order(request):
+    import json
+    from apps.core.models import DashboardPreference
+    allowed = {'revenue','before_tax','contribution','tax','result','expenses','purchases','cash','forecast','payables','stock'}
+    try:
+        data = json.loads(request.body)
+        order = data.get('order') if isinstance(data, dict) else None
+        if not isinstance(order, list) or len(order) > len(allowed) or any(not isinstance(key, str) or key not in allowed for key in order) or len(set(order)) != len(order):
+            raise ValueError
+    except (ValueError, UnicodeDecodeError):
+        return JsonResponse({'error':'Ordem de cartões inválida.'}, status=400)
+    DashboardPreference.objects.update_or_create(user=request.user, defaults={'card_order':order})
+    return JsonResponse({'saved':True})

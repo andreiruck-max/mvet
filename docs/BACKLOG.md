@@ -233,3 +233,7 @@ Saldos e fluxo de caixa e pendências da conta exibem fornecedor/favorecido abai
 ## Transferência de vários produtos (24/10/2026)
 
 Produtos e estoque ou Movimentar estoque → Transferir vários produtos. Informe origem, destino, data e motivo/documento uma vez; busque cada SKU/nome e preencha sua quantidade. Até 200 produtos simples ativos, uma linha por SKU; Excluir retira a linha. Confirmação cria uma única transferência com todos os movimentos e estorno conjunto pelo histórico. Saldo insuficiente ou qualquer item inválido bloqueia o envio inteiro. Validação usa saldo atual sob lock; reenvio idêntico não duplica. Permissões operate_stock e transfer_stock, sem exigir acesso a custos.
+
+## 26/10/2026 — resultado antes do imposto e ordem dos cartões
+
+Dashboard inclui Resultado antes do imposto: receita operacional − CMV histórico efetivo − frete pago − taxas. Segue período/canal e exige view_margins. Não deduz imposto, DIFAL, comissão, extras/MDR ou outros custos; não substitui contribuição ou resultado da empresa. Cartões podem ser reorganizados pela alça (mouse/toque) ou setas do teclado. Ordem salva no banco por usuário, preservada entre acessos/dispositivos; novos cartões autorizados aparecem ao final. Falha de salvamento é exibida com opção de tentar novamente. Migração aditiva DashboardPreference, sem alterar lançamentos.
