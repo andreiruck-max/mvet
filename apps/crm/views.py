@@ -7,6 +7,7 @@ from django.db.models import Count, Q
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from apps.core.navigation import detail_url
 from django.views.decorators.http import require_http_methods
 from apps.accounts.access import master
 from . import forms, services, selectors, importing, intake
@@ -19,8 +20,21 @@ def error(form,exc):form.add_error(None,'; '.join(exc.messages) if isinstance(ex
 @require_http_methods(['GET'])
 def queue(request,all_contacts=False):
     services.access(request.user)
+    session_key = 'crm_contacts_query' if all_contacts else 'crm_queue_query'
+    if 'clear' in request.GET:
+        request.session.pop(session_key, None)
+        return redirect(request.path + '?filters=1')
+    if not request.GET and request.session.get(session_key):
+        return redirect(request.path + '?' + request.session[session_key])
     if not all_contacts:intake.release_today(actor=request.user)
     form=forms.FilterForm(request.GET,actor=request.user);rows=selectors.filtered(request.user,form.cleaned_data) if form.is_valid() else selectors.contacts(request.user).none()
+    if form.is_valid():
+        query = request.GET.copy()
+        for key in list(query):
+            if key not in form.fields and key not in ('page', 'filters'):
+                del query[key]
+        request.session[session_key] = query.urlencode()
+        request.session['crm_last_list'] = request.path
     today=timezone.localdate()
     if not all_contacts:
         rows=rows.filter(awaiting_first_release=False,state__in=['ACTIVE','WAITING','PAUSED']).exclude(state='PAUSED',next_date__gt=today).order_by('next_date','name','pk')
@@ -41,7 +55,7 @@ def edit(request,pk=None):
     if request.method=='POST' and form.is_valid():
         try:obj=services.save_contact(actor=request.user,pk=pk,revision=form.cleaned_data['revision'],data=form.cleaned_data)
         except (ValidationError,IntegrityError) as exc:error(form,exc)
-        else:messages.success(request,'Contato salvo e próxima ação preservada.');return redirect('crm_detail',pk=obj.pk)
+        else:messages.success(request,'Contato salvo e próxima ação preservada.');return redirect(detail_url(request,'crm_detail',obj.pk))
     return render(request,'crm/form.html',{'form':form,'title':'Editar contato' if pk else 'Novo contato','contact':obj})
 
 @login_required
@@ -52,7 +66,7 @@ def interaction(request,pk):
     if request.method=='POST' and form.is_valid():
         try:services.record(actor=request.user,pk=pk,revision=form.cleaned_data['revision'],key=form.cleaned_data['key'],data=form.cleaned_data)
         except (ValidationError,IntegrityError) as exc:error(form,exc)
-        else:messages.success(request,'Contato registrado. A próxima ação foi atualizada.');return redirect('crm_detail',pk=pk)
+        else:messages.success(request,'Contato registrado. A próxima ação foi atualizada.');return redirect(detail_url(request,'crm_detail',pk))
     return render(request,'crm/interaction.html',{'form':form,'contact':obj,'latest':obj.interactions.first(),'rules':{r.result:{'days':r.days,'manual':r.allow_manual or request.user.is_superuser} for r in RecurrenceRule.objects.all()},'today':str(timezone.localdate())})
 
 @login_required
@@ -68,7 +82,7 @@ def state(request,pk,action):
     if request.method=='POST' and form.is_valid():
         try:services.change_state(actor=request.user,pk=pk,action=action,**form.cleaned_data)
         except ValidationError as exc:error(form,exc)
-        else:messages.success(request,'Próxima ação / status atualizado.');return redirect('crm_detail',pk=pk)
+        else:messages.success(request,'Próxima ação / status atualizado.');return redirect(detail_url(request,'crm_detail',pk))
     return render(request,'crm/form.html',{'form':form,'title':titles[action],'contact':obj,'help':'Não contatar bloqueia a rotina imediatamente. Reativar exige nova autorização documentada pelo Master.' if action in ('dnc','reactivate') else ''})
 
 @login_required
