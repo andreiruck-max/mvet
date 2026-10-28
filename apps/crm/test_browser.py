@@ -135,3 +135,33 @@ class CRMBrowser(Fixture,StaticLiveServerTestCase):
             page.get_by_role('button',name='Filtrar',exact=True).click()
             expect(page.get_by_text('Nenhuma atividade registrada nesse período e nesses filtros.',exact=True)).to_be_visible()
             browser.close()
+
+    def test_filters_survive_contact_registration_and_return(self):
+        from playwright.sync_api import sync_playwright, expect
+        obj = self.contact()
+        client = Client(); client.force_login(self.worker)
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            context = browser.new_context(viewport={'width':1440, 'height':1000})
+            context.add_cookies([{'name':'sessionid', 'value':client.cookies['sessionid'].value, 'url':self.live_server_url}])
+            page = context.new_page()
+            page.goto(self.live_server_url + reverse('crm_contacts'))
+            page.locator('#id_start').fill(str(self.today))
+            page.locator('#id_end').fill(str(self.today))
+            page.get_by_role('button', name='Filtrar', exact=True).click()
+            origin = page.url
+            page.get_by_role('link', name='Abrir contato', exact=True).click()
+            page.get_by_role('link', name='Registrar contato', exact=True).click()
+            page.get_by_label('Resultado:', exact=True).select_option('NO_REPLY')
+            page.get_by_role('button', name='Concluir contato', exact=True).click()
+            expect(page.locator('h1')).to_have_text(obj.name)
+            page.locator('.page-back').click()
+            expect(page).to_have_url(origin)
+            expect(page.locator('#id_start')).to_have_value(str(self.today))
+            expect(page.get_by_text('Nenhum contato neste filtro.', exact=True)).to_be_visible()
+            page.get_by_role('link', name='Limpar', exact=True).click()
+            expect(page.locator('#id_start')).to_have_value('')
+            expect(page.get_by_role('link', name='Abrir contato', exact=True)).to_be_visible()
+            Path('artifacts').mkdir(exist_ok=True)
+            page.screenshot(path='artifacts/crm-filter-return.png', full_page=True)
+            browser.close()

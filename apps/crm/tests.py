@@ -147,3 +147,49 @@ class CRMTests(Fixture,TestCase):
         obj=self.contact();item=self.record(obj)
         for queryset,data in [(Interaction.objects.filter(pk=item.pk),{'sent':'Changed'}),(ContactEvent.objects.filter(contact=obj),{'note':'Changed'}),(Contact.objects.filter(pk=obj.pk),{'next_date':None})]:
             with self.assertRaises(DatabaseError),transaction.atomic():queryset.update(**data)
+
+class CRMFilterNavigationTests(Fixture, TestCase):
+    def test_restore_filters_clear_and_separate_lists(self):
+        self.client.force_login(self.worker)
+        url = reverse('crm_contacts')
+        query = f'start={self.today}&end={self.today}&city=Cascavel&page=2'
+        self.assertEqual(self.client.get(url + '?' + query).status_code, 200)
+        self.assertRedirects(self.client.get(url), url + '?' + query)
+        self.assertEqual(self.client.get(reverse('crm_queue')).status_code, 200)
+        self.assertRedirects(self.client.get(url), url + '?' + query)
+        self.assertEqual(self.client.get(url + '?start=invalid').status_code, 400)
+        self.assertRedirects(self.client.get(url), url + '?' + query)
+        response = self.client.get(url + '?clear=1', follow=True)
+        self.assertEqual(response.context['form'].data.get('start'), None)
+        self.assertNotIn('city', self.client.session['crm_contacts_query'])
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_contact_return_survives_registration_and_refreshes_results(self):
+        from urllib.parse import urlencode
+        obj = self.contact()
+        self.client.force_login(self.worker)
+        origin = reverse('crm_contacts') + '?' + urlencode({'start':str(self.today), 'end':str(self.today)})
+        self.assertContains(self.client.get(origin), obj.name)
+        detail = reverse('crm_detail', args=[obj.pk]) + '?' + urlencode({'next':origin})
+        self.assertEqual(self.client.get(detail).context['back_url'], origin)
+        response = self.client.post(reverse('crm_interaction', args=[obj.pk]), {
+            **self.data(), 'revision':obj.revision, 'key':str(uuid4()), 'next':origin,
+        })
+        self.assertRedirects(response, detail)
+        self.assertEqual(self.client.get(detail).context['back_url'], origin)
+        response = self.client.get(reverse('crm_contacts'), follow=True)
+        self.assertEqual(response.context['page'].paginator.count, 0)
+        self.assertEqual(response.context['form'].data['start'], str(self.today))
+
+    def test_explicit_origin_wins_over_other_tab_and_external_url_is_rejected(self):
+        obj = self.contact()
+        self.client.force_login(self.worker)
+        self.client.get(reverse('crm_contacts'), {'q':'Other tab'})
+        origin = reverse('crm_queue') + '?overdue=on'
+        response = self.client.get(reverse('crm_detail', args=[obj.pk]), {'next':origin})
+        self.assertEqual(response.context['back_url'], origin)
+        response = self.client.get(reverse('crm_detail', args=[obj.pk]), {'next':'https://example.com/'})
+        self.assertTrue(response.context['back_url'].startswith('/crm/'))
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.get(reverse('crm_detail', args=[obj.pk]), {'next':origin}).status_code, 404)

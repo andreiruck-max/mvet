@@ -1,3 +1,5 @@
+Atualização 28/10/2026: CRM preserva filtros e página por sessão, separadamente em Pendências e Contatos. Abrir, editar ou registrar contato mantém a origem no retorno. Limpar remove os filtros da lista atual; resultados são consultados novamente, respeitando a carteira e a próxima ação atualizada.
+
 Atualização 21/10/2026: falha de consulta ao Bling preserva opções de depósito e última comparação. Não exibe seleção inválida quando as opções não puderam ser carregadas. Leituras GET com HTTP 500/502/503/504 têm uma única repetição; escritas nunca são repetidas automaticamente.
 
 Atualização 21/10/2026: conferência Bling ordenada por SKU numérico crescente antes da paginação de 50 produtos, usando a mesma regra do estoque. Consulta salva mantém seus itens e é ordenada sem nova chamada à API.

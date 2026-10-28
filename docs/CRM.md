@@ -1,3 +1,5 @@
+Atualização 28/10/2026: CRM preserva filtros e página por sessão, separadamente em Pendências e Contatos. Abrir, editar ou registrar contato mantém a origem no retorno. Limpar remove os filtros da lista atual; resultados são consultados novamente, respeitando a carteira e a próxima ação atualizada.
+
 # CRM / Comercial — primeira versão
 
 ## Operação

@@ -37,6 +37,19 @@ def detail_url(request, name, pk):
 def navigation(request):
     fallback = reverse('products') if request.path.startswith('/estoque/') else reverse('home')
     back = safe_return(request, request.POST.get('next') or request.GET.get('next'))
+    crm_return = None
+    if request.path.startswith('/crm/') and request.user.is_authenticated:
+        lists = (reverse('crm_queue'), reverse('crm_contacts'))
+        if back and urlsplit(back).path in lists:
+            crm_return = back
+        else:
+            origin = request.session.get('crm_last_list')
+            if origin in lists:
+                key = 'crm_queue_query' if origin == lists[0] else 'crm_contacts_query'
+                query = request.session.get(key, '')
+                crm_return = origin + ('?' + query if query else '')
+        if request.resolver_match and request.resolver_match.url_name == 'crm_detail':
+            back = crm_return or back
     back = back or safe_return(request, request.META.get('HTTP_REFERER')) or fallback
-    return {'back_url': back, 'inventory_return_url': return_url(request), 'show_back': request.path not in (reverse('home'), reverse('dashboard')),
+    return {'back_url': back, 'crm_return_url': crm_return or reverse('crm_queue'), 'inventory_return_url': return_url(request), 'show_back': request.path not in (reverse('home'), reverse('dashboard')),
             'mvet_version':VERSION, 'can_manage_settings':can_manage_settings(request.user)}
