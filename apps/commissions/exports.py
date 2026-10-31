@@ -38,43 +38,46 @@ def datasets(rows, events, payments, start, end):
 
 def render_pdf(rows, events, payments, start, end, company):
     from reportlab.platypus import PageBreak, Spacer
-    from apps.reporting.pdf_layout import Report, p, fmt, table, HEADING, SECTION, SMALL, HEADER, NUMBER
+    from apps.reporting.pdf_layout import Report, p, fmt, table, HEADING, SECTION, SMALL, HEADER, NUMBER, BOLD
     report = Report('Demonstrativo de comissões', company, wide=True)
     story = []
     for index, row in enumerate(rows):
         if index:
             story.append(PageBreak())
         person = row['payee']
-        story += [p('Demonstrativo de comissões', HEADING), p(str(person), SECTION),
-                  p(f'Apuração: {start:%d/%m/%Y} a {end:%d/%m/%Y}', SMALL), p(NOTES, SMALL), Spacer(1, 10)]
+        story += [p('Demonstrativo de comissões', HEADING), p(f'{person} · Apuração: {start:%d/%m/%Y} a {end:%d/%m/%Y}', BOLD), Spacer(1, 6)]
         summary = datasets([row], [], [], start, end)
         data = [[p(h, HEADER) for h in summary.headers[1:]],
                 [p(v, NUMBER) for v in summary.rows[0][1:]]]
         story += [table(data, [report.width/6]*6), p('Liberações, ajustes e pendências anteriores', SECTION)]
-        detail = [[p(h, HEADER) for h in ['Venda / cliente','Parcela / liberação','Base / termos aplicados','Recebido / estorno','Liberada / ajuste','Paga até o corte','Pendente']]]
+        detail = [[p(h, HEADER) for h in ['Venda / cliente','Parcela / liberação / origem','Base / percentual\nTotal / previsto da parcela','Recebido / estorno','Liberada / ajuste','Paga até o corte','Pendente']]]
         for e in events:
             if e.installment.plan.payee_id != person.pk:
                 continue
             plan = e.installment.plan
-            terms = (f"Base: {fmt(Decimal(e.terms['base']))}\n"
-                     'Percentual: ' + format(Decimal(e.terms['rate']), '.4f').replace('.', ',') + '%\n'
-                     f"Total aplicado: {fmt(Decimal(e.terms['total']))}\n"
-                     f"Previsto da parcela: {fmt(Decimal(e.terms['installment_forecast']))}")
-            detail.append([p(f'{plan.sale.reference}\n{plan.sale.date:%d/%m/%Y} · {plan.customer}\n{e.command.reason}'),
-                           p(f'{e.installment.number}\n{e.date:%d/%m/%Y}'),p(terms),
+            terms = (f"{fmt(Decimal(e.terms['base']))} / "
+                     + format(Decimal(e.terms['rate']), '.4f').replace('.', ',') + '%\n'
+                     + f"{fmt(Decimal(e.terms['total']))} / {fmt(Decimal(e.terms['installment_forecast']))}")
+            identity = f'{plan.sale.reference} · {plan.sale.date:%d/%m/%Y}'
+            if plan.customer:
+                identity += '\n' + plan.customer
+            detail.append([p(identity),
+                           p(f'{e.installment.number} · {e.date:%d/%m/%Y}\n{e.command.reason}'),p(terms),
                            p(e.received, NUMBER),p(e.released, NUMBER),p(e.paid, NUMBER),p(e.pending, NUMBER)])
         if len(detail) == 1:
             detail.append([p('Sem liberações ou pendências.')]+[p('') for _ in range(6)])
-        story.append(table(detail, [report.width*w for w in (.25,.10,.23,.105,.105,.105,.105)]))
-        story.append(p('Pagamentos e estornos realizados no mês', SECTION))
+        story.append(table(detail, [report.width*w for w in (.25,.15,.24,.09,.09,.09,.09)]))
         data = [[p(h,HEADER) for h in ['Data','Forma','Tipo','Valor','Observação']]]
         for payment in payments:
             if payment.payee_id == person.pk:
                 data.append([p(payment.date),p(payment.method),p('Estorno' if payment.reversal_of_id else 'Pagamento'),
                              p(payment.amount,NUMBER),p(payment.command.reason)])
         if len(data) == 1:
-            data.append([p('Sem pagamentos no mês.')]+[p('') for _ in range(4)])
-        story.append(table(data,[report.width*w for w in (.12,.14,.12,.14,.48)]))
+            story += [Spacer(1, 6), p('Pagamentos no mês: nenhum pagamento ou estorno registrado.', SMALL)]
+        else:
+            story += [p('Pagamentos e estornos realizados no mês', SECTION),
+                      table(data,[report.width*w for w in (.12,.14,.12,.14,.48)])]
+        story += [Spacer(1, 6), p(NOTES, SMALL)]
     if not story:
         story = [p('Demonstrativo de comissões', HEADING),p('Nenhum comissionado encontrado.')]
     return report.build(story)

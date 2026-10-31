@@ -2,7 +2,7 @@ from io import BytesIO
 from zipfile import ZipFile
 from decimal import Decimal as D
 from unittest.mock import patch
-from django.test import TestCase
+from django.test import TestCase, SimpleTestCase
 from django.urls import reverse
 from .tests import Fixture
 from .models import Payee
@@ -70,3 +70,63 @@ class ExportTests(Fixture, TestCase):
         detail = dataset.sections[0]
         self.assertEqual(detail.rows[0][7], D('5'))
         self.assertTrue(any(row[12] < 0 for row in detail.rows))
+
+
+class CompactPDFTests(SimpleTestCase):
+    def statement(self, count=10, payee_id=1):
+        from datetime import date
+        from types import SimpleNamespace as N
+        class Person:
+            pk = payee_id
+            def __str__(self): return f'Comissionado sintético {self.pk}'
+        person = Person()
+        row = dict(payee=person, released=D(count), paid=D(0), month_allocated=D(0),
+                   pending=D(count), previous=D(0), total=D(count))
+        events = []
+        for i in range(count):
+            plan = N(payee_id=person.pk, customer='Cliente sintético com nome completo',
+                     sale=N(reference=f'NF-SINTETICA-{i:03}', date=date(2026,10,1)))
+            events.append(N(installment=N(plan=plan,number=1),date=date(2026,10,2),
+                            command=N(reason='Recebimento Pix'),received=D('50'),released=D('1'),paid=D(0),pending=D('1'),
+                            terms=dict(base='50',rate='2',total='1',installment_forecast='1')))
+        return row, events
+
+    def test_ten_commissions_fit_one_page_with_all_rows_and_notes(self):
+        from datetime import date
+        from apps.reporting.test_pdf_layout import pages, render_with_text
+        from .exports import render_pdf, NOTES
+        row, events = self.statement()
+        content, drawn = render_with_text(render_pdf, [row], events, [], date(2026,10,1),date(2026,10,31),'Empresa sintética')
+        self.assertEqual(pages(content), 1)
+        for i in range(10):
+            self.assertTrue(any(f'NF-SINTETICA-{i:03}' in text for _,text in drawn))
+        self.assertIn((1, NOTES), drawn)
+
+    def test_long_statement_starts_on_summary_page_and_keeps_last_record(self):
+        from datetime import date
+        from apps.reporting.test_pdf_layout import pages, render_with_text
+        from .exports import render_pdf
+        row, events = self.statement(80)
+        events[-1].released = D('-12.34')
+        events[-1].terms['total'] = '15.67'
+        events[-1].command.reason = 'Ajuste manual auditado'
+        content, drawn = render_with_text(render_pdf, [row], events, [], date(2026,10,1),date(2026,10,31),'Empresa sintética')
+        self.assertGreater(pages(content), 1)
+        self.assertTrue(any(page == 1 and 'NF-SINTETICA-000' in text for page,text in drawn))
+        self.assertTrue(any('NF-SINTETICA-079' in text for _,text in drawn))
+        self.assertTrue(any(text == '-12,34' for _,text in drawn))
+        self.assertTrue(any('15,67 / 1,00' in text for _,text in drawn))
+
+    def test_separate_payees_and_payment_reversal(self):
+        from datetime import date
+        from types import SimpleNamespace as N
+        from apps.reporting.test_pdf_layout import pages, render_with_text
+        from .exports import render_pdf
+        first, a = self.statement(1)
+        second, b = self.statement(1,2)
+        payment = N(payee_id=2,date=date(2026,10,5),method='PIX',reversal_of_id=1,
+                    amount=D('-1'),command=N(reason='ESTORNO-SINTETICO'))
+        content, drawn = render_with_text(render_pdf, [first,second], a+b, [payment], date(2026,10,1),date(2026,10,31),'Empresa sintética')
+        self.assertEqual(pages(content), 2)
+        self.assertIn((2, 'ESTORNO-SINTETICO'), drawn)
+        self.assertNotIn((1, 'ESTORNO-SINTETICO'), drawn)

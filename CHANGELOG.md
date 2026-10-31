@@ -1,3 +1,5 @@
+Atualização 31/10/2026: PDFs com linhas e títulos compactos, cabeçalhos repetidos e seções que aproveitam a página disponível. Comissões preservam todos os termos e valores, com critérios no final e aviso simples quando não há pagamentos. Títulos acompanham o início da tabela sem empurrar todo o detalhamento para outra página. Vendas por canal, blocos de colunas, estoque por local e grupos de três dias do caixa não abrem páginas obrigatórias. Cada comissionado continua iniciando uma página própria. Sem mudança de cálculos, permissões ou dados do Excel.
+
 Atualização 28/10/2026: CRM preserva filtros e página por sessão, separadamente em Pendências e Contatos. Abrir, editar ou registrar contato mantém a origem no retorno. Limpar remove os filtros da lista atual; resultados são consultados novamente, respeitando a carteira e a próxima ação atualizada.
 
 Atualização 21/10/2026: falha de consulta ao Bling preserva opções de depósito e última comparação. Não exibe seleção inválida quando as opções não puderam ser carregadas. Leituras GET com HTTP 500/502/503/504 têm uma única repetição; escritas nunca são repetidas automaticamente.

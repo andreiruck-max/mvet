@@ -1,5 +1,5 @@
 """Print sales by channel, preserving complete items and authorized metrics."""
-from reportlab.platypus import Spacer, PageBreak
+from reportlab.platypus import Spacer
 from .pdf_layout import Report, p, fmt, table, BODY, NUMBER, SMALL, HEADER, HEADER_NUMBER, HEADING, SECTION
 
 
@@ -17,7 +17,8 @@ def render(dataset, company):
     story += [table(summary, [width*.32] + [width*.68/len(keys)]*len(keys), repeat=2), Spacer(1, 8),
               p('Totais somente de vendas confirmadas. Rascunhos e cancelamentos ficam identificados e não compõem os totais.', SMALL)]
     for group in dataset.groups:
-        story += [PageBreak(), p(group.notes, HEADING),
+        intro_start = len(story)
+        story += [p(group.notes, SECTION),
                   p(f"{group.totals['count']} vendas confirmadas · Receita R$ {fmt(group.totals['revenue'])}", BODY)]
         totals = []
         for key, label in [('discount','Desconto'), ('shipping_received','Frete recebido'), ('shipping_paid','Frete pago'), ('fees','Taxas'), ('extra_costs_total','Extras / MDR'), ('difal','DIFAL'), ('commission','Comissão'), ('other_costs','Outros custos'), ('revenue_adjustment','Ajuste de receita')]:
@@ -25,7 +26,7 @@ def render(dataset, company):
                 totals.append(label + ': R$ ' + fmt(group.totals[key]))
         if totals:
             story.append(p('Totais do canal · ' + ' · '.join(totals), SMALL))
-        story.append(Spacer(1, 12))
+        story.append(Spacer(1, 6))
         financial = ['TOTAL'] + (['CMV histórico'] if costs else []) + ['SIMPLES'] + (['Margem de contribuição','Margem %'] if margins else [])
         labels2 = {'TOTAL':'Receita', 'SIMPLES':'Imposto', 'Margem de contribuição':'Contribuição', 'CMV histórico':'CMV'}
         total_keys = {'TOTAL':'revenue', 'CMV histórico':'cmv', 'SIMPLES':'tax_amount', 'Margem de contribuição':'contribution', 'Margem %':'margin'}
@@ -50,6 +51,9 @@ def render(dataset, company):
                 numbers = [p(row[key]*100 if key == 'Margem %' and row[key] is not None else row[key], NUMBER) for key in financial] if index == 0 else [p('') for _ in financial]
                 label = identity if index == 0 else 'NF ' + str(row['NF']) + ' / ' + str(row['SÉRIE']) + '\nContinuação'
                 data.append([p(label), products] + numbers)
+        # Let the shared layout keep the channel introduction with its first row.
+        for item in story[intro_start:]:
+            item.keepWithNext = True
         number_widths = [82 if key == 'Margem de contribuição' else 65 for key in financial]
         story.append(table(data, [90, width-90-sum(number_widths)] + number_widths, repeat=2))
     return report.build(story)

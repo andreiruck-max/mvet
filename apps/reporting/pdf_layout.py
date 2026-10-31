@@ -11,7 +11,7 @@ from xml.sax.saxutils import escape
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle
-from reportlab.platypus import LongTable, Paragraph, SimpleDocTemplate, TableStyle
+from reportlab.platypus import CondPageBreak, LongTable, Paragraph, SimpleDocTemplate, TableStyle
 
 # ReportLab ships these licensed fonts: embed them for consistent accents and spacing
 # on Windows, Linux and browser PDF viewers without system-font dependencies.
@@ -23,15 +23,15 @@ INK = colors.HexColor('#20313d')
 BRAND = colors.HexColor('#1b1c4a')
 BORDER = colors.HexColor('#ccd8df')
 SOFT = colors.HexColor('#eef3f6')
-BODY = ParagraphStyle('body', fontName='MVet', fontSize=8.5, leading=12, textColor=INK)
+BODY = ParagraphStyle('body', fontName='MVet', fontSize=8.5, leading=11, textColor=INK)
 NUMBER = ParagraphStyle('number', parent=BODY, alignment=2)
-SMALL = ParagraphStyle('small', parent=BODY, fontSize=7.5, leading=10, textColor=colors.HexColor('#586b78'))
-HEADER = ParagraphStyle('header', parent=BODY, fontName='MVet-Bold', fontSize=8, textColor=colors.white)
+SMALL = ParagraphStyle('small', parent=BODY, fontSize=7.5, leading=9.5, textColor=colors.HexColor('#586b78'))
+HEADER = ParagraphStyle('header', parent=BODY, fontName='MVet-Bold', fontSize=8, leading=10.5, textColor=colors.white)
 HEADER_NUMBER = ParagraphStyle('header_number', parent=HEADER, alignment=2)
 BOLD = ParagraphStyle('bold', parent=BODY, fontName='MVet-Bold')
 BOLD_NUMBER = ParagraphStyle('bold_number', parent=BOLD, alignment=2)
-HEADING = ParagraphStyle('heading', parent=BODY, fontName='MVet-Bold', fontSize=19, leading=24, spaceAfter=8, keepWithNext=True)
-SECTION = ParagraphStyle('section', parent=HEADING, fontSize=12, leading=17, spaceBefore=14, spaceAfter=7)
+HEADING = ParagraphStyle('heading', parent=BODY, fontName='MVet-Bold', fontSize=16, leading=20, spaceAfter=6, keepWithNext=True)
+SECTION = ParagraphStyle('section', parent=HEADING, fontSize=10.5, leading=14, spaceBefore=10, spaceAfter=4)
 
 
 def fmt(value):
@@ -59,10 +59,10 @@ def table(data, widths, *, repeat=1):
         ('ROWBACKGROUNDS', (0, repeat), (-1, -1), [colors.white, SOFT]),
         ('LINEBELOW', (0, 0), (-1, 0), .8, BRAND),
         ('LINEBELOW', (0, repeat), (-1, -1), .35, BORDER),
-        ('LEFTPADDING', (0, 0), (-1, -1), 8),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-        ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('LEFTPADDING', (0, 0), (-1, -1), 6),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+        ('TOPPADDING', (0, 0), (-1, -1), 3),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
     ]))
     if repeat > 1:
         obj.setStyle(TableStyle([('BACKGROUND', (0, 1), (-1, repeat-1), SOFT),
@@ -74,10 +74,10 @@ class Report:
     def __init__(self, title, company, *, wide=True):
         self.out = BytesIO()
         self.page = landscape(A4) if wide else A4
-        self.width = self.page[0] - 64
+        self.width = self.page[0] - 76  # Account for the frame's 6pt padding on each side.
         self.title, self.company = title, company
         self.document = SimpleDocTemplate(self.out, pagesize=self.page, leftMargin=32, rightMargin=32,
-                                          topMargin=52, bottomMargin=40, title=title, author=company)
+                                          topMargin=44, bottomMargin=36, title=title, author=company)
 
     def decorate(self, canvas, doc):
         canvas.saveState()
@@ -98,8 +98,40 @@ class Report:
         canvas.drawRightString(self.page[0]-32, 18, f'Página {doc.page}')
         canvas.restoreState()
 
+    def flowing_headings(self, story):
+        """Keep a caption with the first table row, not with the entire LongTable.
+
+        ReportLab's automatic keepWithNext otherwise moves a long table to a
+        fresh page even when several rows fit beneath its caption here.
+        """
+        result = []
+        index = 0
+        frame_height = self.document.height - 12
+        while index < len(story):
+            end = index
+            while end < len(story) and story[end].getKeepWithNext():
+                end += 1
+            if end > index and end < len(story) and isinstance(story[end], LongTable):
+                captions = story[index:end]
+                grid = story[end]
+                grid.wrap(self.width, frame_height)
+                # Heights are measured by ReportLab, including wrapping and padding.
+                first_rows = sum(grid._rowHeights[:grid.repeatRows + 1])
+                caption_height = sum(item.wrap(self.width, frame_height)[1] +
+                                     item.getSpaceBefore() + item.getSpaceAfter() for item in captions)
+                result.append(CondPageBreak(min(frame_height, caption_height + first_rows + 2)))
+                for item in captions:
+                    item.keepWithNext = False
+                result.extend(captions)
+                result.append(grid)
+                index = end + 1
+            else:
+                result.append(story[index])
+                index += 1
+        return result
+
     def build(self, story):
-        self.document.build(story, onFirstPage=self.decorate, onLaterPages=self.decorate)
+        self.document.build(self.flowing_headings(story), onFirstPage=self.decorate, onLaterPages=self.decorate)
         return self.out.getvalue()
 
 
