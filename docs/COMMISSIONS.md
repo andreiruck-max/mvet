@@ -1,3 +1,5 @@
+Atualização 31/10/2026: PDFs com linhas e títulos compactos, cabeçalhos repetidos e seções que aproveitam a página disponível. Comissões preservam todos os termos e valores, com critérios no final e aviso simples quando não há pagamentos. Títulos acompanham o início da tabela sem empurrar todo o detalhamento para outra página. Vendas por canal, blocos de colunas, estoque por local e grupos de três dias do caixa não abrem páginas obrigatórias. Cada comissionado continua iniciando uma página própria. Sem mudança de cálculos, permissões ou dados do Excel.
+
 Atualização 20/10/2026: Apuração mensal de comissões exporta PDF por vendedor e Excel com abas de resumo, liberações/ajustes e pagamentos do mês. Respeita mês e comissionado; funcionário exporta apenas a própria pessoa vinculada. Usa bases/percentuais históricos dos eventos, saldos até o corte e pagamentos/estornos. Explica a diferença entre pago no mês e pago da apuração; não inclui custos, margens ou bancos.
 
 # Controle de comissões

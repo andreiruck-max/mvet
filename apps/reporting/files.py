@@ -155,15 +155,15 @@ def pdf(dataset, company):
     if hasattr(dataset, 'groups'):
         from .sales_pdf import render
         return render(dataset, company)
-    from reportlab.platypus import Spacer, PageBreak
+    from reportlab.platypus import Spacer
     from .pdf_layout import Report, p, HEADING, SECTION, SMALL, HEADER, NUMBER, table, dataset_table
     report = Report(dataset.title, company, wide=len(dataset.headers) > 4)
-    story = [p(dataset.title, HEADING), p(dataset.notes, SMALL), Spacer(1, 12)]
+    story = [p(dataset.title, HEADING), p(dataset.notes, SMALL), Spacer(1, 6)]
     indexes = list(range(len(dataset.headers)))
     blocks = [indexes] if len(indexes) <= 9 else [[0, 1]+indexes[i:i+6] for i in range(2, len(indexes), 6)]
     for number, index in enumerate(blocks):
         if number:
-            story += [PageBreak(), p(dataset.title, HEADING)]
+            story += [p(dataset.title, SECTION)]
         if len(blocks) > 1:
             story += [p(f'Detalhamento {number+1} de {len(blocks)} · mesmas referências', SECTION)]
         story.append(dataset_table(dataset, report.width, index))
@@ -173,6 +173,6 @@ def pdf(dataset, company):
         data += [[p(METRICS.get(key, key)), p(value, NUMBER)] for key, value in dataset.totals.items()]
         story.append(table(data, [report.width*.65, report.width*.35]))
     if hasattr(dataset, 'locations'):
-        story += [PageBreak(), p('Estoque por local', HEADING),
+        story += [p('Estoque por local', SECTION),
                   dataset_table(dataset.locations, report.width, list(range(len(dataset.locations.headers))))]
     return report.build(story)

@@ -12,3 +12,7 @@ PDFs recebem um conjunto de estilos comum, fontes incorporadas do ReportLab, pro
 
 ## Validação
 Suíte funcional, exportação de notas extensas e matriz projetada; navegador em desktop/celular, navegação e temas; renderização de PDFs sintéticos para revisão de alinhamento, fontes, quebra de página e valores negativos.
+
+## Revisão de apresentação — 31/10/2026
+
+Seções curtas compartilham a página disponível; agrupamentos de canais, depósitos e três dias do caixa permanecem identificados, sem quebra obrigatória. Títulos ficam com cabeçalho e primeira linha, permitindo que o restante da tabela continue. Menos espaçamento vertical, mantendo fonte de corpo e valores em 8,5 pt. Comissões compactam termos em duas linhas e levam os critérios ao final; um novo comissionado começa em página própria. Nenhum dado é truncado para caber em uma página.

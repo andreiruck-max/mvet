@@ -1,7 +1,7 @@
 """Cash matrix in printable day groups, matching the chosen screen mode."""
 from reportlab.lib import colors
-from reportlab.platypus import PageBreak, Spacer, TableStyle
-from .pdf_layout import Report, p, fmt, table, BODY, NUMBER, HEADER, HEADING, SMALL, BOLD_NUMBER
+from reportlab.platypus import TableStyle
+from .pdf_layout import Report, p, fmt, table, NUMBER, HEADER, HEADING, SECTION, SMALL, BOLD_NUMBER
 
 
 def render(dataset, company):
@@ -13,12 +13,10 @@ def render(dataset, company):
     keys = ['projected_credits', 'projected_debits', 'projected'] if projected else ['credits', 'debits', 'final']
     story = []
     for offset in range(0, len(days), 3):
-        if offset:
-            story.append(PageBreak())
         group = days[offset:offset+3]
-        story += [p('Saldos e fluxo de caixa', HEADING),
-                  p(('Realizado + previsto' if projected else 'Somente realizado') + ' · ' + fmt(group[0]) + ' a ' + fmt(group[-1]), BODY),
-                  p(dataset.notes, SMALL), Spacer(1, 12)]
+        if not offset:
+            story += [p('Saldos e fluxo de caixa', HEADING), p(dataset.notes, SMALL)]
+        story.append(p(('Realizado + previsto' if projected else 'Somente realizado') + ' · ' + fmt(group[0]) + ' a ' + fmt(group[-1]), SECTION))
         data = [[p('Banco / conta', HEADER)]]
         for day in group:
             data[0] += [p(fmt(day), HEADER), p(''), p('')]
