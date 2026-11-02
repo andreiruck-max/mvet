@@ -1,6 +1,6 @@
 {% extends 'base.html' %}{% load static %}{% block title %}Indicadores{% endblock %}{% block content %}
 <div class="dashboard-page compact-page">
-<header class="page-heading"><div><h1>Dashboard gerencial</h1><p class="muted report-caption">Indicadores da empresa · {{ range.start|date:'d/m/Y' }} a {{ range.end|date:'d/m/Y' }}</p></div>{% include 'reporting/export_buttons.html' with kind='dashboard' allowed=perms.core.export_dashboard %}</header>
+<header class="page-heading"><div><h1>Dashboard gerencial</h1><p class="muted report-caption">Indicadores da empresa · {{ range.start|date:'d/m/Y' }} a {{ range.end|date:'d/m/Y' }}</p></div><a class="button" href="{% url 'report_evolution' %}{% if channel %}?channel={{ channel.pk }}{% endif %}">Evolução mensal, anual e projeções</a>{% include 'reporting/export_buttons.html' with kind='dashboard' allowed=perms.core.export_dashboard %}</header>
 {% include 'reporting/filter.html' %}
 {% if totals %}
 <form id="card-order-config" data-url="{% url 'dashboard_order' %}">{% csrf_token %}<small id="card-order-status" role="status">Arraste pela alça ✥ para os lados, para cima ou para baixo. Pelo teclado, use as setas na alça.</small><button type="button" id="card-order-retry" hidden>Salvar ordem novamente</button></form>
@@ -18,7 +18,7 @@
 </section>
 {% endif %}
 <nav class="quick-links" aria-label="Acessos aos relatórios">
-<a href="{% url 'report_evolution' %}{% if channel %}?channel={{ channel.pk }}{% endif %}">Evolução mensal, anual e projeções <span aria-hidden="true">→</span></a>
+
 {% if perms.core.view_sales_report %}<a href="{% url 'sales_sheet' %}?{{ dates }}{% if channel %}&amp;channel={{ channel.pk }}{% endif %}">Conferir vendas e deduções em tabela <span aria-hidden="true">→</span></a>{% endif %}
 {% if perms.core.view_dre %}<a href="{% url 'dre' %}?{{ dates }}">Resultado e DRE <span aria-hidden="true">→</span></a>{% endif %}
 {% if perms.core.view_finance %}<a href="{% url 'finance' %}?{{ dates }}">Saldos e fluxo de caixa <span aria-hidden="true">→</span></a><a href="{% url 'purchase_payables' %}?{{ dates }}">Compras a pagar <span aria-hidden="true">→</span></a>{% endif %}
