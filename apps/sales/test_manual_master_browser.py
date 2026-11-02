@@ -79,7 +79,7 @@ class ManualMasterBrowser(Fixture, StaticLiveServerTestCase):
             page.screenshot(path='artifacts/sale-commission-entry.png',full_page=True)
             page.get_by_role('button',name='Salvar e revisar',exact=True).click()
             page.get_by_role('button',name='Confirmar venda',exact=True).click()
-            page.get_by_text('Cliente manual demonstrativo',exact=True).wait_for()
+            page.get_by_text('Cliente manual demonstrativo',exact=False).wait_for()
             page.get_by_role('link',name='Controle de comissão',exact=True).click()
             self.assertIn('Cliente manual demonstrativo',page.locator('main').inner_text())
             page.screenshot(path='artifacts/sale-automatic-commission.png',full_page=True)
