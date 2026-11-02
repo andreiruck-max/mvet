@@ -62,6 +62,8 @@ class SaleForm(forms.ModelForm):
         self.fields['commission_payee'].help_text='Em branco, usa o vínculo do canal. Sem vínculo, não cria controle de comissão.'
         self.fields['commission_manual_total'].help_text='Vazio: percentual do comissionado ou padrão global. Preenchido, inclusive zero: substitui o cálculo percentual. Sem comissionado, registra apenas o custo na venda.'
         self.fields['commission'].widget=forms.HiddenInput()
+        if self.instance.pk and self.instance.commission_manual_total is None and self.instance.commission:
+            self.initial['commission_manual_total']=self.instance.commission
         self.fields['revenue_adjustment'].widget=forms.HiddenInput()
         self.fields['revenue_adjustment'].disabled=True
         self.master_fields=[]

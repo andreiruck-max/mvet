@@ -56,8 +56,10 @@ class SaleEntryCommissionTests(Fixture,TestCase):
         self.assertEqual(CommissionPlan.objects.count(),1)
 
     def test_manual_form_blank_uses_default_and_clear_resets_override(self):
+        legacy=self.draft(commission=D('12'))
+        self.assertEqual(SaleForm(instance=legacy,actor=self.actor).initial['commission_manual_total'],D('12'))
         data={k:(v.pk if hasattr(v,'pk') else v) for k,v in self.data().items() if v is not None}
-        data.update(key=str(uuid4()),revision=0,customer_name='Cliente formulário',commission_manual_total='',commission_payee='',commission='12')
+        data.update(key=str(uuid4()),revision=0,invoice_number='202',customer_name='Cliente formulário',commission_manual_total='',commission_payee='',commission='12')
         form=SaleForm(data=data,actor=self.actor)
         self.assertTrue(form.is_valid(),form.errors)
         self.assertEqual(form.cleaned_data['commission'],0)
