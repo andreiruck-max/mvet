@@ -16,6 +16,7 @@ from apps.finance.views import cash_api
 from apps.expenses.views import report_api as expense_report_api
 
 urlpatterns = [
+    path('indicadores/evolucao/', reports.evolution, name='report_evolution'),
     path('indicadores/ordem-cartoes/', reports.dashboard_order, name='dashboard_order'),
     path('comissoes/', include('apps.commissions.urls')),
     path('crm/', include('apps.crm.urls')),

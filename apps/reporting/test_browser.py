@@ -243,3 +243,28 @@ class ReportingBrowser(ReportingFixture,StaticLiveServerTestCase):
             expect(page.get_by_role('button',name='Menu',exact=True)).to_have_attribute('aria-expanded','false')
             self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390)
             browser.close()
+
+    def test_evolution_month_year_and_mobile(self):
+        from pathlib import Path
+        from playwright.sync_api import sync_playwright
+        self.confirmed()
+        client=Client();client.force_login(self.actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch()
+            context=browser.new_context(viewport={'width':1440,'height':1050},locale='pt-BR')
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page();page.goto(self.live_server_url+reverse('dashboard'))
+            self.assertTrue(page.locator('[data-card="cmv"]').is_visible())
+            page.get_by_role('link',name='Evolução mensal, anual e projeções',exact=False).click()
+            page.locator('#evolution-full').wait_for()
+            self.assertGreater(page.locator('#evolution-full tbody tr').count(),0)
+            Path('artifacts').mkdir(exist_ok=True)
+            page.screenshot(path='artifacts/evolution-month.png',full_page=True)
+            page.select_option('#id_grouping','year')
+            page.get_by_role('button',name='Atualizar visão').click()
+            self.assertIn('Ano a ano',page.locator('#evolution-full caption').inner_text())
+            page.screenshot(path='artifacts/evolution-year.png',full_page=True)
+            page.set_viewport_size({'width':390,'height':844})
+            self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390)
+            page.screenshot(path='artifacts/evolution-mobile.png',full_page=True)
+            browser.close()

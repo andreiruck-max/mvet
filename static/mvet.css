@@ -197,3 +197,15 @@ main.workspace{padding:12px 14px}
 #card-order-config { margin:0 0 6px; }
 
 #dashboard-cards .drop-target { outline:2px dashed #4357b5; background-color:var(--surface-hover, #eef1ff); }
+
+/* Calendar comparisons keep actual totals and estimates visibly separate. */
+.evolution-page .projection-cards{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.evolution-page .metric h3{font-size:12px;font-weight:500;margin:0 0 8px}
+.evolution-page .estimate{border-left:4px solid #a47716}
+.evolution-page .projection-method{border-left:4px solid #a47716;font-size:13px}
+.evolution-page .projection-method p{margin:6px 0}
+.evolution-page table th small{display:block;font-size:11px;font-weight:400;white-space:normal}
+.evolution-page .current-period{background:var(--soft,#eef3f6)}
+.evolution-page tfoot{font-weight:700;border-top:2px solid var(--border,#ccd8df)}
+.evolution-page h2{font-size:18px;margin-top:22px}
+@media(max-width:600px){.evolution-page .projection-cards{grid-template-columns:minmax(0,1fr)}}

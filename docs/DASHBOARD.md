@@ -1,3 +1,5 @@
+Atualização 02/11/2026: cartão CMV histórico efetivo no dashboard e tela Evolução e projeções, com últimos 12 meses ou 5 anos, data de corte, canal, somatórios, médias e comparação pelo mesmo corte de calendário. Projeção mensal usa ritmo relativo ao mês anterior, com alternativa diária quando falta base. Resultado estimado preserva os demais componentes já lançados para o mês inteiro na DRE. Sem rateio de despesas por canal e sem alterar lançamentos. Ver ADR 0049.
+
 ## Extrato bancário — mês e saldos (15/10/2026)
 
 Ao abrir uma conta, o período padrão é o mês atual, inclusive com parâmetros de navegação. Lançamentos aparecem do mais recente ao mais antigo; saldo acumulado continua calculado cronologicamente. Abertura aparece ao final da última página. Cartões mostram saldo realizado hoje e saldo no último dia do filtro (previsto se futuro, realizado se passado).
