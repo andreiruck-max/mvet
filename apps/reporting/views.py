@@ -153,7 +153,7 @@ def dre_api(request):
 def dashboard_order(request):
     import json
     from apps.core.models import DashboardPreference
-    allowed = {'revenue','before_tax','contribution','tax','result','expenses','purchases','cash','forecast','payables','stock'}
+    allowed = {'revenue','cmv','before_tax','contribution','tax','result','expenses','purchases','cash','forecast','payables','stock'}
     try:
         data = json.loads(request.body)
         order = data.get('order') if isinstance(data, dict) else None
@@ -163,3 +163,18 @@ def dashboard_order(request):
         return JsonResponse({'error':'Ordem de cartões inválida.'}, status=400)
     DashboardPreference.objects.update_or_create(user=request.user, defaults={'card_order':order})
     return JsonResponse({'saved':True})
+
+
+@login_required
+@permission_required('core.view_dashboard', raise_exception=True)
+@require_GET
+@transaction.atomic
+def evolution(request):
+    from .evolution import report
+    domain_lock()
+    data = {'as_of':timezone.localdate().isoformat(),'grouping':'month',**request.GET.dict()}
+    form = forms.EvolutionForm(data)
+    context = {'form':form}
+    if form.is_valid():
+        context['analysis'] = report(request.user,**form.cleaned_data)
+    return render(request,'reporting/evolution.html',context,status=200 if form.is_valid() else 400)

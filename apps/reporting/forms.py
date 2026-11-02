@@ -46,3 +46,17 @@ class PayablesForm(PeriodForm):
             d=super().clean()
         if d.get('purchase_start') and d.get('purchase_end') and d['purchase_start']>d['purchase_end']:raise forms.ValidationError('Intervalo da compra inválido.')
         return d
+
+
+class EvolutionForm(forms.Form):
+    as_of = forms.DateField(label='Data de corte (inclusive)', widget=DateInput())
+    grouping = forms.ChoiceField(label='Visão', choices=[('month','Mensal · últimos 12 meses'),('year','Anual · últimos 5 anos')])
+    channel = forms.ModelChoiceField(label='Canal das vendas', queryset=SalesChannel.objects.all(), required=False)
+
+    def clean_as_of(self):
+        value = self.cleaned_data['as_of']
+        from apps.core.models import Company
+        cutover = Company.objects.get(pk=1).cutover_date
+        if not cutover <= value <= timezone.localdate():
+            raise forms.ValidationError(f'Informe uma data entre {cutover:%d/%m/%Y} e hoje.')
+        return value
