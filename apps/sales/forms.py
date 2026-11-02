@@ -56,6 +56,12 @@ class SaleForm(forms.ModelForm):
     def __init__(self,*args,actor=None,**kwargs):
         self.actor=actor
         super().__init__(*args,**kwargs)
+        from apps.commissions.models import Payee
+        self.fields['commission_payee'].queryset=Payee.objects.filter(active=True)
+        self.fields['commission_payee'].empty_label='Usar comissionado do canal'
+        self.fields['commission_payee'].help_text='Em branco, usa o vínculo do canal. Sem vínculo, não cria controle de comissão.'
+        self.fields['commission_manual_total'].help_text='Vazio: percentual do comissionado ou padrão global. Preenchido, inclusive zero: substitui o cálculo percentual. Sem comissionado, registra apenas o custo na venda.'
+        self.fields['commission'].widget=forms.HiddenInput()
         self.fields['revenue_adjustment'].widget=forms.HiddenInput()
         self.fields['revenue_adjustment'].disabled=True
         self.master_fields=[]
@@ -84,8 +90,8 @@ class SaleForm(forms.ModelForm):
         elif not self.instance.pk and company and not company.default_stock_location_id and self.fields['location'].queryset.count()==1:
             self.initial['location']=self.fields['location'].queryset.first().pk
         self.fields['location'].label='Estoque da venda'
-        self.basic_fields=[self[name] for name in ['date','invoice_number','invoice_series','channel','location','products_amount','tax_rule']]
-        self.optional_fields=[self[name] for name in [*FINANCIAL_FIELDS[1:],'tax_override','tax_reason','notes']]
+        self.basic_fields=[self[name] for name in ['date','invoice_number','invoice_series','customer_name','channel','commission_payee','commission_manual_total','location','products_amount','tax_rule']]
+        self.optional_fields=[self[name] for name in [*FINANCIAL_FIELDS[1:],'tax_override','tax_reason','notes'] if name!='commission']
         for name in FINANCIAL_FIELDS[1:]:self.fields[name].required=False
         if self.instance.pk:
             self.fields['key'].initial=self.instance.key
@@ -98,6 +104,8 @@ class SaleForm(forms.ModelForm):
             if existing:self.add_error('invoice_number',f'Esta NF/série já pertence à venda #{existing.pk} ({existing.get_status_display()}). Abra essa venda e use Corrigir valores ou Recuperar venda cancelada; não é necessário relançar.')
         for name in FINANCIAL_FIELDS[1:]:
             if data.get(name) is None and name not in self.errors:data[name]=Decimal('0')
+        if 'commission_manual_total' in self.data:
+            data['commission']=data.get('commission_manual_total') or Decimal('0')
         if self.actor and self.actor.is_superuser:
             data['date']=data.get('date') or timezone.localdate()
             if data.get('products_amount') is None and 'products_amount' not in self.errors:data['products_amount']=Decimal('0')
@@ -132,7 +140,7 @@ class CancelForm(forms.Form):
 class ChannelForm(forms.ModelForm):
     class Meta:
         model=SalesChannel
-        fields=['name','active']
+        fields=['name','active','commission_payee']
 
 class TaxForm(forms.ModelForm):
     class Meta:

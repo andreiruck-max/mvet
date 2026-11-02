@@ -12,6 +12,7 @@ def money(label):
     return models.DecimalField(label, max_digits=18, decimal_places=2, default=0, validators=[MinValueValidator(0)])
 
 class SalesChannel(NamedActive):
+    commission_payee = models.ForeignKey('commissions.Payee', on_delete=models.PROTECT, null=True, blank=True, verbose_name='Comissionado automático', related_name='sales_channels')
     class Meta:
         ordering = ['name']
 
@@ -34,6 +35,9 @@ class Sale(models.Model):
     date = models.DateField('Data da venda', db_index=True, default=timezone.localdate)
     invoice_number = models.CharField('Número da NF', max_length=40, blank=True, default='')
     invoice_series = models.CharField('Série', max_length=20, blank=True, default='')
+    customer_name = models.CharField('Cliente', max_length=240, blank=True)
+    commission_payee = models.ForeignKey('commissions.Payee', on_delete=models.PROTECT, null=True, blank=True, verbose_name='Comissionado (opcional)', related_name='assigned_sales')
+    commission_manual_total = models.DecimalField('Comissão manual (R$)', max_digits=18, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)])
     channel = models.ForeignKey(SalesChannel, on_delete=models.PROTECT, verbose_name='Canal', null=True, blank=True)
     location = models.ForeignKey(StockLocation, on_delete=models.PROTECT, verbose_name='Local de estoque', null=True, blank=True)
     products_amount = money('Valor dos produtos (R$)')
