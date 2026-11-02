@@ -112,3 +112,17 @@ class FinancialEntry(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['operation','account'], name='finance_one_leg_per_account'),models.CheckConstraint(condition=~models.Q(amount=0), name='finance_entry_nonzero')]
+
+
+class FinancialTitleRevision(models.Model):
+    title = models.ForeignKey(FinancialTitle, on_delete=models.PROTECT, related_name='edits')
+    number = models.PositiveIntegerField()
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    reason = models.CharField(max_length=500)
+    before = models.JSONField()
+    after = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-number']
+        constraints = [models.UniqueConstraint(fields=['title','number'], name='finance_title_revision_unique')]

@@ -54,7 +54,11 @@ def title_detail(request,pk):
     title=get_object_or_404(Title.objects.select_related('account','sale','purchase_installment__purchase'),pk=pk)
     settlement=forms.SettlementForm(initial={'principal':title.remaining,'actual':title.remaining,'account':title.account_id,'revision':title.revision})
     schedule=forms.ScheduleForm(initial={'due_date':title.due_date,'account':title.account_id,'notes':title.notes,'revision':title.revision})
-    return render(request,'finance/title.html',{'title':title,'settlement':settlement,'schedule':schedule,'operations':title.operations.select_related('reversal').order_by('-pk'),'reverse_form':forms.ReverseForm()})
+    from .editing import LABELS
+    history=Paginator(title.edits.select_related('actor'),20).get_page(request.GET.get('page'))
+    for entry in history:
+        entry.changes=[(label,entry.before.get(key),entry.after.get(key)) for key,label in LABELS.items() if entry.before.get(key)!=entry.after.get(key)]
+    return render(request,'finance/title.html',{'history':history,'title':title,'settlement':settlement,'schedule':schedule,'operations':title.operations.select_related('reversal').order_by('-pk'),'reverse_form':forms.ReverseForm()})
 
 
 @login_required
@@ -236,3 +240,24 @@ def account_entry(request,pk):
         except (ValidationError,IntegrityError) as exc:error(form,exc)
     return render(request,'finance/form.html',{'form':form,'title':f'Lançar em {account.name}',
         'button':'Registrar lançamento','help':'Entrada ou saída já realizada. Para previsões, use Agendar entrada / saída na conta. Não repita compras, despesas ou títulos existentes: liquide o título original. Classificação de caixa não substitui o cadastro de despesa por competência. Transferências usam a opção própria.'})
+
+
+@login_required
+def title_edit(request,pk):
+    from apps.accounts.access import master
+    from .editing import edit_title
+    master(request.user)
+    title=get_object_or_404(Title.objects.select_related('expense'),pk=pk)
+    if hasattr(title,'expense'):
+        return redirect('expense_edit',pk=title.expense.pk)
+    form=forms.TitleEditForm(request.POST if request.method=='POST' else None,instance=title)
+    if request.method=='POST' and form.is_valid():
+        data=dict(form.cleaned_data)
+        revision=data.pop('revision');reason=data.pop('reason')
+        try:
+            edit_title(actor=request.user,pk=pk,revision=revision,reason=reason,data=data)
+            messages.success(request,'Título atualizado. Histórico de pagamentos preservado.')
+            return redirect('financial_title',pk=pk)
+        except (ValidationError,IntegrityError) as exc:error(form,exc)
+    return render(request,'finance/form.html',{'form':form,'title':'Editar título','button':'Salvar alterações',
+        'help':'Altere os dados da obrigação e informe o motivo. O valor não pode ser menor que o principal liquidado. A conta prevista não transfere pagamentos anteriores. Em compras e vendas, a edição corrige somente a obrigação financeira; valores da nota, estoque e custos históricos permanecem no documento de origem. A classificação financeira não substitui a categoria de uma despesa na DRE.'},status=400 if request.method=='POST' else 200)

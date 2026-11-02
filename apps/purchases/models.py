@@ -98,6 +98,9 @@ class PurchaseInstallment(models.Model):
         ordering=['number','pk']
         constraints=[models.UniqueConstraint(fields=['purchase','number'],name='purchase_installment_number'),models.CheckConstraint(condition=models.Q(amount__gt=0),name='purchase_installment_positive')]
     @property
+    def effective_amount(self):
+        return self.financial_title.amount if hasattr(self, 'financial_title') else self.amount
+    @property
     def effective_due_date(self):
         """Current cash forecast; due_date preserves the contractual schedule."""
         return self.financial_title.due_date if hasattr(self, 'financial_title') else self.due_date

@@ -97,3 +97,35 @@ class FinanceBrowser(StaticLiveServerTestCase):
             self.assertEqual(errors,[]);browser.close()
         title=Title.objects.get();self.assertEqual(title.settled,40);self.assertEqual(title.remaining,60)
         self.assertEqual(Entry.objects.count(),3)
+
+    def test_edit_title_from_list_and_audit(self):
+        from playwright.sync_api import sync_playwright
+        from django.urls import reverse
+        from uuid import uuid4
+        from .services import create_title
+        Company.objects.create(pk=1)
+        actor=User.objects.create_superuser('title-edit-browser')
+        today=timezone.localdate()
+        title=create_title(actor=actor,key=uuid4(),data=dict(direction='PAY',description='Título para editar',date=today,due_date=today,amount=Decimal('100'),category='OTHER'))
+        client=Client();client.force_login(actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1000})
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page();page.goto(self.live_server_url+reverse('financial_titles'))
+            page.get_by_role('link',name='Editar',exact=True).click()
+            page.locator('#id_description').fill('Título corrigido')
+            page.locator('#id_amount').fill('150.00')
+            page.locator('#id_counterparty').fill('Fornecedor corrigido')
+            page.locator('#id_category').select_option('FINANCIAL')
+            page.locator('#id_reason').fill('Conferência do lançamento')
+            Path('artifacts').mkdir(exist_ok=True)
+            page.screenshot(path='artifacts/title-edit.png',full_page=True)
+            page.get_by_role('button',name='Salvar alterações',exact=True).click()
+            page.get_by_role('heading',name='Título corrigido',exact=True).wait_for()
+            self.assertIn('Conferência do lançamento',page.locator('main').inner_text())
+            title.refresh_from_db();self.assertEqual(title.amount,Decimal('150'))
+            self.assertEqual(title.edits.count(),1)
+            page.set_viewport_size({'width':390,'height':844})
+            self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390)
+            page.screenshot(path='artifacts/title-edited-mobile.png',full_page=True)
+            browser.close()
