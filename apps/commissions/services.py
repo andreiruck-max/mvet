@@ -306,7 +306,7 @@ def create_from_confirmed_sale(*,actor,sale):
     """Called only inside sale confirmation; grants no commission-management access."""
     from uuid import uuid5
     require(actor,'core.operate_sales');require(actor,'core.confirm_sales');domain_lock()
-    sale=Sale.objects.select_for_update().select_related('channel__commission_payee','commission_payee').get(pk=sale.pk)
+    sale=Sale.objects.select_for_update(of=('self',)).select_related('channel__commission_payee','commission_payee').get(pk=sale.pk)
     if sale.status!='CONFIRMED':raise ValidationError('Confirme a venda antes de gerar a comissão.')
     if CommissionPlan.objects.filter(sale=sale).exists():return
     payee=sale.commission_payee or (sale.channel.commission_payee if sale.channel_id else None)
