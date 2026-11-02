@@ -89,5 +89,6 @@ class ExpenseEditingAccessTests(TestCase):
         self.client.force_login(fixture.actor)
         self.assertRedirects(self.client.get(reverse('financial_title_edit',args=[expense.title_id])),reverse('expense_edit',args=[expense.pk]))
         self.assertContains(self.client.get(reverse('expenses')),'Editar')
+        self.assertContains(self.client.get(reverse('financial_title',args=[expense.title_id])),'Operacionais')
         with self.assertRaises(ValidationError):
             editing.edit_title(actor=fixture.actor,pk=expense.title_id,revision=0,reason='Teste',data={})

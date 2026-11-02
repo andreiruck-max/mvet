@@ -51,7 +51,7 @@ def title_new(request):
 @login_required
 def title_detail(request,pk):
     check_read(request.user)
-    title=get_object_or_404(Title.objects.select_related('account','sale','purchase_installment__purchase'),pk=pk)
+    title=get_object_or_404(Title.objects.select_related('account','sale','expense','purchase_installment__purchase'),pk=pk)
     settlement=forms.SettlementForm(initial={'principal':title.remaining,'actual':title.remaining,'account':title.account_id,'revision':title.revision})
     schedule=forms.ScheduleForm(initial={'due_date':title.due_date,'account':title.account_id,'notes':title.notes,'revision':title.revision})
     from .editing import LABELS
