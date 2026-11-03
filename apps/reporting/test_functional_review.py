@@ -50,7 +50,7 @@ class FunctionalReviewTests(ReportingFixture, TestCase):
     def test_cash_export_horizontal_respects_mode_and_future_settlement(self):
         day=self.today+timedelta(days=2)
         title=self.title(due_date=day,amount=D(25));self.pay(title,date=day)
-        for mode,expected in [('actual',D(1000)),('projected',D(975))]:
+        for mode,expected in [('',D(1000)),('actual',D(1000)),('projected',D(975))]:
             ds=build('cash',self.actor,{'start':day,'end':day,'mode':mode})
             with ZipFile(BytesIO(xlsx(ds,'Empresa sintética'))) as book:
                 root=ET.fromstring(book.read('xl/worksheets/sheet1.xml'))
@@ -75,3 +75,17 @@ class FunctionalReviewTests(ReportingFixture, TestCase):
         self.assertEqual(response.context['cash_today'],D(1000))
         self.assertContains(response,'contas ativas e inativas')
         self.assertEqual(self.client.get(reverse('finance')).context['summary']['actual'],D(0))
+
+    def test_cash_defaults_to_actual_even_with_partial_filters(self):
+        self.title(amount=D(20))
+        self.client.force_login(self.actor)
+        for query in ({}, {'period':'today'}, {'period':'today','mode':''}):
+            with self.subTest(query=query):
+                response=self.client.get(reverse('finance'),query)
+                self.assertEqual(response.context['form']['mode'].value(),'actual')
+                cell=response.context['matrix'][0]['cells'][0]
+                self.assertEqual(cell['balance'],D(1000))
+                self.assertEqual(cell['debits'],D(0))
+        response=self.client.get(reverse('finance'),{'period':'today','mode':'projected'})
+        self.assertEqual(response.context['matrix'][0]['cells'][0]['balance'],D(980))
+        self.assertEqual(response.context['form']['mode'].value(),'projected')

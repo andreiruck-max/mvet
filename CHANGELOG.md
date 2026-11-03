@@ -1,3 +1,5 @@
+Atualização 03/11/2026: fluxo de caixa abre em Somente realizado, inclusive ao limpar filtros ou consultar sem informar visão. Realizado + previsto continua disponível por seleção explícita. Exportações usam o mesmo padrão. Nenhuma alteração em lançamentos ou cálculos.
+
 Atualização 02/11/2026: venda manual inclui cliente, comissionado opcional e comissão manual (vazio usa padrão; zero é explícito). Canal pode definir comissionado automático; confirmação cria controle com cliente e custo conciliado, sem liberar recebimento/pagamento. Bling conserva o cliente da nota. Migração vincula os canais CESAR/LUCAS aos comissionados solicitados quando os cadastros ativos forem únicos. ADR 0051.
 
 Atualização 02/11/2026: edição auditada de títulos pelo master (valor, descrição, favorecido, classificação, datas, conta e observação), com motivo e histórico antes/depois. Atalho Editar nas listas de despesas e títulos; obrigação de despesa encaminha ao editor da origem. Valores liquidados e livro bancário preservados. Parcelas de compras mostram obrigação atual e valor contratual original; relatório do fornecedor e exportação acompanham o valor atual. ADR 0050.
