@@ -77,13 +77,14 @@ class FilterForm(forms.Form):
 
 
 class CashForm(forms.Form):
-    mode=forms.ChoiceField(label='Visão', required=False, choices=[('projected','Realizado + previsto'),('actual','Somente realizado')])
+    mode=forms.ChoiceField(label='Visão', required=False, initial='actual', choices=[('actual','Somente realizado'),('projected','Realizado + previsto')])
     period=forms.ChoiceField(label='Período',required=False,choices=[('','Personalizado'),('next15','Hoje até 15 dias à frente'),('today','Hoje'),('yesterday','Ontem'),('last7','Últimos 7 dias'),('week','Semana'),('month','Mês'),('previous_month','Mês anterior'),('year','Ano')])
     start=forms.DateField(label='De',widget=DateInput(),initial=timezone.localdate,required=False)
     end=forms.DateField(label='Até',widget=DateInput(),initial=lambda:timezone.localdate()+timedelta(days=30),required=False)
     account=forms.ModelChoiceField(label='Conta',queryset=Account.objects.filter(active=True),required=False)
     def clean(self):
         data=super().clean()
+        data['mode']=data.get('mode') or 'actual'
         from apps.reporting.forms import PeriodForm
         values={k:data.get(k) for k in ['start','end','period']}
         if values['period']=='next15' or not any(values.values()):

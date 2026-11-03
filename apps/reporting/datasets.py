@@ -116,7 +116,7 @@ def build(kind, user, query):
         from apps.finance.selectors import daily_cash
         rows,unallocated = daily_cash(d['start'],d['end'],d['account'].pk if d.get('account') else None,active_only=True)
         if len(rows)>10000: raise ValidationError('Reduza o período ou selecione uma conta (máximo 10.000 posições).')
-        mode=d.get('mode') or 'projected'
+        mode=d.get('mode') or 'actual'
         label='Realizado + previsto' if mode=='projected' else 'Somente realizado'
         result = Dataset('Fluxo de Caixa',['Data','Conta','Saldo inicial realizado','Entradas realizadas','Saídas realizadas','Saldo realizado','Saldo projetado'],[[r['date'],str(r['account']),r['initial'],r['credits'],r['debits'],r['final'],r['projected']] for r in rows],f'Quadro por conta: {label}. Pendências sem conta fora do quadro por banco: pagar R$ {unallocated["pay"]:.2f}; receber R$ {unallocated["receive"]:.2f}.',cash=rows,cash_mode=mode)
     elif kind == 'titles':
