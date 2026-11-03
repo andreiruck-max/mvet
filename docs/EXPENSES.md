@@ -1,3 +1,5 @@
+Atualização 02/11/2026: edição auditada de títulos pelo master (valor, descrição, favorecido, classificação, datas, conta e observação), com motivo e histórico antes/depois. Atalho Editar nas listas de despesas e títulos; obrigação de despesa encaminha ao editor da origem. Valores liquidados e livro bancário preservados. Parcelas de compras mostram obrigação atual e valor contratual original; relatório do fornecedor e exportação acompanham o valor atual. ADR 0050.
+
 # Despesas por competência
 
 Em `/despesas/`, registre o valor, descrição, competência do consumo/serviço, data do documento/contrato e vencimento. Fornecedor, favorecido livre, centro de custo, observação e conta prevista são opcionais. Cada despesa cria um único título a pagar, sem movimentar banco. Pagamento parcial/integral e estorno usam o financeiro existente; nunca registrar um débito independente para pagar novamente a mesma despesa.

@@ -40,5 +40,5 @@ def supplier_report(supplier):
     summary['average']=summary['total']/summary['count'] if summary['count'] else None
     prices=PurchaseItem.objects.filter(purchase__supplier=supplier,purchase__status='RECEIVED').select_related('purchase','product').order_by('-purchase__received_date','-pk')
     outstanding=current_installments().filter(purchase__in=orders,status='PENDING').exclude(financial_title__settled=F('financial_title__amount')).select_related('purchase','financial_title').order_by('current_due_date','pk')
-    summary['outstanding']=outstanding.aggregate(total=Sum(F('amount')-Coalesce('financial_title__settled',0,output_field=PurchaseInstallment._meta.get_field('amount'))))['total']
+    summary['outstanding']=outstanding.aggregate(total=Sum(Coalesce('financial_title__amount','amount')-Coalesce('financial_title__settled',0,output_field=PurchaseInstallment._meta.get_field('amount'))))['total']
     return summary,prices,outstanding

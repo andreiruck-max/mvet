@@ -102,3 +102,21 @@ class AccountEntryForm(forms.Form):
     amount=forms.DecimalField(label='Valor (R$)',max_digits=18,decimal_places=2,min_value=Decimal('.01'),initial=Decimal('0.00'),localize=True)
     category=forms.ChoiceField(label='Classificação',choices=[c for c in Title.CATEGORIES if c[0]!='OPENING'])
     notes=forms.CharField(label='Observação',max_length=500,required=False)
+
+
+class TitleEditForm(forms.ModelForm):
+    revision=forms.IntegerField(widget=forms.HiddenInput)
+    reason=forms.CharField(label='Motivo da alteração',max_length=500)
+    class Meta:
+        model=Title
+        fields=['direction','description','counterparty','date','due_date','amount','account','category','opening','notes']
+        widgets={'date':DateInput(),'due_date':DateInput()}
+    def __init__(self,*args,**kwargs):
+        from django.db.models import Q
+        super().__init__(*args,**kwargs)
+        self.initial['revision']=self.instance.revision
+        self.fields['account'].queryset=Account.objects.filter(Q(active=True)|Q(pk=self.instance.account_id))
+        if self.instance.purchase_installment_id or self.instance.sale_id or self.instance.source!='manual' or self.instance.operations.exists():
+            self.fields['direction'].disabled=True
+            self.fields['opening'].disabled=True
+            self.fields['direction'].help_text='Preservado pelo vínculo de origem ou pelo histórico de baixas.'

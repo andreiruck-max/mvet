@@ -1,3 +1,5 @@
+Atualização 02/11/2026: edição auditada de títulos pelo master (valor, descrição, favorecido, classificação, datas, conta e observação), com motivo e histórico antes/depois. Atalho Editar nas listas de despesas e títulos; obrigação de despesa encaminha ao editor da origem. Valores liquidados e livro bancário preservados. Parcelas de compras mostram obrigação atual e valor contratual original; relatório do fornecedor e exportação acompanham o valor atual. ADR 0050.
+
 ## Extrato bancário — mês e saldos (15/10/2026)
 
 Ao abrir uma conta, o período padrão é o mês atual, inclusive com parâmetros de navegação. Lançamentos aparecem do mais recente ao mais antigo; saldo acumulado continua calculado cronologicamente. Abertura aparece ao final da última página. Cartões mostram saldo realizado hoje e saldo no último dia do filtro (previsto se futuro, realizado se passado).

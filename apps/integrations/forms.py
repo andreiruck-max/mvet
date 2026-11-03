@@ -20,6 +20,8 @@ class ReviewForm(SaleForm):
         for field, value in [('date', invoice.issued_on), ('invoice_number', invoice.number), ('invoice_series', invoice.series)]:
             self.fields[field].disabled = True
             self.initial[field] = value
+        self.initial['customer_name']=invoice.source.get('customer_name','')
+        self.fields['customer_name'].disabled=True
         self.initial['revision'] = invoice.revision
         from apps.sales.taxes import suggested_rule
         self.initial['tax_rule'] = suggested_rule(invoice.issued_on or timezone.localdate())
@@ -36,6 +38,9 @@ class ReviewForm(SaleForm):
             self.initial[name] = Decimal('0.00')
             self.fields[name].localize = True
             self.fields[name].widget = MoneyInput(attrs={'inputmode': 'decimal'})
+        self.fields['commission'].widget=forms.HiddenInput()
+        self.fields['commission_manual_total'].localize=True
+        self.fields['commission_manual_total'].widget=MoneyInput(attrs={'inputmode':'decimal','placeholder':'Usar padrão'})
         if 'revenue_target' in self.fields:
             # Optional target is not a deduction: zero would reset the revenue.
             self.fields['revenue_target'].localize = True

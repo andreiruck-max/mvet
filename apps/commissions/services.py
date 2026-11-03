@@ -93,7 +93,12 @@ def configure_default(*,actor,rate,reason):
 
 @transaction.atomic
 def create_plan(*,actor,sale_id,payee_id,customer,rate,installments,key,reason,override_total=None):
-    manage(actor);domain_lock()
+    manage(actor)
+    return _create_plan(actor=actor,sale_id=sale_id,payee_id=payee_id,customer=customer,rate=rate,installments=installments,key=key,reason=reason,override_total=override_total)
+
+
+def _create_plan(*,actor,sale_id,payee_id,customer,rate,installments,key,reason,override_total=None):
+    domain_lock()
     sale=Sale.objects.select_for_update().get(pk=sale_id)
     rows=[(date,number(amount,CENT)) for date,amount in installments]
     payload=[sale_id,payee_id,customer,str(rate),[(str(d),str(a)) for d,a in rows]]
@@ -294,3 +299,23 @@ def sync_sale_values(sale,actor,reason):
         weights(plan.total,list(plan.installments.all()));rebalance(plan,cmd,timezone.localdate())
         audit(actor,plan,'commission_sale_values',before,snapshot(plan))
     sale.commission=plan.total
+
+
+@transaction.atomic
+def create_from_confirmed_sale(*,actor,sale):
+    """Called only inside sale confirmation; grants no commission-management access."""
+    from uuid import uuid5
+    require(actor,'core.operate_sales');require(actor,'core.confirm_sales');domain_lock()
+    sale=Sale.objects.select_for_update(of=('self',)).select_related('channel__commission_payee','commission_payee').get(pk=sale.pk)
+    if sale.status!='CONFIRMED':raise ValidationError('Confirme a venda antes de gerar a comissão.')
+    if CommissionPlan.objects.filter(sale=sale).exists():return
+    payee=sale.commission_payee or (sale.channel.commission_payee if sale.channel_id else None)
+    if payee is None:return
+    if not payee.active:raise ValidationError('Comissionado do canal está inativo. Corrija o vínculo antes de confirmar.')
+    face=sale.products_amount-sale.discount+sale.shipping_received
+    if face<=0:raise ValidationError('Venda com comissionado precisa de valor contratual positivo para o controle de recebimentos.')
+    manual=sale.commission_manual_total
+    if manual is None and sale.commission:manual=sale.commission  # Earlier drafts with an explicit cost.
+    return _create_plan(actor=actor,sale_id=sale.pk,payee_id=payee.pk,customer=sale.customer_name,
+        rate=None,override_total=manual,installments=[(sale.date,face)],key=uuid5(sale.key,'automatic-commission'),
+        reason='Comissão criada na confirmação da venda; recebimento ainda não registrado.')

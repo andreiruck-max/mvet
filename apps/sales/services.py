@@ -13,7 +13,7 @@ from apps.inventory.services import domain_lock, number, QTY, _fingerprint, _app
 from .models import Sale, SaleItem, SaleConsumption, SalesChannel, TaxRule, SaleExtraCost
 
 FINANCIAL_FIELDS = ['products_amount','discount','shipping_received','shipping_paid','fees','difal','commission','other_costs']
-EDIT_FIELDS = ['date','invoice_number','invoice_series','channel','location',*FINANCIAL_FIELDS,'tax_rule','tax_override','tax_reason','notes','revenue_adjustment','revenue_adjustment_reason']
+EDIT_FIELDS = ['customer_name','commission_payee','commission_manual_total','date','invoice_number','invoice_series','channel','location',*FINANCIAL_FIELDS,'tax_rule','tax_override','tax_reason','notes','revenue_adjustment','revenue_adjustment_reason']
 CENT = Decimal('0.01')
 
 def snapshot(sale):
@@ -47,6 +47,9 @@ def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None):
     require(actor,'core.operate_sales')
     domain_lock()
     data = dict(data)
+    data.setdefault('customer_name', '')
+    data.setdefault('commission_payee', None)
+    data.setdefault('commission_manual_total', None)
     data.setdefault('revenue_adjustment', Decimal('0'))
     data.setdefault('revenue_adjustment_reason', '')
     if actor.is_superuser:
@@ -86,6 +89,11 @@ def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None):
         number(quantity,QTY)
         if pid not in products: raise ValidationError('Produto inexistente ou inativo.')
     for field in EDIT_FIELDS: setattr(sale,field,data[field])
+    sale.customer_name=sale.customer_name.strip()
+    if sale.commission_manual_total is not None:
+        sale.commission_manual_total=number(sale.commission_manual_total,CENT,zero=True)
+        sale.commission=sale.commission_manual_total
+    if sale.commission_payee_id and not sale.commission_payee.active:raise ValidationError('Selecione um comissionado ativo.')
     sale.invoice_number=sale.invoice_number.strip().upper()
     sale.invoice_series=sale.invoice_series.strip().upper()
     if not sale.invoice_number: sale.invoice_series = ''
@@ -146,6 +154,9 @@ def confirm(*,actor,sale_id,revision):
     sale.cmv=cmv;sale.minimum_margin=company.minimum_margin
     sale.status='CONFIRMED';sale.stock_operation=operation;sale.confirmed_by=actor;sale.confirmed_at=timezone.now();sale.revision+=1
     sale.save()
+    from apps.commissions.services import create_from_confirmed_sale
+    create_from_confirmed_sale(actor=actor,sale=sale)
+    sale.refresh_from_db()
     audit(actor,sale,'confirm_sale',{'status':'DRAFT'},{'status':sale.status,'cmv':str(cmv),'tax':sale.tax_snapshot,'tax_amount':str(sale.tax_amount),'stock_operation':operation.pk})
     return sale
 
@@ -178,6 +189,9 @@ def cancel(*,actor,sale_id,reason):
 def save_configuration(*,actor,model,data,pk=None):
     require(actor,'core.manage_channels' if model is SalesChannel else 'core.manage_taxes');domain_lock()
     obj=model.objects.select_for_update().get(pk=pk) if pk else model()
+    if model is SalesChannel and 'commission_payee' in data and data['commission_payee']!=obj.commission_payee:
+        require(actor,'core.manage_commissions')
+        if data['commission_payee'] and not data['commission_payee'].active:raise ValidationError('Selecione um comissionado ativo.')
     before={k:str(getattr(obj,k)) for k in data}
     if model is TaxRule and pk and any(k in data and data[k]!=getattr(obj,k) for k in ['rate','base','starts_on']):
         raise ValidationError('Use Alíquota e vigência para alterar a tributação com histórico.')

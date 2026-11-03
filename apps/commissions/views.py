@@ -67,7 +67,7 @@ def create(request,sale_id=None):
     if sale_id:
         sale=get_object_or_404(Sale,pk=sale_id)
         imported=getattr(sale,'bling_import',None)
-        if imported:initial['customer']=imported.source.get('customer_name','')
+        initial['customer']=sale.customer_name or (imported.source.get('customer_name','') if imported else '')
     form=forms.PlanForm(request.POST if request.method=='POST' else None,initial=initial)
     if request.method=='POST' and form.is_valid():
         d=form.cleaned_data
