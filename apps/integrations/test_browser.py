@@ -92,7 +92,7 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
             page.locator('#id_channel').select_option(str(self.channel.pk))
             page.locator('#id_location').select_option(str(self.location.pk))
             page.locator('#id_tax_rule').select_option(str(self.rule.pk))
-            for field in ['discount', 'shipping_paid', 'fees', 'difal', 'commission', 'other_costs']:
+            for field in ['discount', 'shipping_paid', 'fees', 'difal', 'commission_manual_total', 'other_costs']:
                 page.locator('#id_' + field).fill('0')
             page.get_by_role('button', name='Adicionar taxa extra', exact=True).click()
             page.get_by_label('Taxa / descrição:', exact=True).fill('MDR')
