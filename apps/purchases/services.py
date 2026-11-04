@@ -84,7 +84,7 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
         if purchase.revision!=revision:raise ValidationError('A compra mudou em outra sessão. Reabra a edição.')
         before=snapshot(purchase)
     if not items or len(items)>100 or len(installments)>120:raise ValidationError('Informe de 1 a 100 itens e no máximo 120 parcelas.')
-    data = {'acquisition_kind':'NORMAL','external_freight':purchase.external_freight,**data}
+    data = {'acquisition_kind':'NORMAL','external_freight':Decimal(purchase.external_freight),**data}
     for field in FIELDS:setattr(purchase,field,data[field])
     if purchase.acquisition_kind not in ('NORMAL','BONUS'):raise ValidationError('Tipo de entrada inválido.')
     purchase.document=normalized_document(purchase.document);purchase.series=normalized_document(purchase.series)
