@@ -32,12 +32,14 @@ class PurchaseForm(forms.ModelForm):
         else:
             company=Company.objects.filter(pk=1).first()
             if company and company.default_stock_location_id and company.default_stock_location.active:self.initial['location']=company.default_stock_location_id
-        for field in ['discount','freight','other_costs','acquisition_kind']:self.fields[field].required=False
+        for field in ['discount','freight','other_costs','external_freight','acquisition_kind']:self.fields[field].required=False
+        self.fields['freight'].label='Frete incluído na nota (R$)'
+        self.fields['external_freight'].help_text='Rateado nos produtos de estoque. Não altera as parcelas nem registra pagamento à transportadora.'
         self.fields['discount'].help_text='Desconto geral adicional. Não repita os descontos informados por item.'
     def clean(self):
         data=super().clean()
         data['acquisition_kind']=data.get('acquisition_kind') or 'NORMAL'
-        for field in ['discount','freight','other_costs']:
+        for field in ['discount','freight','external_freight','other_costs']:
             if data.get(field) is None and field not in self.errors:data[field]=Decimal('0')
         return data
 

@@ -39,6 +39,7 @@ class Purchase(models.Model):
     acquisition_kind=models.CharField('Tipo de entrada', max_length=10, choices=[('NORMAL','Compra com financeiro'),('BONUS','Bonificação sem financeiro')], default='NORMAL')
     discount=money('Desconto (R$)')
     freight=money('Frete de aquisição (R$)')
+    external_freight=money('Frete pago à transportadora fora da nota (R$)')
     other_costs=money('Outros custos de aquisição (R$)')
     products_total=money('Total dos produtos')
     total=money('Total da compra')
@@ -62,6 +63,10 @@ class Purchase(models.Model):
         ordering=['-date','-pk']
         constraints=[models.UniqueConstraint(fields=['supplier','document','series'],name='purchase_unique_document'),models.CheckConstraint(condition=models.Q(discount__gte=0,freight__gte=0,other_costs__gte=0,products_total__gte=0,total__gte=0),name='purchase_nonnegative'),models.CheckConstraint(condition=models.Q(discount__lte=models.F('products_total')),name='purchase_discount_limit')]
         indexes=[models.Index(fields=['supplier','date'])]
+
+    @property
+    def acquisition_total(self):
+        return self.total + self.external_freight
 
     @property
     def item_discounts(self):

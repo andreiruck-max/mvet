@@ -16,8 +16,8 @@
  function update(){try{
   const t=total();let installments=0n;const count=Number(form.elements.namedItem('installments-TOTAL_FORMS')?.value||0);
   for(let i=0;i<count;i++)if(!form.elements.namedItem(`installments-${i}-DELETE`)?.checked)installments+=value(`installments-${i}-amount`,2);
-  const diff=installments-t;
-  document.getElementById('purchase-total').textContent=t<0n?'Confira o desconto: total negativo.':`Total previsto: R$ ${format(t)} · Parcelas: R$ ${format(installments)} · `+(diff===0n?'Valores conciliados.':`Divergência: R$ ${format(diff<0n?-diff:diff)} ${diff>0n?'a mais':'a menos'} nas parcelas.`);
+  const diff=installments-t;const carrier=value('external_freight',2);
+  document.getElementById('purchase-total').textContent=t<0n?'Confira o desconto: total negativo.':`Total previsto: R$ ${format(t)} · Parcelas: R$ ${format(installments)} · `+(diff===0n?'Valores conciliados.':`Divergência: R$ ${format(diff<0n?-diff:diff)} ${diff>0n?'a mais':'a menos'} nas parcelas.`)+(carrier?` Custo de aquisição com frete fora da nota: R$ ${format(t+carrier)}.`:'');
  }catch{document.getElementById('purchase-total').textContent='Confira os valores e casas decimais para calcular o total.';}}
 
  form.addEventListener('input',update);form.addEventListener('change',update);
