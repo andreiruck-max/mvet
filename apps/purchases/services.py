@@ -12,7 +12,7 @@ from apps.inventory.services import domain_lock, number, QTY, MONEY, quant, _fin
 from .models import Supplier, Purchase, PurchaseItem, PurchaseInstallment
 
 CENT=Decimal('0.01')
-FIELDS=['acquisition_kind','supplier','document','series','date','location','discount','freight','other_costs','notes']
+FIELDS=['acquisition_kind','supplier','document','series','date','location','discount','freight','external_freight','other_costs','notes']
 
 def normalized_document(value):
     value=value.strip().upper()
@@ -84,11 +84,12 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
         if purchase.revision!=revision:raise ValidationError('A compra mudou em outra sessão. Reabra a edição.')
         before=snapshot(purchase)
     if not items or len(items)>100 or len(installments)>120:raise ValidationError('Informe de 1 a 100 itens e no máximo 120 parcelas.')
-    for field in FIELDS:setattr(purchase,field,data.get(field,'NORMAL') if field=='acquisition_kind' else data[field])
+    data = {'acquisition_kind':'NORMAL','external_freight':Decimal(purchase.external_freight),**data}
+    for field in FIELDS:setattr(purchase,field,data[field])
     if purchase.acquisition_kind not in ('NORMAL','BONUS'):raise ValidationError('Tipo de entrada inválido.')
     purchase.document=normalized_document(purchase.document);purchase.series=normalized_document(purchase.series)
     validate_active(purchase)
-    for field in ['discount','freight','other_costs']:number(getattr(purchase,field),CENT,zero=True)
+    for field in ['discount','freight','external_freight','other_costs']:number(getattr(purchase,field),CENT,zero=True)
     # Legacy callers retain stock movement by default. Extended rows carry explicit treatment.
     items=[dict(product_id=i[0],quantity=i[1],unit_cost=i[2],moves_stock=True) if not isinstance(i,dict) else dict(i) for i in items]
     products={p.pk:p for p in Product.objects.filter(pk__in=[i.get('product_id') for i in items],active=True,kind='SIMPLE')}
@@ -121,10 +122,15 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
     if purchase.discount>net_total:raise ValidationError('Desconto geral não pode exceder o total após os descontos dos itens.')
     purchase.total=net_total-purchase.discount+purchase.freight+purchase.other_costs
     if purchase.acquisition_kind=='BONUS':
-        if purchase.discount or purchase.freight or purchase.other_costs or installments:raise ValidationError('Bonificação não gera parcelas nem custos pagos. Registre custos cobrados separadamente.')
+        if purchase.discount or purchase.freight or purchase.external_freight or purchase.other_costs or installments:raise ValidationError('Bonificação não gera parcelas nem custos pagos. Registre custos cobrados separadamente.')
         if any(not i['moves_stock'] for i in items):raise ValidationError('Bonificação exige itens destinados ao estoque.')
         purchase.total=Decimal('0.00')
     allocated=allocation(net_subtotals,purchase.total)
+    if purchase.external_freight:
+        # Carrier freight increases the inventory value only; never the supplier debt.
+        stock_basis=[value if item['moves_stock'] else Decimal('0') for item,value in zip(items,net_subtotals)]
+        shares=allocation(stock_basis,purchase.external_freight)
+        allocated=[base+share for base,share in zip(allocated,shares)]
     for due,amount,notes in installments:
         number(amount,CENT)
         if due<purchase.date:raise ValidationError('Vencimento anterior à compra.')

@@ -1,3 +1,5 @@
+04/11/2026 — Compras manuais e Bling: frete pago à transportadora fora da nota é rateado nos itens de estoque sem modificar a NF ou as parcelas do fornecedor. O pagamento da transportadora é registrado separadamente no financeiro. ADR 0052.
+
 ## Compras — pesquisa e grupos de categorias (16/10/2026)
 
 Categoria sem estoque permite pesquisar por código, nome ou grupo, sem diferenciar acentos/maiúsculas. Plano apresentado com títulos de grupos em negrito e subcategorias selecionáveis; níveis intermediários identificados pelo caminho do grupo. Pesquisa preserva a escolha atual, é independente por item e funciona também em linhas adicionadas na compra manual. Conferência Bling e rascunho manual compartilham o seletor. Cálculos e classificação histórica preservados.

@@ -44,6 +44,24 @@ class PurchaseImportTests(Fixture, TestCase):
         purchases.receive(actor=self.actor,purchase_id=p.pk,date=timezone.localdate(),revision=p.revision)
         self.product.refresh_from_db();self.assertEqual(self.product.quantity,12)
         self.assertEqual(self.product.value,D('150'))
+    def test_carrier_freight_is_allocated_to_inventory_not_supplier_installments(self):
+        items=incoming()['itens']
+        items.append({**items[0], 'valor':'25'})
+        row=self.stage(itens=items,valorNota='150.00')
+        due=timezone.localdate()
+        terms=[(due+timedelta(days=30*i),D('50'),str(i)) for i in (1,2,3)]
+        data=dict(products=[self.product,self.product],external_freight=D('22.01'))
+        with self.assertRaisesMessage(ValidationError,'Total das parcelas'):
+            self.draft(row,installments=[(due,D('172.01'),'')],**data)
+        p=self.draft(row,installments=terms,**data)
+        self.assertEqual(p.total,D('150'))
+        self.assertEqual(list(p.items.order_by('pk').values_list('allocated_total',flat=True)),[D('114.67'),D('57.34')])
+        p=purchases.confirm(actor=self.actor,purchase_id=p.pk,revision=p.revision)
+        self.assertEqual(list(FinancialTitle.objects.order_by('due_date').values_list('due_date','amount')),[(d,a) for d,a,_ in terms])
+        p=purchases.receive(actor=self.actor,purchase_id=p.pk,revision=p.revision,date=due)
+        self.assertEqual(sum(p.receipt.movements.values_list('value',flat=True)),D('172.01'))
+        self.assertFalse(FinancialEntry.objects.exists())
+
     def test_idempotency_cancel_and_external_change_preserve_link(self):
         row=self.stage();p=self.draft(row);self.assertEqual(self.draft(row).pk,p.pk)
         purchases.cancel(actor=self.actor,purchase_id=p.pk,reason='Teste')
@@ -78,11 +96,11 @@ class PurchaseImportTests(Fixture, TestCase):
         with self.assertRaises(PermissionDenied):self.draft(row,actor=self.operator)
         self.client.force_login(self.actor)
         response=self.client.post(reverse('bling_purchase_detail',args=[row.pk]),{
-            'revision':row.revision,'supplier':self.supplier.pk,'location':self.location.pk,'discount':'0,00','freight':'0,00','other_costs':'0,00','reviewed':'on',
+            'revision':row.revision,'supplier':self.supplier.pk,'location':self.location.pk,'discount':'0,00','freight':'0,00','external_freight':'12,34','other_costs':'0,00','reviewed':'on',
             'products-TOTAL_FORMS':1,'products-INITIAL_FORMS':1,'products-0-product':self.product.pk,
             'installments-TOTAL_FORMS':1,'installments-INITIAL_FORMS':1,'installments-0-due_date':str(timezone.localdate()+timedelta(days=30)), 'installments-0-amount':'100.00','installments-0-notes':''})
         self.assertEqual(response.status_code,302)
-        self.assertEqual(Purchase.objects.count(),1)
+        self.assertEqual(Purchase.objects.get().items.get().allocated_total,D('112.34'))
         self.assertFalse(FinancialTitle.objects.exists())
     def test_new_invalid_document_reported_by_external_id(self):
         with patch('apps.integrations.bling.read',side_effect=[{'data':[{'id':1000}]},{'data':incoming(chaveAcesso='bad')} ]):
