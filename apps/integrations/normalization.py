@@ -61,7 +61,21 @@ def normalize(payload, issuer):
     if not isinstance(store, dict): raise ValidationError('Loja externa inválida.')
     contact = payload.get('contato') or {}
     if not isinstance(contact, dict): raise ValidationError('Contato externo inválido.')
-    return {**({'discount': decimal_text(discounts['total'], 2)} if discounts else {}), 'number': str(int(number)), 'series': str(int(series)), 'key': key,
+    installments = []
+    if str(payload.get('tipo')) == '1':
+        parcels = payload.get('parcelas') or []
+        if not isinstance(parcels, list) or len(parcels) > 60:
+            raise ValidationError('Nota de venda excede o limite de 60 parcelas.')
+        for parcel in parcels:
+            try:
+                due = date.fromisoformat(str(parcel['data'])[:10])
+                amount = decimal_text(parcel['valor'], 2)
+            except (KeyError, TypeError, ValueError):
+                raise ValidationError('Parcela do Bling sem vencimento ou valor válido.')
+            if due < issued or Decimal(amount) <= 0:
+                raise ValidationError('Parcela do Bling com vencimento anterior à venda ou valor não positivo.')
+            installments.append({'due_date': due.isoformat(), 'amount': amount})
+    return {'commission_installments': installments, **({'discount' : decimal_text(discounts['total'], 2)} if discounts else {}), 'number': str(int(number)), 'series': str(int(series)), 'key': key,
             'customer_name': text(contact.get('nome'), 240),
             'date': issued.isoformat(), 'status': text(payload.get('situacao'), 20),
             'type': text(payload.get('tipo'), 1), 'purpose': text(payload.get('finalidade'), 1),

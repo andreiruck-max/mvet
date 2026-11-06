@@ -31,7 +31,7 @@ class CommissionBrowser(Fixture,StaticLiveServerTestCase):
             page.get_by_role('button',name='Salvar',exact=True).click()
             expect(page.get_by_text('Operação registrada com histórico.',exact=True)).to_be_visible()
             page.get_by_role('link',name='Revisar parcelas',exact=True).click()
-            page.get_by_label('Motivo / observação:',exact=True).fill('Conferência do cronograma')
+            expect(page.get_by_label('Observação (opcional):',exact=True)).to_have_value('')
             page.get_by_role('button',name='Salvar cronograma',exact=True).click()
             expect(page.get_by_text('Cronograma revisado, com histórico e ajuste da liberação.',exact=True)).to_be_visible()
             Path('artifacts').mkdir(exist_ok=True)

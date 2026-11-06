@@ -58,6 +58,7 @@ class ReverseForm(ActionForm):
     date=forms.DateField(label='Data efetiva do estorno',initial=timezone.localdate,widget=DateInput())
 
 class ScheduleActionForm(ActionForm):
+    reason=forms.CharField(label='Observação (opcional)',max_length=500,required=False,widget=forms.Textarea(attrs={'rows':2}))
     revision=forms.IntegerField(widget=forms.HiddenInput)
 
 class ScheduleRow(forms.Form):
