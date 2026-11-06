@@ -75,7 +75,7 @@ def normalize(payload, issuer):
             if due < issued or Decimal(amount) <= 0:
                 raise ValidationError('Parcela do Bling com vencimento anterior à venda ou valor não positivo.')
             installments.append({'due_date': due.isoformat(), 'amount': amount})
-    return {'commission_installments': installments, **({'discount' : decimal_text(discounts['total'], 2)} if discounts else {}), 'number': str(int(number)), 'series': str(int(series)), 'key': key,
+    return {**({'commission_installments': installments} if installments else {}), **({'discount': decimal_text(discounts['total'], 2)} if discounts else {}), 'number': str(int(number)), 'series': str(int(series)), 'key': key,
             'customer_name': text(contact.get('nome'), 240),
             'date': issued.isoformat(), 'status': text(payload.get('situacao'), 20),
             'type': text(payload.get('tipo'), 1), 'purpose': text(payload.get('finalidade'), 1),

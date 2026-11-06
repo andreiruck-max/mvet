@@ -165,3 +165,10 @@ class SaleEntryCommissionTests(Fixture,TestCase):
         from apps.core.models import AuditLog
         log=AuditLog.objects.get(operation='commission_schedule',entity_id=str(plan.pk))
         self.assertTrue(log.after['schedule']);self.assertEqual(log.after['reason'],cmd.reason)
+
+
+    def test_empty_terms_do_not_change_legacy_or_purchase_source(self):
+        from apps.integrations.tests import payload,ISSUER
+        from apps.integrations.normalization import normalize
+        self.assertNotIn('commission_installments',normalize(payload(),ISSUER))
+        self.assertNotIn('commission_installments',normalize(payload(tipo=0,parcelas=[{'data':'2026-12-01','valor':'100'}]),ISSUER))
