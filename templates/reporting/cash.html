@@ -20,7 +20,7 @@
 <tr class="{% if title.due_date < today %}payment-overdue{% elif title.due_date == today %}payment-today{% endif %}">
 <td class="payment-due">{{ title.due_date|date:'d/m/Y' }}{% if title.due_date < today %}<span class="payment-status">Atrasado</span>{% elif title.due_date == today %}<span class="payment-status">Vence hoje</span>{% endif %}</td>
 <td>{{ title.description }}{% if title.counterparty_display %}<br><small>Fornecedor / favorecido: {{ title.counterparty_display }}</small>{% endif %}</td><td class="numeric">{{ title.remaining|floatformat:'2g' }}</td><td>{{ title.account|default:'Sem conta' }}</td>
-<td><a href="{% url 'financial_title' title.pk %}#settlement">{% if perms.core.pay_titles and perms.core.operate_finance %}Baixar pagamento{% else %}Ver título{% endif %}</a></td></tr>
+<td>{% if perms.core.pay_titles and perms.core.operate_finance %}<a href="{% url 'financial_settlement_form' title.pk %}">Baixar pagamento</a>{% else %}<a href="{% url 'financial_title' title.pk %}">Ver título</a>{% endif %}</td></tr>
 {% empty %}<tr><td colspan="5">Nenhum pagamento pendente até o fim do período.</td></tr>{% endfor %}</tbody></table></div>
 {% if pending.has_previous %}<a href="{% querystring payments_page=pending.previous_page_number %}">Pagamentos anteriores</a>{% endif %} {% if pending.has_next %}<a href="{% querystring payments_page=pending.next_page_number %}">Mais pagamentos</a>{% endif %}
 </section></div>{% endblock %}

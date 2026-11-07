@@ -142,8 +142,9 @@ class ReportingBrowser(ReportingFixture,StaticLiveServerTestCase):
             page.locator('.payable-summary > summary').nth(1).click()
             page.screenshot(path='artifacts/payables-totals-desktop.png',full_page=True)
             page.get_by_role('link',name='Pagar / antecipar',exact=True).first.click()
-            page.get_by_role('heading',name='Pagar / antecipar parcela',exact=True).wait_for()
-            page.get_by_role('link',name='Fluxo diário',exact=True).click()
+            page.frame_locator('#action-modal-frame').get_by_role('heading',name='Pagar / antecipar parcela',exact=True).wait_for()
+            page.get_by_role('button',name='Fechar janela de ação',exact=True).click()
+            page.goto(self.live_server_url+reverse('finance'))
             page.get_by_label('Período:',exact=True).select_option('month')
             page.get_by_role('button',name='Consultar',exact=True).click()
             import calendar

@@ -1,3 +1,7 @@
+07/11/2026 — Navegação revisada: ações rápidas em janelas sobre a tela atual, com filtros/posição preservados, erros no formulário, aviso ao descartar edição, fallback para página normal e baixa direta a partir de pendências. Fluxos extensos mantêm página própria. Ver docs/NAVIGATION.md. Preparado, aguardando integração.
+
+06/11/2026 — Parcelas na nova venda para controle de comissão (vencimento e valor), com preservação dos vencimentos recebidos do Bling. Não gera recebíveis ou recebimentos. Descrição de transferência explicitamente opcional; revisão de parcelas aceita observação vazia e preserva auditoria. ADR 0053.
+
 04/11/2026 — Compras manuais e Bling: frete pago à transportadora fora da nota é rateado nos itens de estoque sem modificar a NF ou as parcelas do fornecedor. O pagamento da transportadora é registrado separadamente no financeiro. ADR 0052.
 
 Atualização 03/11/2026: fluxo de caixa abre em Somente realizado, inclusive ao limpar filtros ou consultar sem informar visão. Realizado + previsto continua disponível por seleção explícita. Exportações usam o mesmo padrão. Nenhuma alteração em lançamentos ou cálculos.

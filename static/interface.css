@@ -131,3 +131,25 @@ input[type=checkbox],input[type=radio]{accent-color:var(--focus)}
 @media(max-width:650px){.workspace .expense-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.workspace .expense-summary .card{padding:9px}.expense-summary .large{font-size:18px}}
 
 .category-picker{min-width:0;margin:5px 0}.category-picker input[type=search]{margin:3px 0 6px}.category-picker select{max-width:100%}.category-picker optgroup{font-weight:700;font-style:normal;padding-top:8px;padding-bottom:4px}.category-picker option{font-weight:400;padding:4px 8px}.category-picker [data-category-status]:empty{display:none}
+
+/* Quick actions preserve the origin list and its filters. */
+body.action-modal-open { overflow: hidden; }
+#action-modal { box-sizing:border-box; width:min(1050px, calc(100vw - 40px)); height:min(850px, calc(100dvh - 40px)); max-width:none; max-height:none; padding:0; border:1px solid var(--line,#cbd0e3); border-radius:14px; background:var(--surface,#fff); color:inherit; box-shadow:0 24px 80px #0005; }
+#action-modal::backdrop { background:rgb(10 14 40 / .6); }
+#action-modal[open] { display:flex; flex-direction:column; }
+.action-modal-bar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 18px; border-bottom:1px solid var(--line,#cbd0e3); }
+.action-modal-bar h2 { margin:0; font-size:1.05rem; }
+.action-modal-bar .actions { flex-shrink:0; }
+#action-modal-status { padding:12px 18px; }
+#action-modal-status[hidden], #action-modal-frame[hidden] { display:none; }
+#action-modal-frame { width:100%; flex:1; min-height:0; border:0; background:transparent; }
+.modal-mode .shell { margin:0; min-height:100dvh; }
+.modal-mode .workspace { padding:18px; max-width:none; }
+.modal-mode .workspace > nav, .modal-mode .compact-page > nav { display:none; }
+@media(max-width:600px) {
+  #action-modal { width:100vw; height:100dvh; margin:0; border-radius:0; border:0; }
+  .action-modal-bar { padding:10px; align-items:flex-start; }
+  .action-modal-bar .actions { flex-direction:column-reverse; align-items:flex-end; }
+  .action-modal-bar a { font-size:.8rem; }
+  .modal-mode .workspace { padding:12px; }
+}

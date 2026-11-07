@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from .models import Sale, SalesChannel, TaxRule
-from .forms import SaleForm, Items, MasterItems, CancelForm, ChannelForm, TaxForm, FilterForm, ExtraCosts, MasterExtraCosts, TaxChangeForm
+from .forms import CommissionTerms, SaleForm, Items, MasterItems, CancelForm, ChannelForm, TaxForm, FilterForm, ExtraCosts, MasterExtraCosts, TaxChangeForm
 from .services import save_draft, confirm, cancel, save_configuration, EDIT_FIELDS
 from .selectors import sales
 from .taxes import change_rate, effective_terms
@@ -38,19 +38,23 @@ def sale_edit(request,pk=None):
     extra_initial=list(obj.extra_costs.values('name','amount')) if obj else []
     extra_class=MasterExtraCosts if request.user.is_superuser else ExtraCosts
     extra_formset=extra_class(request.POST or None,initial=extra_initial,prefix='extras')
+    terms_post=request.POST if request.method=='POST' and 'terms-TOTAL_FORMS' in request.POST else None
+    terms=CommissionTerms(terms_post,initial=obj.commission_installments if obj else [],prefix='terms')
     if request.method=='POST':
         valid=form.is_valid();items_valid=formset.is_valid();extras_valid=extra_formset.is_valid()
-        if valid and items_valid and extras_valid:
+        terms_valid=terms.is_valid() if terms_post is not None else True
+        if valid and items_valid and extras_valid and terms_valid:
             try:
                 items=[(f.cleaned_data['product'].pk,f.cleaned_data['quantity']) for f in formset if f.cleaned_data and f.cleaned_data.get('product') and not f.cleaned_data.get('DELETE')]
                 extras=[(f.cleaned_data['name'],f.cleaned_data['amount']) for f in extra_formset if f.cleaned_data and f.cleaned_data.get('name') and not f.cleaned_data.get('DELETE')]
-                sale=save_draft(actor=request.user,key=form.cleaned_data['key'],data={k:form.cleaned_data[k] for k in EDIT_FIELDS},items=items,sale_id=pk,revision=form.cleaned_data['revision'],extra_costs=extras)
+                term_rows=[{'due_date':str(f.cleaned_data['due_date']),'amount':str(f.cleaned_data['amount'])} for f in terms if f.cleaned_data and not f.cleaned_data.get('DELETE')] if terms_post is not None else None
+                sale=save_draft(actor=request.user,key=form.cleaned_data['key'],data={k:form.cleaned_data[k] for k in EDIT_FIELDS},items=items,sale_id=pk,revision=form.cleaned_data['revision'],extra_costs=extras,commission_installments=term_rows)
                 messages.success(request,'Rascunho salvo. Revise e confirme para baixar o estoque.')
                 return redirect('sale_detail',pk=sale.pk)
             except ValidationError as exc:form.add_error(None,'; '.join(exc.messages))
             except IntegrityError:form.add_error(None,'NF e série já utilizadas. Verifique as vendas cadastradas.')
     labels={str(i.product_id):str(i.product) for i in obj.items.select_related('product')} if obj else {}
-    return render(request,'sales/edit.html',{'form':form,'formset':formset,'extra_formset':extra_formset,'labels':labels,'sale':obj})
+    return render(request,'sales/edit.html',{'form':form,'formset':formset,'extra_formset':extra_formset,'commission_terms':terms,'labels':labels,'sale':obj})
 
 @login_required
 def sale_detail(request,pk):
