@@ -18,11 +18,11 @@
     if (embedded) send('dirty');
   });
   if (embedded && document.body.dataset.modalMode) {
-    send('ready', {title: document.querySelector('h1')?.textContent.trim() || document.title});
+    window.addEventListener('load', () => send('ready', {title: document.querySelector('h1')?.textContent.trim() || document.title}));
     document.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); send('close'); } });
     document.addEventListener('submit', event => {
       const form = event.target;
-      if (!(form instanceof HTMLFormElement)) return;
+      if (!(form instanceof HTMLFormElement) || event.defaultPrevented) return;
       const url = new URL(form.action, location.href);
       if (url.origin === location.origin && (eligible(url) || form.method.toLowerCase() === 'post')) { url.searchParams.set('_modal', '1'); form.action = url.href; }
       // Native form validation has already run. Do not disable named submit buttons.
@@ -55,7 +55,13 @@
   const status = document.getElementById('action-modal-status');
   const title = document.getElementById('action-modal-title');
   const expand = document.getElementById('action-modal-expand');
-  let trigger, frameDirty = false, busy = false, timer;
+  const formSignature = doc => JSON.stringify([...doc.querySelectorAll('form')]
+    .filter(form => form.method.toLowerCase() === 'post')
+    .map(form => [...new FormData(form)].map(([key, value]) => [key,
+      typeof value === 'string' ? value : [value.name, value.size, value.lastModified]])));
+  let originForms;
+  window.addEventListener('load', () => { originForms = formSignature(document); });
+  let trigger, frameDirty = false, busy = false, timer, frameForms;
   const scrollKey = 'mvet-action-scroll:' + document.body.dataset.userId + ':' + location.href;
   try {
     const previous = JSON.parse(sessionStorage.getItem(scrollKey));
@@ -69,6 +75,7 @@
   } catch (_) {}
   const mayClose = () => {
     if (busy) { status.hidden = false; status.textContent = 'Aguarde a resposta da operação antes de fechar.'; return false; }
+    try { if (frameForms && frameForms !== formSignature(frame.contentDocument)) frameDirty = true; } catch (_) {}
     return !frameDirty || confirm('Descartar as alterações ainda não salvas?');
   };
   const close = () => { if (mayClose()) dialog.close(); };
@@ -88,7 +95,7 @@
     const url = clean(link.href);
     if (!eligible(url)) return;
     event.preventDefault();
-    trigger = link; frameDirty = false; busy = false;
+    trigger = link; frameDirty = false; busy = false; frameForms = null;
     title.textContent = link.textContent.trim() || 'Ação';
     expand.href = url.href;
     status.textContent = 'Carregando…'; status.hidden = false; frame.hidden = true;
@@ -113,6 +120,7 @@
       // Validation responses retain dirty state until explicitly discarded or saved.
       title.textContent = data.title || title.textContent; frame.title = title.textContent;
       try {
+        frameForms = formSignature(frame.contentDocument);
         const current = clean(frame.contentWindow.location.href);
         if (eligible(current)) expand.href = current.href;
         frame.contentDocument.querySelector('.errorlist input, .errorlist, input:not([type="hidden"]), select, textarea, button')?.focus();
@@ -126,7 +134,7 @@
       if (url.origin === location.origin && mayClose()) location.assign(url.href);
     } else if (data.mvetAction === 'complete') {
       busy = false; frameDirty = false; dialog.close();
-      if (dirty) {
+      if (dirty || (originForms && originForms !== formSignature(document))) {
         const notice = document.createElement('p'); notice.className = 'notice'; notice.setAttribute('role', 'status');
         notice.textContent = 'Ação processada. Seus campos em edição foram preservados. Após salvá-los, atualize esta página para conferir os dados.';
         document.querySelector('main').prepend(notice); return;
