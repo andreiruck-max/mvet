@@ -8,12 +8,12 @@
   const clean = href => { const url = new URL(href, location.href); url.searchParams.delete('_modal'); return url; };
   let dirty = false;
   document.addEventListener('input', event => {
-    if (event.target.closest('form')?.method.toLowerCase() !== 'post') return;
+    if (event.target.closest('form')?.getAttribute('method')?.toLowerCase() !== 'post') return;
     dirty = true;
     if (embedded) send('dirty');
   });
   document.addEventListener('change', event => {
-    if (event.target.closest('form')?.method.toLowerCase() !== 'post') return;
+    if (event.target.closest('form')?.getAttribute('method')?.toLowerCase() !== 'post') return;
     dirty = true;
     if (embedded) send('dirty');
   });
@@ -23,10 +23,10 @@
     document.addEventListener('submit', event => {
       const form = event.target;
       if (!(form instanceof HTMLFormElement) || event.defaultPrevented) return;
-      const url = new URL(form.action, location.href);
-      if (url.origin === location.origin && (eligible(url) || form.method.toLowerCase() === 'post')) { url.searchParams.set('_modal', '1'); form.action = url.href; }
+      const url = new URL(form.getAttribute('action') || location.href, location.href);
+      if (url.origin === location.origin && (eligible(url) || (form.getAttribute('method') || 'get').toLowerCase() === 'post')) { url.searchParams.set('_modal', '1'); form.setAttribute('action', url.href); }
       // Native form validation has already run. Do not disable named submit buttons.
-      if (form.method.toLowerCase() === 'post') {
+      if ((form.getAttribute('method') || 'get').toLowerCase() === 'post') {
         if (form.dataset.actionSubmitting) { event.preventDefault(); return; }
         form.dataset.actionSubmitting = 'true';
         send('busy');
@@ -56,7 +56,7 @@
   const title = document.getElementById('action-modal-title');
   const expand = document.getElementById('action-modal-expand');
   const formSignature = doc => JSON.stringify([...doc.querySelectorAll('form')]
-    .filter(form => form.method.toLowerCase() === 'post')
+    .filter(form => (form.getAttribute('method') || 'get').toLowerCase() === 'post')
     .map(form => [...new FormData(form)].map(([key, value]) => [key,
       typeof value === 'string' ? value : [value.name, value.size, value.lastModified]])));
   let originForms;
@@ -133,13 +133,16 @@
       const url = clean(data.url);
       if (url.origin === location.origin && mayClose()) location.assign(url.href);
     } else if (data.mvetAction === 'complete') {
-      busy = false; frameDirty = false; dialog.close();
+      busy = false; frameDirty = false;
       if (dirty || (originForms && originForms !== formSignature(document))) {
+        dialog.close();
         const notice = document.createElement('p'); notice.className = 'notice'; notice.setAttribute('role', 'status');
         notice.textContent = 'Ação processada. Seus campos em edição foram preservados. Após salvá-los, atualize esta página para conferir os dados.';
         document.querySelector('main').prepend(notice); return;
       }
       try { sessionStorage.setItem(scrollKey, JSON.stringify({y: scrollY, at: Date.now(), focus: trigger?.href})); } catch (_) {}
+      busy = true; frame.hidden = true; status.hidden = false;
+      status.textContent = 'Ação processada. Atualizando a tela de origem…';
       location.reload();
     }
   });
