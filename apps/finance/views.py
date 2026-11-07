@@ -261,3 +261,21 @@ def title_edit(request,pk):
         except (ValidationError,IntegrityError) as exc:error(form,exc)
     return render(request,'finance/form.html',{'form':form,'title':'Editar título','button':'Salvar alterações',
         'help':'Altere os dados da obrigação e informe o motivo. O valor não pode ser menor que o principal liquidado. A conta prevista não transfere pagamentos anteriores. Em compras e vendas, a edição corrige somente a obrigação financeira; valores da nota, estoque e custos históricos permanecem no documento de origem. A classificação financeira não substitui a categoria de uma despesa na DRE.'},status=400 if request.method=='POST' else 200)
+
+
+@login_required
+@permission_required('core.operate_finance',raise_exception=True)
+def settlement_form(request,pk):
+    from django.urls import reverse
+    from apps.core.services import require
+    if request.method != 'GET':
+        from django.http import HttpResponseNotAllowed
+        return HttpResponseNotAllowed(['GET'])
+    title=get_object_or_404(Title,pk=pk)
+    require(request.user,'core.pay_titles' if title.direction=='PAY' else 'core.receive_titles')
+    form=forms.SettlementForm(initial={'principal':title.remaining,'actual':title.remaining,'account':title.account_id,'revision':title.revision})
+    return render(request,'finance/form.html',{
+        'form':form,'title':'Pagar / antecipar parcela' if title.direction=='PAY' else 'Registrar recebimento',
+        'button':'Confirmar liquidação','form_action':reverse('financial_settle',args=[pk]),
+        'help':f'{title.description} · {title.counterparty_display} · Pendente R$ {title.remaining:.2f}. A baixa pode ser parcial. Confira conta, data e valor; uma baixa futura afeta o saldo realizado apenas na data informada.',
+    })

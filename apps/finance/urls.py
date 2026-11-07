@@ -7,6 +7,7 @@ urlpatterns=[
     path('titulos/novo/',views.title_new,name='financial_title_new'),
     path('titulos/<int:pk>/editar/',views.title_edit,name='financial_title_edit'),
     path('titulos/<int:pk>/',views.title_detail,name='financial_title'),
+    path('titulos/<int:pk>/pagamento/',views.settlement_form,name='financial_settlement_form'),
     path('titulos/<int:pk>/liquidar/',views.title_action,{'action':'settle'},name='financial_settle'),
     path('titulos/<int:pk>/previsao/',views.title_action,{'action':'schedule'},name='financial_schedule'),
     path('titulos/<int:pk>/cancelar/',views.title_action,{'action':'cancel'},name='financial_cancel'),
