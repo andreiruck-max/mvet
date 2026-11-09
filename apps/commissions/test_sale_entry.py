@@ -97,3 +97,78 @@ class SaleEntryCommissionTests(Fixture,TestCase):
         self.assertEqual(c.commission_payee,cesar);self.assertEqual(l.commission_payee,lucas)
         with connection.schema_editor(atomic=False) as editor:migration.link_existing(apps,editor)
         self.assertEqual(CommissionPlan.objects.count(),0)
+
+    def test_manual_terms_survive_draft_and_allocate_commission_without_receivable(self):
+        from datetime import timedelta
+        day=self.data()['date'];terms=[{'due_date':str(day+timedelta(days=30)),'amount':'30.00'},{'due_date':str(day+timedelta(days=60)),'amount':'65.00'}]
+        key=uuid4()
+        draft=sales.save_draft(actor=self.operator,key=key,data=self.data(commission_manual_total=D('7.33')),items=[(self.product.pk,D(2))],commission_installments=terms)
+        same=sales.save_draft(actor=self.operator,key=key,data=self.data(commission_manual_total=D('7.33')),items=[(self.product.pk,D(2))],commission_installments=terms)
+        self.assertEqual(same.pk,draft.pk)
+        changed=[dict(terms[0],due_date=str(day+timedelta(days=31))),terms[1]]
+        with self.assertRaises(ValidationError):
+            sales.save_draft(actor=self.operator,key=key,data=self.data(commission_manual_total=D('7.33')),items=[(self.product.pk,D(2))],commission_installments=changed)
+        draft=sales.save_draft(actor=self.operator,key=uuid4(),data=self.data(commission_manual_total=D('7.33')),items=[(self.product.pk,D(2))],sale_id=draft.pk,revision=draft.revision)
+        self.assertEqual(draft.commission_installments,terms)
+        sale=sales.confirm(actor=self.operator,sale_id=draft.pk,revision=draft.revision)
+        rows=list(sale.commission_plan.installments.all())
+        self.assertEqual([str(r.due_date) for r in rows],[t['due_date'] for t in terms])
+        self.assertEqual([r.amount for r in rows],[D(30),D(65)])
+        self.assertEqual(sum(r.forecast for r in rows),D('7.33'))
+        self.assertFalse(FinancialTitle.objects.exists());self.assertFalse(Entry.objects.exists())
+
+    def test_invalid_terms_do_not_save_sale(self):
+        from datetime import timedelta
+        day=self.data()['date']
+        for terms in [
+            [{'due_date':str(day),'amount':'94.99'}],
+            [{'due_date':str(day-timedelta(days=1)),'amount':'95'}],
+            [{'due_date':str(day),'amount':'0'}],
+            [{'due_date':str(day),'amount':'95.001'}],
+            [{'due_date':str(day),'amount':'NaN'}],
+            [{'due_date':'bad','amount':'95'}],
+            [{'due_date':str(day),'amount':'95'}]*61,
+        ]:
+            with self.subTest(terms=terms),self.assertRaises(ValidationError):
+                sales.save_draft(actor=self.operator,key=uuid4(),data=self.data(),items=[(self.product.pk,D(2))],commission_installments=terms)
+        self.assertFalse(Sale.objects.exists())
+
+    def test_bling_installment_dates_and_amounts_are_preserved(self):
+        from datetime import timedelta
+        from apps.integrations.models import BlingConnection
+        from apps.integrations.tests import payload,ISSUER
+        from apps.integrations.services import stage,approve
+        day=self.data()['date'];dates=[day+timedelta(days=n) for n in (30,60,90)]
+        connection=BlingConnection.objects.create(pk=1,issuer=ISSUER)
+        invoice=stage(actor=self.actor,connection=connection,payload=payload(parcelas=[{'data':str(d),'valor':v} for d,v in zip(dates,['33.33','33.33','33.34'])]))
+        sale=approve(actor=self.actor,invoice_id=invoice.pk,revision=invoice.revision,data=self.data(discount=D(0),shipping_received=D(0)),extra_costs=[],reviewed=True)
+        rows=list(sale.commission_plan.installments.all())
+        self.assertEqual([r.due_date for r in rows],dates)
+        self.assertEqual([r.amount for r in rows],[D('33.33'),D('33.33'),D('33.34')])
+        self.assertFalse(FinancialTitle.objects.exists());self.assertFalse(Entry.objects.exists())
+
+    def test_blank_schedule_reason_is_audited_and_other_actions_still_require_reason(self):
+        from datetime import timedelta
+        from .forms import ScheduleActionForm,ReceiptForm
+        from .models import Command
+        plan=self.confirmed().commission_plan;item=plan.installments.get()
+        form=ScheduleActionForm({'key':str(uuid4()),'revision':plan.revision,'reason':''})
+        self.assertTrue(form.is_valid(),form.errors)
+        self.assertFalse(ReceiptForm({'key':str(uuid4()),'date':str(self.data()['date']),'amount':'1','reason':''}).is_valid())
+        key=form.cleaned_data['key']
+        kwargs=dict(actor=self.actor,plan_id=plan.pk,revision=plan.revision,rows=[{'installment_id':item.pk,'due_date':item.due_date+timedelta(days=30),'amount':item.amount}],key=key,reason='')
+        commissions.revise_schedule(**kwargs);commissions.revise_schedule(**kwargs)
+        item.refresh_from_db();self.assertEqual(item.due_date,plan.sale.date+timedelta(days=30))
+        cmd=Command.objects.get(key=key)
+        self.assertEqual(cmd.reason,'Cronograma de comissão atualizado.')
+        self.assertEqual(cmd.actor,self.actor);self.assertTrue(cmd.before['schedule'])
+        from apps.core.models import AuditLog
+        log=AuditLog.objects.get(operation='commission_schedule',entity_id=str(plan.pk))
+        self.assertTrue(log.after['schedule']);self.assertEqual(log.after['reason'],cmd.reason)
+
+
+    def test_empty_terms_do_not_change_legacy_or_purchase_source(self):
+        from apps.integrations.tests import payload,ISSUER
+        from apps.integrations.normalization import normalize
+        self.assertNotIn('commission_installments',normalize(payload(),ISSUER))
+        self.assertNotIn('commission_installments',normalize(payload(tipo=0,parcelas=[{'data':'2026-12-01','valor':'100'}]),ISSUER))

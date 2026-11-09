@@ -152,6 +152,14 @@ class FinanceTests(Fixture,TestCase):
         s.reverse(actor=self.operator,pk=op.pk,date=self.today,reason='Corrigir')
         self.assertEqual(sum(Entry.objects.values_list('amount',flat=True)),0)
 
+    def test_transfer_form_accepts_empty_description(self):
+        from .forms import TransferForm
+        form=TransferForm({'key':str(uuid4()),'source':self.a.pk,'destination':self.b.pk,'date':str(self.today),'amount':'10','notes':''})
+        self.assertTrue(form.is_valid(),form.errors)
+        op=s.transfer(actor=self.operator,key=form.cleaned_data['key'],source_id=self.a.pk,destination_id=self.b.pk,date=self.today,amount=form.cleaned_data['amount'],notes=form.cleaned_data['notes'])
+        self.assertEqual(op.description,'Transferência entre contas')
+        self.assertEqual(sum(op.entries.values_list('amount',flat=True)),0)
+
     def test_same_account_transfer_rejected(self):
         with self.assertRaises(ValidationError):s.transfer(actor=self.operator,key=uuid4(),source_id=self.a.pk,destination_id=self.a.pk,date=self.today,amount=D('1'))
 

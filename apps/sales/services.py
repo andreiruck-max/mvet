@@ -19,6 +19,7 @@ CENT = Decimal('0.01')
 def snapshot(sale):
     result = {field:str(getattr(sale,field)) for field in EDIT_FIELDS}
     result.update(status=sale.status, revision=sale.revision, items=[{'product':i.product_id,'quantity':str(i.quantity)} for i in sale.items.all()])
+    result['commission_installments']=sale.commission_installments
     result['extra_costs']=[{'name':e.name,'amount':str(e.amount)} for e in sale.extra_costs.all()]
     return result
 
@@ -40,10 +41,12 @@ def validate(sale, *, partial=False):
         rule=TaxRule.objects.get(pk=sale.tax_rule_id)
         if not rule.active or sale.date < rule.starts_on or (rule.ends_on and sale.date > rule.ends_on):
             raise ValidationError('Regra tributária inativa ou fora da vigência na data comercial.')
+    from .installments import normalize_terms
+    sale.commission_installments=normalize_terms(sale.commission_installments,sale.date,sale.products_amount-sale.discount+sale.shipping_received)
     return company
 
 @transaction.atomic
-def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None):
+def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None,commission_installments=None):
     require(actor,'core.operate_sales')
     domain_lock()
     data = dict(data)
@@ -65,7 +68,7 @@ def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None):
         if not name.strip() or len(name)>120:raise ValidationError("Informe a descrição da taxa extra.")
         number(amount,CENT,zero=True)
     key=UUID(str(key))
-    fingerprint=_fingerprint([actor.pk,{k:str(v.pk if hasattr(v,'pk') else v) for k,v in data.items()},items,extra_costs])
+    fingerprint=_fingerprint([actor.pk,{k:str(v.pk if hasattr(v,'pk') else v) for k,v in data.items()},items,extra_costs,commission_installments])
     if sale_id is None:
         previous=Sale.objects.filter(key=key).first()
         if previous:
@@ -89,6 +92,8 @@ def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None):
         number(quantity,QTY)
         if pid not in products: raise ValidationError('Produto inexistente ou inativo.')
     for field in EDIT_FIELDS: setattr(sale,field,data[field])
+    if commission_installments is not None:
+        sale.commission_installments=commission_installments
     sale.customer_name=sale.customer_name.strip()
     if sale.commission_manual_total is not None:
         sale.commission_manual_total=number(sale.commission_manual_total,CENT,zero=True)

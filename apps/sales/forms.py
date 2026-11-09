@@ -211,3 +211,10 @@ class CostCorrectionForm(forms.Form):
 
     def costs(self):
         return {row['id']: self.cleaned_data['cost_' + str(row['id'])] for row in self.rows}
+
+
+class CommissionTermForm(forms.Form):
+    due_date=forms.DateField(label='Vencimento',widget=forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d'))
+    amount=forms.DecimalField(label='Valor da parcela da venda (R$)',min_value=Decimal('0.01'),max_digits=18,decimal_places=2,localize=True)
+
+CommissionTerms=forms.formset_factory(CommissionTermForm,extra=0,can_delete=True,max_num=60,validate_max=True)

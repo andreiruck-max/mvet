@@ -29,6 +29,7 @@ class TaxRule(models.Model):
     def __str__(self): return self.name
 
 class Sale(models.Model):
+    commission_installments = models.JSONField(default=list, blank=True)
     key = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     creation_fingerprint = models.CharField(max_length=64, editable=False)
     revision = models.PositiveIntegerField(default=0, editable=False)

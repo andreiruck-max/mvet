@@ -11,11 +11,13 @@
   <script src="{% static 'mvet.js' %}" defer></script>
   <script src="{% static 'navigation.js' %}" defer></script>
   <script src="{% static 'money.js' %}" defer></script>
+  <script src="{% static 'action-modal.js' %}" defer></script>
   <script src="{% static 'privacy.js' %}" defer></script>
 </head>
-<body data-user-id="{{ user.pk|default:'anonymous' }}">
+<body data-user-id="{{ user.pk|default:'anonymous' }}" {% if modal_mode %}class="modal-mode" data-modal-mode="true"{% endif %}>
+{{ action_patterns|json_script:"action-patterns" }}
 <a class="skip" href="#content">Pular para o conteúdo</a>
-{% if user.is_authenticated %}
+{% if user.is_authenticated and not modal_mode %}
 <aside class="sidebar">
   <button type="button" class="menu-toggle" aria-controls="main-navigation" aria-expanded="false">Menu</button>
   <a class="brand" href="{% url 'home' %}"><span class="brand-mark">M</span><span>Mercadovet<small>MVet {{ mvet_version }}</small></span></a>
@@ -62,7 +64,7 @@
 </aside>
 {% endif %}
 <div class="shell {% if not user.is_authenticated %}anonymous{% endif %}">
-  <header class="topbar">
+  {% if not modal_mode %}<header class="topbar">
     <span class="workspace-location">{% if user.is_authenticated %}Área de trabalho{% else %}Mercadovet · Gestão interna{% endif %}</span>
     <div class="actions">
       <button type="button" class="quiet" id="theme-toggle" aria-label="Alternar modo claro e escuro">Tema</button>
@@ -73,12 +75,19 @@
       <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="quiet">Sair</button></form>
       {% endif %}
     </div>
-  </header>
+  </header>{% endif %}
   <main id="content" class="workspace">
-    {% if user.is_authenticated and show_back %}<a class="button page-back" href="{{ back_url }}">← Voltar</a>{% endif %}
+    {% if user.is_authenticated and show_back and not modal_mode %}<a class="button page-back" href="{{ back_url }}">← Voltar</a>{% endif %}
     {% for message in messages %}<div class="notice" role="status">{{ message }}</div>{% endfor %}
     {% block content %}{% endblock %}
   </main>
 </div>
+{% if user.is_authenticated and not modal_mode %}
+<dialog id="action-modal" aria-labelledby="action-modal-title">
+  <div class="action-modal-bar"><h2 id="action-modal-title">Ação</h2><div class="actions"><a id="action-modal-expand" href="#">Abrir nesta página</a><button type="button" id="action-modal-close" aria-label="Fechar janela de ação">Fechar</button></div></div>
+  <p id="action-modal-status" role="status">Carregando…</p>
+  <iframe id="action-modal-frame" name="mvet-action-frame" title="Formulário da ação"></iframe>
+</dialog>
+{% endif %}
 </body>
 </html>

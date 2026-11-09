@@ -47,6 +47,7 @@ def stage(*, actor, connection, payload):
     # old imports when the field is fetched for the first time.
     def commercial(value):
         result = {k: v for k, v in value.items() if k != 'customer_name'}
+        if not result.get('commission_installments'): result.pop('commission_installments', None)
         # Printing changes the external status, not the commercial document.
         if result.get('status') == '6': result['status'] = '5'
         return result
@@ -133,7 +134,7 @@ def approve(*, actor, invoice_id, revision, data, extra_costs, reviewed, purpose
         items.append((product.pk, Decimal(row['quantity'])))
     # Never trust posted invoice identifiers, quantities or external costs.
     data = dict(data, customer_name=invoice.source.get('customer_name',''), date=invoice.issued_on, invoice_number=invoice.number, invoice_series=invoice.series)
-    sale = sales.save_draft(actor=actor, key=uuid4(), data=data, items=items, extra_costs=extra_costs)
+    sale = sales.save_draft(actor=actor, key=uuid4(), data=data, items=items, extra_costs=extra_costs, commission_installments=invoice.source.get('commission_installments', []))
     sale.source = 'bling'; sale.external_id = invoice.external_id
     sale.save(update_fields=['source', 'external_id'])
     sale = sales.confirm(actor=actor, sale_id=sale.pk, revision=sale.revision)

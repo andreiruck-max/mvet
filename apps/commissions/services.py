@@ -1,4 +1,5 @@
 """Commission subledger. Receipt evidence and payments do not post bank entries."""
+from apps.sales.installments import plan_terms
 from decimal import Decimal, ROUND_HALF_UP
 from uuid import UUID, uuid4
 from calendar import monthrange
@@ -142,6 +143,7 @@ def revise_schedule(*,actor,plan_id,revision,rows,key,reason):
     items=list(plan.installments.all())
     before={'schedule':[{'id':i.pk,'amount':str(i.amount),'due_date':str(i.due_date)} for i in items]}
     payload=[plan_id,revision,[(r['installment_id'],str(r['due_date']),str(r['amount'])) for r in rows]]
+    reason=reason.strip() or 'Cronograma de comissão atualizado.'
     cmd,fresh=command(actor,key,'SCHEDULE',reason,payload,before=before)
     if not fresh:return plan
     if plan.cancelled or plan.revision!=revision:raise ValidationError('Registro alterado ou cancelado. Reabra a página.')
@@ -317,5 +319,5 @@ def create_from_confirmed_sale(*,actor,sale):
     manual=sale.commission_manual_total
     if manual is None and sale.commission:manual=sale.commission  # Earlier drafts with an explicit cost.
     return _create_plan(actor=actor,sale_id=sale.pk,payee_id=payee.pk,customer=sale.customer_name,
-        rate=None,override_total=manual,installments=[(sale.date,face)],key=uuid5(sale.key,'automatic-commission'),
+        rate=None,override_total=manual,installments=plan_terms(sale),key=uuid5(sale.key,'automatic-commission'),
         reason='Comissão criada na confirmação da venda; recebimento ainda não registrado.')

@@ -56,7 +56,7 @@ class TransferForm(forms.Form):
     destination=forms.ModelChoiceField(label='Conta de destino',queryset=Account.objects.filter(active=True))
     date=forms.DateField(label='Data',widget=DateInput(),initial=timezone.localdate)
     amount=forms.DecimalField(label='Valor (R$)',max_digits=18,decimal_places=2,min_value=Decimal('0.01'))
-    notes=forms.CharField(label='Descrição',max_length=500,required=False)
+    notes=forms.CharField(label='Descrição (opcional)',max_length=500,required=False,help_text='Em branco, será usada Transferência entre contas.')
     planned=forms.BooleanField(label='Apenas prevista (ainda não movimentou dinheiro)',required=False)
 
 
