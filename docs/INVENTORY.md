@@ -1,3 +1,5 @@
+09/11/2026 — Planejamento permite filtrar pelo fornecedor da última compra recebida ou sem histórico e agrupar por fornecedor, com SKU dentro de cada grupo. Filtros salvos e aplicados antes da paginação; cotação segue filtro e ordem e inclui fornecedor quando agrupada.
+
 09/11/2026 — Planejamento: sugestão arredondada para cima em unidades inteiras, inclusive PDF/Excel; tela mostra preço unitário, fornecedor e data da última compra recebida (qualquer depósito), sem bonificações/canceladas. Preço da nota antes de descontos/rateios, sem inferir quitação. Cotação externa preserva somente produtos e quantidades. ADR 0054.
 
 ## Bling — comparação de estoque, preço e cadastro (20/10/2026)

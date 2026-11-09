@@ -178,3 +178,60 @@ class PlanningTests(Fixture, TestCase):
         latest.purchase.status = 'CANCELLED'
         latest.purchase.save(update_fields=['status'])
         self.assertEqual(self.plan()[0][0]['last_purchase'], old)
+
+    def reference(self, product, supplier, days=0):
+        from apps.purchases.models import Purchase, PurchaseItem
+        date = timezone.localdate()-timedelta(days=days)
+        purchase = Purchase.objects.create(supplier=supplier, document=str(uuid4()),
+            date=date, received_date=date, location=self.location, created_by=self.actor)
+        PurchaseItem.objects.create(purchase=purchase, product=product,
+            quantity=1, unit_cost=10, subtotal=10, allocated_total=10)
+        purchase.status = 'RECEIVED'
+        purchase.save(update_fields=['status'])
+
+    def test_supplier_filter_latest_grouping_and_unknown(self):
+        alpha = Supplier.objects.create(legal_name='Alpha', active=False)
+        beta = Supplier.objects.create(legal_name='Beta')
+        p2 = Product.objects.create(sku='2', name='Segundo', minimum=1)
+        unknown = Product.objects.create(sku='3', name='Sem fornecedor', minimum=1)
+        self.reference(self.product, alpha, days=1)
+        self.reference(self.product, beta)
+        self.reference(p2, alpha)
+        rows, totals = self.plan(supplier=str(alpha.pk))
+        self.assertEqual([r['product'] for r in rows], [p2])
+        self.assertEqual(totals['product_count'], 1)
+        self.assertEqual([r['product'] for r in self.plan(supplier='unknown')[0]], [unknown])
+        rows, _ = self.plan(grouping='supplier')
+        self.assertEqual([r['product'] for r in rows], [p2, self.product, unknown])
+        self.client.force_login(self.actor)
+        response = self.client.get(reverse('purchase_planning'), {'supplier': alpha.pk, 'grouping': 'supplier'})
+        self.assertContains(response, 'Alpha')
+        self.assertContains(response, 'supplier-group')
+        self.assertEqual(response.context['page'].paginator.count, 1)
+        self.assertEqual(self.client.get(reverse('purchase_planning')).context['form'].cleaned_data['supplier'], str(alpha.pk))
+        self.assertEqual(self.client.get(reverse('purchase_planning'), {'supplier':'bogus', 'export':'xlsx'}).status_code, 400)
+        response = self.client.get(reverse('purchase_planning'), {'supplier':'', 'grouping':'sku', 'need':'all'})
+        self.assertEqual(response.context['page'].paginator.count, 3)
+        self.assertNotContains(response, 'supplier-group')
+
+    def test_supplier_filter_before_pagination_and_exports(self):
+        from unittest.mock import patch
+        supplier = Supplier.objects.create(legal_name='Fornecedor selecionado')
+        for i in range(51):
+            product = Product.objects.create(sku=f'SUP-{i:03}', name='Produto', minimum=1)
+            self.reference(product, supplier)
+        self.client.force_login(self.actor)
+        url = reverse('purchase_planning')
+        response = self.client.get(url, {'supplier':supplier.pk, 'grouping':'supplier', 'page':2})
+        self.assertEqual(response.context['page'].paginator.count, 51)
+        self.assertEqual(len(response.context['page']), 1)
+        self.assertContains(response, 'supplier-group')
+        for fmt in ('xlsx', 'pdf'):
+            with patch('apps.inventory.planning_exports.'+fmt, return_value=b'test') as render:
+                response = self.client.get(url, {'export':fmt, 'scope':'filtered'})
+                self.assertEqual(response.status_code, 200)
+                dataset = render.call_args.args[0]
+                self.assertEqual(len(dataset.rows), 51)
+                self.assertEqual(dataset.headers[-1], 'Fornecedor da última compra')
+                self.assertTrue(all(row[-1] == str(supplier) for row in dataset.rows))
+                self.assertIn(str(supplier), dataset.notes)

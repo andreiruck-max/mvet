@@ -6,4 +6,6 @@ Por solicitação do proprietário, o planejamento arredonda a necessidade posit
 
 Referência interna: último item de compra NORMAL RECEIVED, por data da compra (desempate pelo ID da compra e do item), em qualquer depósito, com compra e recebimento até a data da consulta. Exclui bonificações, canceladas, rascunhos e pedidos pendentes. Mostra preço unitário da nota antes dos descontos/rateios, fornecedor e data. Não é custo médio nem comprovação de pagamento. Sem referência, informa Sem histórico. Consulta em lote sem N+1; permissões existentes de estoque/compras preservadas.
 
-Exportações para fornecedores não incluem o preço nem o fornecedor histórico. Nenhum lançamento, pedido ou migração é criado.
+Exportações não incluem preço histórico. Ao agrupar por fornecedor, acrescentam a coluna de fornecedor da última compra. Nenhum lançamento, pedido ou migração é criado.
+
+Filtro opcional usa o fornecedor da última compra elegível, não qualquer fornecedor antigo. Inclui fornecedores inativos para preservar a referência e opção sem histórico. Aplica antes da paginação e dos totalizadores. Agrupamento mantém SKU dentro de cada fornecedor e sem histórico ao final; cabeçalho se repete quando o grupo continua na página seguinte. Filtro e organização persistem na sessão; selecionar Todos os fornecedores limpa o filtro.

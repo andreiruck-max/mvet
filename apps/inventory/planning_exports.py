@@ -39,6 +39,15 @@ def export_plan(request, rows, values):
         f'Emissão: {today:%d/%m/%Y} · Depósito: {values["location"]}. '
         f'Histórico: {values["history_days"]} dias · Cobertura: {values["coverage_days"]} dias. '
         'Quantidades sugeridas para conferência de embalagem e disponibilidade. Não constitui pedido confirmado.')
+    if values.get('supplier'):
+        from apps.purchases.models import Supplier
+        supplier_label = ('Sem histórico de fornecedor' if values['supplier'] == 'unknown'
+                          else str(Supplier.objects.get(pk=values['supplier'])))
+        dataset.notes += f' Fornecedor da última compra: {supplier_label}.'
+    if values.get('grouping') == 'supplier':
+        dataset.headers.append('Fornecedor da última compra')
+        for line, row in zip(dataset.rows, rows):
+            line.append(str(row['last_purchase'].purchase.supplier) if row['last_purchase'] else 'Sem histórico')
     company = Company.objects.get(pk=1)
     if file_format == 'pdf':
         # Suggested quantities are whole purchase units.
