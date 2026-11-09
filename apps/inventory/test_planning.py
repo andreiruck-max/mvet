@@ -157,10 +157,13 @@ class PlanningTests(Fixture, TestCase):
         supplier = Supplier.objects.create(legal_name='Fornecedor histórico')
         def create(status, date, cost, kind='NORMAL'):
             purchase = Purchase.objects.create(supplier=supplier, document=str(uuid4()),
-                date=date, received_date=date, location=self.location, status=status,
+                date=date, received_date=date, location=self.location, status='DRAFT',
                 acquisition_kind=kind, created_by=self.actor)
-            return PurchaseItem.objects.create(purchase=purchase, product=self.product,
+            item = PurchaseItem.objects.create(purchase=purchase, product=self.product,
                 quantity=1, unit_cost=cost, subtotal=cost, allocated_total=cost)
+            purchase.status = status
+            purchase.save(update_fields=['status'])
+            return item
         old = create('RECEIVED', today-timedelta(days=2), D('12'))
         latest = create('RECEIVED', today-timedelta(days=1), D('15.25'))
         for status in ('DRAFT', 'ORDERED', 'CANCELLED'):
@@ -173,5 +176,5 @@ class PlanningTests(Fixture, TestCase):
         self.assertContains(response, 'Fornecedor histórico')
         self.assertContains(response, '15,25')
         latest.purchase.status = 'CANCELLED'
-        latest.purchase.save()
+        latest.purchase.save(update_fields=['status'])
         self.assertEqual(self.plan()[0][0]['last_purchase'], old)
