@@ -102,7 +102,7 @@ class PlanningTests(Fixture, TestCase):
         self.assertIn('EXPORT-050', strings)
         self.assertNotIn(self.product.sku, strings)
         self.assertNotIn('CMV', strings)
-        self.assertEqual(len([n for n in root.iter('{'+NS+'}v') if n.text == '1.2345']), 51)
+        self.assertEqual(len([n for n in root.iter('{'+NS+'}v') if n.text == '2']), 51)
         chosen = Product.objects.get(sku='EXPORT-050')
         response = self.client.get(url, {'export':'xlsx', 'scope':'selected', 'product':[chosen.pk]})
         with ZipFile(BytesIO(response.content)) as book:
@@ -112,7 +112,7 @@ class PlanningTests(Fixture, TestCase):
         with patch('apps.inventory.planning_exports.pdf', return_value=b'%PDF-test') as render:
             response = self.client.get(url, {'export':'pdf', 'scope':'selected', 'product':[chosen.pk]})
             self.assertEqual(response.status_code, 200)
-            self.assertEqual(render.call_args.args[0].rows[0][3], '1,2345')
+            self.assertEqual(render.call_args.args[0].rows[0][3], '2')
         response = self.client.get(url, {'export':'pdf', 'q':chosen.sku})
         self.assertTrue(response.content.startswith(b'%PDF-'))
         self.assertEqual(response['Cache-Control'], 'private, no-store')
@@ -139,3 +139,39 @@ class PlanningTests(Fixture, TestCase):
         self.operator.user_permissions.clear()
         self.operator.user_permissions.add(Permission.objects.get(codename='export_purchases'))
         self.assertEqual(self.client.get(url, {'export':'xlsx'}).status_code, 403)
+
+    def test_suggestion_rounds_up_after_stock_and_pending(self):
+        self.product.minimum = D('11.875')
+        self.product.save()
+        self.assertEqual(self.plan()[0][0]['suggested'], D('2'))
+        self.product.minimum = D('10.0001')
+        self.product.save()
+        self.assertEqual(self.plan()[0][0]['suggested'], D('1'))
+        self.product.minimum = D('10')
+        self.product.save()
+        self.assertEqual(self.plan()[0][0]['suggested'], D('0'))
+
+    def test_last_received_purchase_excludes_draft_order_cancelled_bonus_and_future(self):
+        from apps.purchases.models import Purchase, PurchaseItem
+        today = timezone.localdate()
+        supplier = Supplier.objects.create(legal_name='Fornecedor histórico')
+        def create(status, date, cost, kind='NORMAL'):
+            purchase = Purchase.objects.create(supplier=supplier, document=str(uuid4()),
+                date=date, received_date=date, location=self.location, status=status,
+                acquisition_kind=kind, created_by=self.actor)
+            return PurchaseItem.objects.create(purchase=purchase, product=self.product,
+                quantity=1, unit_cost=cost, subtotal=cost, allocated_total=cost)
+        old = create('RECEIVED', today-timedelta(days=2), D('12'))
+        latest = create('RECEIVED', today-timedelta(days=1), D('15.25'))
+        for status in ('DRAFT', 'ORDERED', 'CANCELLED'):
+            create(status, today, D('99'))
+        create('RECEIVED', today, D('0'), 'BONUS')
+        create('RECEIVED', today+timedelta(days=1), D('99'))
+        self.assertEqual(self.plan()[0][0]['last_purchase'], latest)
+        self.client.force_login(self.actor)
+        response = self.client.get(reverse('purchase_planning'), {'need': 'all'})
+        self.assertContains(response, 'Fornecedor histórico')
+        self.assertContains(response, '15,25')
+        latest.purchase.status = 'CANCELLED'
+        latest.purchase.save()
+        self.assertEqual(self.plan()[0][0]['last_purchase'], old)

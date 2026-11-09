@@ -33,6 +33,12 @@ def purchase_plan(*, location, zero_days, history_days, coverage_days, q='', sho
     incoming = dict(PurchaseItem.objects.filter(product_id__in=ids, moves_stock=True,
         purchase__location=location, purchase__status='ORDERED')
         .values('product_id').annotate(qty=Sum('quantity')).values_list('product_id', 'qty'))
+    # One query for all products; latest commercial purchase across all locations.
+    last_purchases = {item.product_id: item for item in PurchaseItem.objects.filter(
+        product_id__in=ids, moves_stock=True, purchase__status='RECEIVED',
+        purchase__acquisition_kind='NORMAL', purchase__date__lte=today,
+        purchase__received_date__lte=today).select_related('purchase__supplier')
+        .order_by('product_id', '-purchase__date', '-purchase_id', '-pk').distinct('product_id')}
     rows = []; excluded_count = 0; suggested_count = 0
     for product in products:
         last = latest.get(product.pk)
@@ -43,7 +49,7 @@ def purchase_plan(*, location, zero_days, history_days, coverage_days, q='', sho
         sold = max(Decimal(0), -sales.get(product.pk, Decimal(0)))
         target = max(product.minimum, sold * Decimal(coverage_days) / Decimal(history_days))
         pending = incoming.get(product.pk, Decimal(0))
-        suggested = Decimal(0) if excluded else max(Decimal(0), target-product.stock_quantity-pending).quantize(Decimal('.0001'), rounding=ROUND_UP)
+        suggested = Decimal(0) if excluded else max(Decimal(0), target-product.stock_quantity-pending).quantize(Decimal('1'), rounding=ROUND_UP)
         if suggested > 0:
             suggested_count += 1
         if excluded and not show_excluded:
@@ -51,5 +57,6 @@ def purchase_plan(*, location, zero_days, history_days, coverage_days, q='', sho
         if need == 'needed' and suggested <= 0:
             continue
         rows.append({'product': product, 'days': days, 'excluded': excluded, 'sold': sold,
-                     'pending': pending, 'suggested': suggested})
+                     'pending': pending, 'suggested': suggested,
+                     'last_purchase': last_purchases.get(product.pk)})
     return rows, {'suggested_count': suggested_count, 'excluded_count': excluded_count, 'product_count': len(products)}

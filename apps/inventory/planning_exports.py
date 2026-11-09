@@ -41,9 +41,9 @@ def export_plan(request, rows, values):
         'Quantidades sugeridas para conferência de embalagem e disponibilidade. Não constitui pedido confirmado.')
     company = Company.objects.get(pk=1)
     if file_format == 'pdf':
-        # The shared PDF currency formatter uses two decimals; quantities need four.
+        # Suggested quantities are whole purchase units.
         for row in dataset.rows:
-            row[3] = f'{row[3]:,.4f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
+            row[3] = f'{row[3]:,.0f}'.replace(',', 'X').replace('.', ',').replace('X', '.')
     content = xlsx(dataset, company.name) if file_format == 'xlsx' else pdf(dataset, company.name)
     audit(request.user, company, 'export_report', after={
         'report': 'purchase_planning', 'format': file_format, 'rows': len(rows),

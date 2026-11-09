@@ -1,3 +1,5 @@
+09/11/2026 — Planejamento: sugestão arredondada para cima em unidades inteiras, inclusive PDF/Excel; tela mostra preço unitário, fornecedor e data da última compra recebida (qualquer depósito), sem bonificações/canceladas. Preço da nota antes de descontos/rateios, sem inferir quitação. Cotação externa preserva somente produtos e quantidades. ADR 0054.
+
 ## Bling — comparação de estoque, preço e cadastro (20/10/2026)
 
 Estoque → Conferir com Bling, exclusivo master: saldo físico por depósitos escolhidos e preço de venda lado a lado, diferenças destacadas, busca e paginação. Correção individual nos dois sentidos com prévia, motivo, releitura e histórico; falha ambígua não é reenviada. Preço fixo opcional preserva valor exato importado; estoque usa movimentos atuais sem reescrever CMV. Catálogo externo permite cadastrar produto com revisão de descrição/preço e estoque opcional mediante custo informado. ADR 0048. Requer novos escopos e reautorização; homologação real ainda depende da instalação do usuário.
