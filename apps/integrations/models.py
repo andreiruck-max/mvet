@@ -126,3 +126,34 @@ class BlingComparisonCache(models.Model):
     """Last consulted page per master; never an authority for writes."""
     actor = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     payload = models.JSONField(default=dict)
+
+
+class BlingSchedule(models.Model):
+    kind = models.CharField(max_length=8, unique=True, choices=[('SALE', 'Vendas'), ('PURCHASE', 'Compras')])
+    enabled = models.BooleanField('Ativar busca automática', default=False)
+    interval_hours = models.PositiveSmallIntegerField('Intervalo (horas)', default=1)
+    lookback_days = models.PositiveSmallIntegerField('Reconsultar últimos (dias)', default=7)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT)
+    revision = models.PositiveIntegerField(default=0)
+    next_run_at = models.DateTimeField(null=True)
+    last_started_at = models.DateTimeField(null=True)
+    last_finished_at = models.DateTimeField(null=True)
+    last_worker_seen = models.DateTimeField(null=True)
+    cursor = models.JSONField(default=dict, editable=False)
+    message = models.CharField(max_length=500, blank=True)
+    processed = models.PositiveIntegerField(default=0)
+    errors = models.PositiveIntegerField(default=0)
+
+    @property
+    def worker_online(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        return bool(self.last_worker_seen and self.last_worker_seen > timezone.now()-timedelta(minutes=10))
+
+    class Meta:
+        ordering = ['kind']
+        constraints = [
+            models.CheckConstraint(condition=models.Q(kind__in=['SALE', 'PURCHASE']), name='bling_schedule_kind'),
+            models.CheckConstraint(condition=models.Q(interval_hours__gte=1, interval_hours__lte=168), name='bling_schedule_interval'),
+            models.CheckConstraint(condition=models.Q(lookback_days__gte=1, lookback_days__lte=366), name='bling_schedule_lookback'),
+        ]

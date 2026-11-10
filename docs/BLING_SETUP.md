@@ -1,3 +1,5 @@
+10/11/2026 — Busca automática de notas Bling: serviço Docker separado, intervalos independentes de vendas/compras, janela de emissão configurável, retomada por página, estado/heartbeat e configuração exclusiva master. Desativada por padrão; não confirma notas nem movimenta estoque/financeiro. Busca manual preservada. ADR 0056.
+
 # Bling — instalação e operação da importação assistida
 
 ## Escopo entregue

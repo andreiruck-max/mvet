@@ -176,3 +176,27 @@ def disconnect(request):
     bling.disconnect(actor=request.user)
     messages.success(request, 'Conexão local removida. Notas e vendas preservadas. Para revogar o aplicativo, use o Bling.')
     return redirect('bling_connection')
+
+
+@login_required
+@never_cache
+def schedules(request):
+    master(request.user)
+    from .models import BlingSchedule
+    from .scheduling import ScheduleForm, STATUSES, configure
+    configs = []
+    for kind in STATUSES:
+        obj, _ = BlingSchedule.objects.get_or_create(kind=kind)
+        submitted = request.method == 'POST' and request.POST.get('kind') == kind
+        form = ScheduleForm(request.POST if submitted else None, instance=obj, auto_id=kind.lower()+'_%s')
+        if submitted and form.is_valid():
+            try:
+                configure(actor=request.user, kind=kind, data=form.cleaned_data)
+                messages.success(request, 'Periodicidade salva. A consulta é executada pelo serviço em segundo plano.')
+                return redirect('bling_schedules')
+            except ValidationError as exc:
+                form.add_error(None, exc)
+        configs.append((obj, form))
+    if request.method == 'POST' and request.POST.get('kind') not in STATUSES:
+        messages.error(request, 'Tipo de consulta inválido.')
+    return render(request, 'integrations/schedules.html', {'configs': configs})

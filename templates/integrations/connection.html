@@ -1,4 +1,4 @@
-{% extends 'base.html' %}{% block title %}Conexão Bling{% endblock %}{% block content %}
+{% extends 'base.html' %}{% block title %}Conexão Bling{% endblock %}{% block content %}{% if request.user.is_superuser %}<p><a class="button" href="{% url 'bling_schedules' %}">Busca automática · periodicidade</a></p>{% endif %}
 <h1>Conexão Bling</h1><section class="panel">
 <p>O Bling fornece notas para conferência. Estoque, custo médio e cancelamentos permanecem no MVet.</p>
 {% if problem %}<p class="notice">{{ problem }}</p>{% endif %}

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}{% block title %}Busca automática Bling{% endblock %}{% block content %}
+<h1>Busca automática de notas do Bling</h1>
+<p>O serviço em segundo plano consulta as notas enquanto o Docker estiver ligado. Você pode usar o MVet ou fechar o navegador. A busca manual continua disponível.</p>
+<p class="notice">As notas ficam na fila para conferência. A busca não confirma vendas/compras nem movimenta estoque ou financeiro. Notas já conhecidas são atualizadas sem duplicar; operações confirmadas são preservadas.</p>
+<div class="actions"><a class="button" href="{% url 'bling_queue' %}">Notas de venda</a><a class="button" href="{% url 'bling_purchase_queue' %}">Notas de compra</a><a class="button" href="{% url 'bling_connection' %}">Conexão Bling</a></div>
+{% for config,form in configs %}<section class="panel"><h2>{{ config.get_kind_display }}</h2>
+<p><strong>{% if config.enabled %}Ativada{% else %}Desativada{% endif %}</strong> · Serviço: {% if config.worker_online %}em funcionamento{% else %}<strong>sem sinal recente</strong> — confira se o serviço bling-worker está ligado no Docker{% endif %}</p>
+<form method="post">{% csrf_token %}<input type="hidden" name="kind" value="{{ config.kind }}">{{ form.as_p }}<button>Salvar {{ config.get_kind_display|lower }}</button></form>
+<p>{{ config.message }}</p>
+<dl><dt>Último início</dt><dd>{{ config.last_started_at|date:'d/m/Y H:i'|default:'Ainda não executada' }}</dd><dt>Último término</dt><dd>{{ config.last_finished_at|date:'d/m/Y H:i'|default:'—' }}</dd><dt>Próxima execução / tentativa</dt><dd>{% if config.enabled %}{{ config.next_run_at|date:'d/m/Y H:i'|default:'Assim que o serviço iniciar' }}{% else %}Desativada{% endif %}</dd><dt>Notas consultadas / erros no ciclo</dt><dd>{{ config.processed }} / {{ config.errors }}</dd></dl>
+{% if config.cursor %}<p>Consulta em andamento ou aguardando retomada · página {{ config.cursor.page }} · {{ config.cursor.start }} a {{ config.cursor.end }}.</p>{% endif %}
+</section>{% endfor %}
+<p class="muted">Sugestão inicial: a cada 1 hora, reconsultando os últimos 7 dias de emissão. O período inclui hoje. Para notas antigas registradas com atraso, aumente esse período ou faça uma busca manual. Vendas: autorizadas e DANFE emitida. Compras: autorizadas e registradas. Canceladas continuam disponíveis na busca manual. Alterar/desativar aguarda a página em execução; a próxima página respeita a nova configuração. Falhas são tentadas novamente após 5 minutos. Atualize esta tela para ver o andamento.</p>
+{% endblock %}

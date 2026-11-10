@@ -35,6 +35,8 @@ try {
     if ($restore -lt 0 -or $migration -le $restore) { throw 'Migration ran before backup verification.' }
     if (!$global:mvetTestCalls.Exists({ param($line) $line -match '127.0.0.1:8000/entrar/' })) { throw 'Missing startup verification.' }
     if ($global:mvetTestProbeCount -ne 2) { throw 'Native stderr must trigger a retry, not abort the update.' }
+    if (!$global:mvetTestCalls.Contains('docker compose stop web bling-worker')) { throw 'Worker must stop before backup/migrations.' }
+    if (!$global:mvetTestCalls.Contains('docker compose up -d --no-deps bling-worker')) { throw 'Worker was not started after web verification.' }
     $global:mvetTestCalls.Clear();$global:mvetTestFailRestore = $true;$failed = $false
     try { & $updater -ProjectPath $testRoot -BackupPath (Join-Path $testRoot 'backups') } catch { $failed = $true }
     if (!$failed) { throw 'Failed restore must stop the update.' }

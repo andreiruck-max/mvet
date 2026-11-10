@@ -1,3 +1,5 @@
+10/11/2026 — Busca automática de notas Bling: serviço Docker separado, intervalos independentes de vendas/compras, janela de emissão configurável, retomada por página, estado/heartbeat e configuração exclusiva master. Desativada por padrão; não confirma notas nem movimenta estoque/financeiro. Busca manual preservada. ADR 0056.
+
 10/11/2026 — Despesas abre em Pendentes do mês atual (competência), inclusive ao limpar filtros, paginar sem filtros e exportar. Pagas integralmente ocultas no padrão, parciais mantidas. Vencimentos crescentes, saldo por linha e destaques textuais/visuais para vencidas e hoje. Relatório por competência e DRE preservados. ADR 0055.
 
 09/11/2026 — Planejamento permite filtrar pelo fornecedor da última compra recebida ou sem histórico e agrupar por fornecedor, com SKU dentro de cada grupo. Filtros salvos e aplicados antes da paginação; cotação segue filtro e ordem e inclui fornecedor quando agrupada.

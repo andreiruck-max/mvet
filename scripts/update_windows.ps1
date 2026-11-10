@@ -40,11 +40,11 @@ try {
 }
 
 # Build while the previous container is still serving. Do not recreate the database.
-Run docker @('compose', 'build', 'web')
+Run docker @('compose', 'build', 'web', 'bling-worker')
 $webStopped = $false
 $newWebStarted = $false
 try {
-    Run docker @('compose', 'stop', 'web')
+    Run docker @('compose', 'stop', 'web', 'bling-worker')
     $webStopped = $true
     Run docker @('compose', 'exec', '-T', 'db', 'sh', '-c', 'pg_dump -U $POSTGRES_USER -d $POSTGRES_DB -Fc -f /tmp/mvet_before_update.dump')
     Run docker @('compose', 'cp', 'db:/tmp/mvet_before_update.dump', $backupFile)
@@ -86,12 +86,14 @@ try {
         Write-Warning ($probeOutput -join [Environment]::NewLine)
         throw 'Aplicacao nao respondeu. Confira docker compose logs --tail=60 web; o backup foi preservado.'
     }
+    Run docker @('compose', 'up', '-d', '--no-deps', 'bling-worker')
     Run docker @('compose', 'ps')
     Write-Host "MVet 2.0 atualizado. Backup: $backupFile"
     Write-Host 'Abra o endereco habitual do MVet e atualize o navegador com Ctrl+F5.'
 } catch {
     if ($webStopped -and !$newWebStarted) {
         & docker compose start web
+        & docker compose start bling-worker
         Write-Warning 'Tentativa de reiniciar o container existente. Nenhum banco foi restaurado por cima do original.'
     }
     Write-Warning "Atualizacao nao concluida. Backup, se gerado: $backupFile. Envie o erro antes de repetir."
