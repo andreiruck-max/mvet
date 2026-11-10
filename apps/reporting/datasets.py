@@ -78,6 +78,9 @@ def build(kind, user, query):
     if kind == 'titles' and user.has_perm('core.view_finance'): pass
     else: require(user,'core.'+permissions[kind])
     d = {}
+    if kind == 'expenses':
+        from apps.expenses.selectors import list_filters
+        query = list_filters(query)
     if form_class:
         form = form_class(query or {'period':'future' if kind == 'payables' else 'month'})
         if not form.is_valid(): raise ValidationError('; '.join(f'{key}: {", ".join(errors)}' for key,errors in form.errors.items()))

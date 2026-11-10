@@ -1,3 +1,5 @@
+10/11/2026 — Despesas abre em Pendentes do mês atual (competência), inclusive ao limpar filtros, paginar sem filtros e exportar. Pagas integralmente ocultas no padrão, parciais mantidas. Vencimentos crescentes, saldo por linha e destaques textuais/visuais para vencidas e hoje. Relatório por competência e DRE preservados. ADR 0055.
+
 Atualização 02/11/2026: edição auditada de títulos pelo master (valor, descrição, favorecido, classificação, datas, conta e observação), com motivo e histórico antes/depois. Atalho Editar nas listas de despesas e títulos; obrigação de despesa encaminha ao editor da origem. Valores liquidados e livro bancário preservados. Parcelas de compras mostram obrigação atual e valor contratual original; relatório do fornecedor e exportação acompanham o valor atual. ADR 0050.
 
 # Despesas por competência

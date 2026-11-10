@@ -27,9 +27,9 @@ def form_error(form,exc):
 
 @login_required
 def expense_list(request):
-    check_read(request.user);form=forms.FilterForm(request.GET or {'status':'active'})
+    check_read(request.user);form=forms.FilterForm(selectors.list_filters(request.GET))
     rows=selectors.expenses(form.cleaned_data) if form.is_valid() else Expense.objects.none()
-    return render(request,'expenses/list.html',{'can_bulk':all(request.user.has_perm(p) for p in ['core.operate_expenses','core.operate_finance','core.pay_titles']),'form':form,'summary':selectors.expense_summary(rows) if request.user.has_perm('core.view_expense_reports') else None,'page':Paginator(rows,30).get_page(request.GET.get('page'))})
+    return render(request,'expenses/list.html',{'today':timezone.localdate(),'can_bulk':all(request.user.has_perm(p) for p in ['core.operate_expenses','core.operate_finance','core.pay_titles']),'form':form,'summary':selectors.expense_summary(rows) if request.user.has_perm('core.view_expense_reports') else None,'page':Paginator(rows,30).get_page(request.GET.get('page'))})
 
 
 @login_required
