@@ -244,6 +244,7 @@ class FinanceBrowser(StaticLiveServerTestCase):
             with page.expect_response(lambda response: '/atualizar/' in response.url):
                 page.get_by_role('link',name='Ver extrato e diferenças',exact=True).click()
             expect(page.get_by_text('Liberação sintética salva',exact=True)).to_be_visible()
+            expect(page.locator('.workspace-location')).to_have_text('Financeiro / Bancos e contas')
             self.assertEqual(database(lambda: BlingBankRun.objects.count()),1)
             row=dict(id='1',contaFinanceira={'id':12},data=str(today),debCred='C',situacao='R',valor='1200',descricao='Liberação sintética salva')
             fee=dict(row,id='2',debCred='D',valor='200',descricao='Taxa sintética importada')
