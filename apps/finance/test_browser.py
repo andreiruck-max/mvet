@@ -215,6 +215,14 @@ class FinanceBrowser(StaticLiveServerTestCase):
     def test_saved_bling_statement_updates_in_background_on_each_visit(self):
         from playwright.sync_api import sync_playwright, expect
         from unittest.mock import patch
+        from concurrent.futures import ThreadPoolExecutor
+        from django.db import connections
+        def database(fn):
+            def call():
+                try: return fn()
+                finally: connections.close_all()
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                return pool.submit(call).result()
         from apps.integrations.models import BlingConnection, BlingBankAccount, BlingBankRun, BlingBankEntry, BlingBankDay
         from apps.integrations import bank_services
         today=timezone.localdate();Company.objects.create(pk=1)
@@ -232,16 +240,19 @@ class FinanceBrowser(StaticLiveServerTestCase):
             page=context.new_page();errors=[];page.on('pageerror',lambda err:errors.append(str(err)))
             with page.expect_response(lambda response: '/bancos/' in response.url and '/atualizar/' in response.url):
                 page.goto(self.live_server_url+f'/financeiro/contas/{account.pk}/')
-            self.assertEqual(BlingBankRun.objects.count(),1)
-            page.get_by_role('link',name='Ver extrato e diferenças',exact=True).click()
+            self.assertEqual(database(lambda: BlingBankRun.objects.count()),1)
+            with page.expect_response(lambda response: '/atualizar/' in response.url):
+                page.get_by_role('link',name='Ver extrato e diferenças',exact=True).click()
             expect(page.get_by_text('Liberação sintética salva',exact=True)).to_be_visible()
-            self.assertEqual(BlingBankRun.objects.count(),1)
-            run=BlingBankRun.objects.get()
+            self.assertEqual(database(lambda: BlingBankRun.objects.count()),1)
             row=dict(id='1',contaFinanceira={'id':12},data=str(today),debCred='C',situacao='R',valor='1200',descricao='Liberação sintética salva')
             fee=dict(row,id='2',debCred='D',valor='200',descricao='Taxa sintética importada')
-            with patch('apps.integrations.bling.read',side_effect=[{'data':[row,fee]},{'data':[]},{'data':[]}]):
-                for _ in range(3):
-                    run.refresh_from_db();bank_services.process_page(run)
+            def import_pages():
+                run=BlingBankRun.objects.get()
+                with patch('apps.integrations.bling.read',side_effect=[{'data':[row,fee]},{'data':[]},{'data':[]}]):
+                    for _ in range(3):
+                        run.refresh_from_db();bank_services.process_page(run)
+            database(import_pages)
             expect(page.get_by_text('Taxa sintética importada',exact=True)).to_be_visible(timeout=15000)
             expect(page.get_by_text('Extrato atualizado e salvo.',exact=False)).to_be_visible()
             page.screenshot(path=str(output/'bling-bank-desktop.png'),full_page=True)
@@ -249,7 +260,7 @@ class FinanceBrowser(StaticLiveServerTestCase):
             page.screenshot(path=str(output/'bling-bank-mobile.png'),full_page=True)
             self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390)
             with page.expect_response(lambda response: '/atualizar/' in response.url): page.reload()
-            self.assertEqual(BlingBankRun.objects.count(),2)
+            self.assertEqual(database(lambda: BlingBankRun.objects.count()),2)
             expect(page.get_by_text('Taxa sintética importada',exact=True)).to_be_visible()
             self.assertEqual(errors,[])
             browser.close()
