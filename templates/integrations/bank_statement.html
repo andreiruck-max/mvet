@@ -1,0 +1,4 @@
+{% extends 'base.html' %}{% block title %}Extrato Bling · {{ account.name }}{% endblock %}{% block content %}<div class="compact-page cash-page">
+<header class="page-heading"><h1>{{ account.name }} · conferência com Bling</h1><a class="button" href="{% url 'financial_account' account.pk %}">Extrato MVet</a></header>
+<form method="get" class="panel filter-bar">{{ bank_form.as_p }}<button>Consultar histórico salvo</button></form>
+{% include 'integrations/bank_widget.html' %}</div>{% endblock %}

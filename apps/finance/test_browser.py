@@ -211,3 +211,45 @@ class FinanceBrowser(StaticLiveServerTestCase):
 
         self.assertEqual(Entry.objects.count(),4)
         self.assertFalse(Title.objects.exists())
+
+    def test_saved_bling_statement_updates_in_background_on_each_visit(self):
+        from playwright.sync_api import sync_playwright, expect
+        from unittest.mock import patch
+        from apps.integrations.models import BlingConnection, BlingBankAccount, BlingBankRun, BlingBankEntry, BlingBankDay
+        from apps.integrations import bank_services
+        today=timezone.localdate();Company.objects.create(pk=1)
+        actor=User.objects.create_superuser('statement-browser')
+        account=save_account(actor=actor,data=dict(name='Carteira demonstrativa',kind='WALLET',opening_date=today,opening_balance=Decimal('100')))
+        conn=BlingConnection.objects.create(pk=1,issuer='12345678000195',tokens='synthetic')
+        external=BlingBankAccount.objects.create(connection=conn,external_id='12',description='Carteira Bling demonstrativa')
+        link=bank_services.configure(actor=actor,account_id=account.pk,external=external,start_date=today,opening_balance=Decimal('100'),automatic=True)
+        BlingBankEntry.objects.create(link=link,external_id='1',date=today,amount=Decimal('1200'),description='Liberação sintética salva',checked_at=timezone.now())
+        BlingBankDay.objects.create(link=link,date=today,checked_at=timezone.now())
+        client=Client();client.force_login(actor);output=Path('artifacts');output.mkdir(exist_ok=True)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1050},locale='pt-BR')
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page();errors=[];page.on('pageerror',lambda err:errors.append(str(err)))
+            with page.expect_response(lambda response: '/bancos/' in response.url and '/atualizar/' in response.url):
+                page.goto(self.live_server_url+f'/financeiro/contas/{account.pk}/')
+            self.assertEqual(BlingBankRun.objects.count(),1)
+            page.get_by_role('link',name='Ver extrato e diferenças',exact=True).click()
+            expect(page.get_by_text('Liberação sintética salva',exact=True)).to_be_visible()
+            self.assertEqual(BlingBankRun.objects.count(),1)
+            run=BlingBankRun.objects.get()
+            row=dict(id='1',contaFinanceira={'id':12},data=str(today),debCred='C',situacao='R',valor='1200',descricao='Liberação sintética salva')
+            fee=dict(row,id='2',debCred='D',valor='200',descricao='Taxa sintética importada')
+            with patch('apps.integrations.bling.read',side_effect=[{'data':[row,fee]},{'data':[]},{'data':[]}]):
+                for _ in range(3):
+                    run.refresh_from_db();bank_services.process_page(run)
+            expect(page.get_by_text('Taxa sintética importada',exact=True)).to_be_visible(timeout=15000)
+            expect(page.get_by_text('Extrato atualizado e salvo.',exact=False)).to_be_visible()
+            page.screenshot(path=str(output/'bling-bank-desktop.png'),full_page=True)
+            page.set_viewport_size({'width':390,'height':844})
+            page.screenshot(path=str(output/'bling-bank-mobile.png'),full_page=True)
+            self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390)
+            with page.expect_response(lambda response: '/atualizar/' in response.url): page.reload()
+            self.assertEqual(BlingBankRun.objects.count(),2)
+            expect(page.get_by_text('Taxa sintética importada',exact=True)).to_be_visible()
+            self.assertEqual(errors,[])
+            browser.close()

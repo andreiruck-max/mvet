@@ -1,0 +1,7 @@
+{% extends 'base.html' %}{% block title %}Vincular extrato Bling{% endblock %}{% block content %}
+<h1>Extrato Bling · {{ account.name }}</h1>
+<p>Vincule a conta uma vez. O extrato importado fica salvo no MVet e não gera lançamentos, baixas ou ajustes.</p>
+<form method="post" class="panel">{% csrf_token %}<input type="hidden" name="action" value="catalog"><input type="hidden" name="page" value="{{ next_page|default:1 }}"><button>{% if next_page %}Carregar próxima página de contas{% else %}Buscar contas no Bling{% endif %}</button><small>Requer acesso a Contas Financeiras e Caixas e Bancos na autorização Bling.</small></form>
+<form method="post" class="panel">{% csrf_token %}<input type="hidden" name="action" value="save">{{ form.as_p }}<button>Salvar vínculo e importar extrato</button></form>
+<a href="{% url 'financial_account' account.pk %}">Voltar à conta</a>
+{% endblock %}

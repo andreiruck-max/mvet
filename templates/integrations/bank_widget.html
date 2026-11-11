@@ -1,0 +1,6 @@
+{% load static %}
+<section class="panel" data-bank-widget data-refresh-url="{% url 'bling_bank_refresh' account.pk %}" data-status-url="{% url 'bling_bank_status' account.pk %}" data-compact="{{ bank_compact|yesno:'1,0' }}" data-automatic="{% if bank_link.automatic and perms.core.fetch_bling %}1{% else %}0{% endif %}">
+<div data-bank-result>{% include 'integrations/bank_panel.html' %}</div>
+{% if bank_link and perms.core.fetch_bling %}<form method="post" data-bank-refresh>{% csrf_token %}<input type="hidden" name="mode" value="manual"><button>Atualizar período no Bling</button><small>Reconsulta também alterações e exclusões antigas no período selecionado. Histórico salvo continua visível durante a busca.</small></form>{% endif %}
+<p data-bank-message role="status"></p>
+</section><script src="{% static 'bank-statement.js' %}" defer></script>

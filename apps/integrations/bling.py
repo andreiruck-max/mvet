@@ -55,7 +55,7 @@ def request_json(path, *, token=None, form=None, method="GET", payload=None):
     if form is not None:
         if path != '/oauth/token' or payload is not None: raise BlingError('Operação remota não permitida.')
     elif method == 'GET' and payload is None:
-        if not re.fullmatch(r'/(?:nfe(?:/[0-9]+)?|produtos(?:/[0-9]+)?|depositos(?:/[0-9]+)?|estoques/saldos/[0-9]+)(?:\?[^#]*)?', path):
+        if not re.fullmatch(r'/(?:caixas(?:/[0-9]+)?|contas-contabeis(?:/[0-9]+)?|nfe(?:/[0-9]+)?|produtos(?:/[0-9]+)?|depositos(?:/[0-9]+)?|estoques/saldos/[0-9]+)(?:\?[^#]*)?', path):
             raise BlingError('Consulta remota não permitida.')
     elif method == 'PATCH' and re.fullmatch(r'/produtos/[0-9]+', path):
         if not isinstance(payload, dict) or set(payload) != {'preco'}: raise BlingError('Somente preço pode ser alterado.')
