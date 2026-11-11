@@ -222,7 +222,9 @@ def account_detail(request,pk):
         summary['closing']=summary['projected'] if end>today else summary['actual']
         display=form.data.copy();display.update(start=start.isoformat(),end=end.isoformat());form.data=display
     pending=Title.objects.filter(account=account,status='OPEN',settled__lt=F('amount')).select_related('purchase_installment__purchase__supplier').order_by('due_date','pk')
+    from apps.integrations.bank_views import panel_context
     return render(request,'finance/account.html',{'account':account,'form':form,'initial':initial,'summary':summary,'today_summary':today_summary,'today':today,
+        **panel_context(request,account,compact=True),
         'opening_in_period':opening_in_period,'page':Paginator(rows,50).get_page(request.GET.get('page')),'pending':Paginator(pending,20).get_page(request.GET.get('pending_page'))})
 
 

@@ -4,7 +4,7 @@ from decimal import Decimal, ROUND_UP
 from django import forms
 from django.db.models import Max, Sum
 from django.utils import timezone
-from apps.purchases.models import PurchaseItem
+from apps.purchases.models import PurchaseItem, Supplier
 from .models import StockMovement, StockLocation
 from .selectors import catalog
 
@@ -17,10 +17,18 @@ class PlanningForm(forms.Form):
     q = forms.CharField(label='SKU ou nome', required=False)
     need = forms.ChoiceField(label='Exibir', choices=[('needed', 'Somente o que precisa comprar'),
                                                      ('all', 'Todos os produtos')], initial='needed')
+    supplier = forms.ChoiceField(label='Fornecedor da última compra', required=False)
+    grouping = forms.ChoiceField(label='Organizar por', choices=[('sku', 'SKU'), ('supplier', 'Fornecedor')], required=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['supplier'].choices = [('', 'Todos os fornecedores'), ('unknown', 'Sem histórico de fornecedor')] + [
+            (str(s.pk), str(s)) for s in Supplier.objects.all()]
+
     show_excluded = forms.BooleanField(label='Mostrar fora de linha', required=False)
 
 
-def purchase_plan(*, location, zero_days, history_days, coverage_days, q='', show_excluded=False, need='all', today=None):
+def purchase_plan(*, location, zero_days, history_days, coverage_days, q='', show_excluded=False, need='all', supplier='', grouping='sku', today=None):
     today = today or timezone.localdate()
     products = list(catalog({'positive': '0', 'q': q}, location).filter(kind='SIMPLE'))
     ids = [p.pk for p in products]
@@ -33,6 +41,15 @@ def purchase_plan(*, location, zero_days, history_days, coverage_days, q='', sho
     incoming = dict(PurchaseItem.objects.filter(product_id__in=ids, moves_stock=True,
         purchase__location=location, purchase__status='ORDERED')
         .values('product_id').annotate(qty=Sum('quantity')).values_list('product_id', 'qty'))
+    # One query for all products; latest commercial purchase across all locations.
+    last_purchases = {item.product_id: item for item in PurchaseItem.objects.filter(
+        product_id__in=ids, moves_stock=True, purchase__status='RECEIVED',
+        purchase__acquisition_kind='NORMAL', purchase__date__lte=today,
+        purchase__received_date__lte=today).select_related('purchase__supplier')
+        .order_by('product_id', '-purchase__date', '-purchase_id', '-pk').distinct('product_id')}
+    if supplier:
+        products = [p for p in products if (p.pk not in last_purchases if supplier == 'unknown' else
+            p.pk in last_purchases and str(last_purchases[p.pk].purchase.supplier_id) == str(supplier))]
     rows = []; excluded_count = 0; suggested_count = 0
     for product in products:
         last = latest.get(product.pk)
@@ -43,7 +60,7 @@ def purchase_plan(*, location, zero_days, history_days, coverage_days, q='', sho
         sold = max(Decimal(0), -sales.get(product.pk, Decimal(0)))
         target = max(product.minimum, sold * Decimal(coverage_days) / Decimal(history_days))
         pending = incoming.get(product.pk, Decimal(0))
-        suggested = Decimal(0) if excluded else max(Decimal(0), target-product.stock_quantity-pending).quantize(Decimal('.0001'), rounding=ROUND_UP)
+        suggested = Decimal(0) if excluded else max(Decimal(0), target-product.stock_quantity-pending).quantize(Decimal('1'), rounding=ROUND_UP)
         if suggested > 0:
             suggested_count += 1
         if excluded and not show_excluded:
@@ -51,5 +68,11 @@ def purchase_plan(*, location, zero_days, history_days, coverage_days, q='', sho
         if need == 'needed' and suggested <= 0:
             continue
         rows.append({'product': product, 'days': days, 'excluded': excluded, 'sold': sold,
-                     'pending': pending, 'suggested': suggested})
+                     'pending': pending, 'suggested': suggested,
+                     'last_purchase': last_purchases.get(product.pk)})
+    if grouping == 'supplier':
+        # Stable sorting preserves catalog SKU order within each supplier.
+        rows.sort(key=lambda row: (row['last_purchase'] is None,
+            str(row['last_purchase'].purchase.supplier).casefold() if row['last_purchase'] else '',
+            row['last_purchase'].purchase.supplier_id if row['last_purchase'] else 0))
     return rows, {'suggested_count': suggested_count, 'excluded_count': excluded_count, 'product_count': len(products)}

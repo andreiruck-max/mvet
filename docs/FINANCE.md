@@ -89,3 +89,7 @@ Estornar Novo crédito/Novo débito cancela também o título auxiliar criado pe
 ### Fornecedor nos pagamentos pendentes (23/10/2026)
 
 Saldos e fluxo de caixa e pendências da conta exibem fornecedor/favorecido abaixo da descrição. Usam o nome gravado no título; para título antigo vazio de compra, consultam o fornecedor da compra vinculada. Títulos de compra continuam gravando o nome do fornecedor em cada parcela e rejeitam fornecedor sem nome. Não altera valores, vencimentos ou liquidações.
+
+
+## Conferência com Bling
+Extrato externo persistido por conta e comparação líquida por dia/período, com saldo de abertura independente e cobertura validada. Atualização em segundo plano ao abrir; manual por período preservada. Sem alteração do livro local. Ver ADR 0057 e BLING_SETUP.md.

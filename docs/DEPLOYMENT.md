@@ -1,3 +1,9 @@
+## Serviço de busca automática do Bling
+
+O Compose inclui `bling-worker`, executado com a mesma imagem/configuração do web, sem porta HTTP. O atualizador Windows constrói ambos, interrompe web/worker antes do backup/migrações e inicia o worker após a verificação HTTP. Encerramento aguarda a página em curso; reinício retoma o cursor persistido. Na primeira instalação aplicar `python manage.py migrate` antes de usar; o worker aguarda/reitera se o schema ainda não existir.
+
+Configurar em Conexão Bling → Busca automática · periodicidade, somente master. Vendas e compras começam desativadas. Intervalo de 1 a 168 horas e janela de 1 a 366 dias de emissão, sugestão 1 hora/7 dias. Docker/computador precisam permanecer ligados. Conferir sinal do serviço, datas e mensagens nessa tela; diagnóstico do processo: `docker compose logs --tail=60 bling-worker`. Fora do Docker: iniciar `python manage.py bling_worker` em processo separado com as mesmas variáveis. A opção `--once` é útil para diagnóstico e executa no máximo uma página devida.
+
 # Instalação e desenvolvimento
 ## Docker local
 Siga README. Banco PostgreSQL 16 sem porta publicada; web por padrão em 127.0.0.1:8000. Volumes persistem reinicializações. Não usar docker compose down -v em operação: remove o volume.

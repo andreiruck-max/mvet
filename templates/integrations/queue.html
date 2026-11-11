@@ -1,5 +1,5 @@
 {% extends 'base.html' %}{% load static %}{% block title %}Notas do Bling{% endblock %}{% block content %}<div class="bling-page">
-<div class="page-heading"><div><h1>Notas do Bling para conferir</h1></div><div class="actions">{% if perms.core.view_sales_report %}<a class="button" href="{% url 'sales_sheet' %}">Relatório de vendas</a>{% endif %}{% if user.is_superuser %}<a href="{% url 'bling_connection' %}">Configurar sugestões</a>{% endif %}</div></div>
+<div class="page-heading"><div><h1>Notas do Bling para conferir</h1></div><div class="actions">{% if request.user.is_superuser %}<a class="button" href="{% url 'bling_schedules' %}">Busca automática</a>{% endif %}{% if perms.core.view_sales_report %}<a class="button" href="{% url 'sales_sheet' %}">Relatório de vendas</a>{% endif %}{% if user.is_superuser %}<a href="{% url 'bling_connection' %}">Configurar sugestões</a>{% endif %}</div></div>
 {% if not connection.tokens %}<p class="notice">Bling desconectado. As notas já consultadas e as vendas manuais continuam disponíveis.</p>{% endif %}
 {% if perms.core.fetch_bling %}<section class="panel bling-search"><h2>Buscar notas do período</h2>
 <form method="post" action="{% url 'bling_query' %}" id="bling-period-query">{% csrf_token %}<div class="bling-toolbar">{% include 'integrations/query_fields.html' %}

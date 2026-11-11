@@ -6,6 +6,16 @@ from django.utils import timezone
 from .models import Expense
 
 
+def list_filters(data):
+    """Defaults for the operational list/export, not the accrual report or DRE."""
+    values = data.copy()
+    if 'status' not in values:
+        values['status'] = 'pending'
+    if 'period' not in values and not values.get('start') and not values.get('end'):
+        values['period'] = 'month'
+    return values
+
+
 def expenses(data):
     rows=Expense.objects.select_related('category','title','supplier')
     start,end=data.get('start'),data.get('end');today=timezone.localdate()
@@ -32,6 +42,8 @@ def expenses(data):
         if status=='overdue':rows=rows.filter(title__due_date__lt=today)
         if status=='unclassified':rows=rows.filter(Q(category__isnull=True)|Q(category_snapshot__nature='NONE'))
         if status=='future':rows=rows.filter(competence__gt=today)
+    if status in ('pending', 'overdue'):
+        return rows.order_by('title__due_date', '-competence', '-pk')
     return rows.order_by('-competence','-pk')
 
 

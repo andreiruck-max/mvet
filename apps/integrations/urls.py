@@ -1,7 +1,12 @@
 from django.urls import path
-from . import views, purchase_views, bulk_views
+from . import views, purchase_views, bulk_views, bank_views
 
 urlpatterns = [
+    path('bancos/<int:pk>/', bank_views.statement, name='bling_bank_statement'),
+    path('bancos/<int:pk>/vinculo/', bank_views.settings, name='bling_bank_settings'),
+    path('bancos/<int:pk>/estado/', bank_views.status, name='bling_bank_status'),
+    path('bancos/<int:pk>/atualizar/', bank_views.refresh, name='bling_bank_refresh'),
+    path('automaticas/', views.schedules, name='bling_schedules'),
     path('lote/<str:kind>/',bulk_views.review,name='bling_bulk'),
     path('compras/', purchase_views.queue, name='bling_purchase_queue'),
     path('compras/consultar/', purchase_views.query, name='bling_purchase_query'),

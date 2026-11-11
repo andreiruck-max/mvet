@@ -1,3 +1,4 @@
+from django.utils import timezone
 from django.conf import settings
 from django.db import models
 
@@ -126,3 +127,112 @@ class BlingComparisonCache(models.Model):
     """Last consulted page per master; never an authority for writes."""
     actor = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     payload = models.JSONField(default=dict)
+
+
+class BlingSchedule(models.Model):
+    kind = models.CharField(max_length=8, unique=True, choices=[('SALE', 'Vendas'), ('PURCHASE', 'Compras')])
+    enabled = models.BooleanField('Ativar busca automática', default=False)
+    interval_hours = models.PositiveSmallIntegerField('Intervalo (horas)', default=1)
+    lookback_days = models.PositiveSmallIntegerField('Reconsultar últimos (dias)', default=7)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT)
+    revision = models.PositiveIntegerField(default=0)
+    next_run_at = models.DateTimeField(null=True)
+    last_started_at = models.DateTimeField(null=True)
+    last_finished_at = models.DateTimeField(null=True)
+    last_worker_seen = models.DateTimeField(null=True)
+    cursor = models.JSONField(default=dict, editable=False)
+    message = models.CharField(max_length=500, blank=True)
+    processed = models.PositiveIntegerField(default=0)
+    errors = models.PositiveIntegerField(default=0)
+
+    @property
+    def worker_online(self):
+        from datetime import timedelta
+        from django.utils import timezone
+        return bool(self.last_worker_seen and self.last_worker_seen > timezone.now()-timedelta(minutes=10))
+
+    class Meta:
+        ordering = ['kind']
+        constraints = [
+            models.CheckConstraint(condition=models.Q(kind__in=['SALE', 'PURCHASE']), name='bling_schedule_kind'),
+            models.CheckConstraint(condition=models.Q(interval_hours__gte=1, interval_hours__lte=168), name='bling_schedule_interval'),
+            models.CheckConstraint(condition=models.Q(lookback_days__gte=1, lookback_days__lte=366), name='bling_schedule_lookback'),
+        ]
+
+
+class BlingBankAccount(models.Model):
+    connection = models.ForeignKey(BlingConnection, on_delete=models.PROTECT)
+    external_id = models.CharField(max_length=40)
+    description = models.CharField(max_length=240)
+
+    class Meta:
+        ordering = ['description', 'pk']
+        constraints = [models.UniqueConstraint(fields=['connection', 'external_id'], name='bling_bank_account_identity')]
+
+    def __str__(self):
+        return f'{self.description} · {self.external_id}'
+
+
+class BlingBankLink(models.Model):
+    account = models.OneToOneField('finance.FinancialAccount', on_delete=models.PROTECT, related_name='bling_bank')
+    external = models.OneToOneField(BlingBankAccount, on_delete=models.PROTECT)
+    start_date = models.DateField('Data inicial da comparação')
+    opening_balance = models.DecimalField('Saldo Bling antes dos movimentos dessa data (R$)', max_digits=18, decimal_places=2, null=True, blank=True)
+    automatic = models.BooleanField('Atualizar ao abrir a conta', default=True)
+    requested_through = models.DateField(null=True, blank=True)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+
+
+class BlingBankRun(models.Model):
+    link = models.ForeignKey(BlingBankLink, on_delete=models.PROTECT, related_name='runs')
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    start = models.DateField()
+    end = models.DateField()
+    status = models.CharField(max_length=10, default='QUEUED', choices=[('QUEUED','Aguardando'),('RUNNING','Atualizando'),('DONE','Concluída'),('FAILED','Falhou')])
+    phase = models.CharField(max_length=1, default='R')
+    page = models.PositiveIntegerField(default=1)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    next_attempt = models.DateTimeField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True)
+    message = models.CharField(max_length=500, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['link'], condition=models.Q(status__in=['QUEUED','RUNNING']), name='bling_bank_one_active_run')]
+
+
+class BlingBankStaging(models.Model):
+    run = models.ForeignKey(BlingBankRun, on_delete=models.CASCADE, related_name='staged')
+    external_id = models.CharField(max_length=40)
+    data = models.JSONField()
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['run','external_id'], name='bling_bank_stage_identity')]
+
+
+class BlingBankEntry(models.Model):
+    link = models.ForeignKey(BlingBankLink, on_delete=models.PROTECT, related_name='entries')
+    external_id = models.CharField(max_length=40)
+    date = models.DateField(db_index=True)
+    amount = models.DecimalField(max_digits=18, decimal_places=2)
+    description = models.CharField(max_length=1000, blank=True)
+    counterparty = models.CharField(max_length=240, blank=True)
+    notes = models.TextField(blank=True)
+    source_type = models.CharField(max_length=80, blank=True)
+    source_id = models.CharField(max_length=40, blank=True)
+    deleted = models.BooleanField(default=False)
+    present = models.BooleanField(default=True)
+    checked_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ['-date','-external_id']
+        constraints = [models.UniqueConstraint(fields=['link','external_id'], name='bling_bank_entry_identity')]
+
+
+class BlingBankDay(models.Model):
+    link = models.ForeignKey(BlingBankLink, on_delete=models.PROTECT, related_name='days')
+    date = models.DateField()
+    checked_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['link','date'], name='bling_bank_day_identity')]

@@ -41,7 +41,7 @@ def planning(request):
     rows = []; totals = {}
     if form.is_valid():
         values = form.cleaned_data
-        request.session['purchase_plan_filters'] = {name: values[name] for name in ('zero_days', 'history_days', 'coverage_days', 'need')}
+        request.session['purchase_plan_filters'] = {name: values[name] for name in ('zero_days', 'history_days', 'coverage_days', 'need', 'supplier', 'grouping')}
         request.session['purchase_plan_filters']['location'] = values['location'].pk
         if 'export' in request.GET:
             with transaction.atomic():

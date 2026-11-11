@@ -52,9 +52,10 @@
     if (event.key === 'Escape') { search.value = ''; search.dispatchEvent(new Event('input')); }
   });
   const path = location.pathname;
+  const menuPath = path.startsWith('/integracoes/bling/bancos/') ? '/financeiro/contas/' : path;
   const active = links.filter(link => {
     const target = new URL(link.href).pathname;
-    return target === path || (target !== '/' && target.endsWith('/') && path.startsWith(target));
+    return target === menuPath || (target !== '/' && target.endsWith('/') && menuPath.startsWith(target));
   }).sort((a,b) => new URL(b.href).pathname.length - new URL(a.href).pathname.length)[0];
   if (active) {
     active.setAttribute('aria-current', 'page');

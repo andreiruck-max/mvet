@@ -153,3 +153,17 @@ body.action-modal-open { overflow: hidden; }
   .action-modal-bar a { font-size:.8rem; }
   .modal-mode .workspace { padding:12px; }
 }
+
+/* Supplier headings remain readable in the mobile planning cards. */
+.planning-page .supplier-group th {text-align:left;background:var(--soft);padding:.65rem;}
+@media (max-width: 700px) {.planning-page .supplier-group {display:block;} .planning-page .supplier-group th {display:block;}}
+
+.expense-default-notice{padding:12px;border-left:4px solid var(--focus);background:var(--soft);border-radius:6px;}
+.expense-pending-card{border-left:4px solid var(--focus);}
+.expense-overdue-card{border-left:4px solid #c84444;}
+.workspace tbody tr.expense-row-overdue{background:color-mix(in srgb,#c84444 12%,var(--surface));}
+.workspace tbody tr.expense-row-today{background:color-mix(in srgb,#d99a20 15%,var(--surface));}
+.expense-due-badge{display:inline-block;padding:2px 7px;border-radius:4px;margin-top:4px;}
+.expense-due-badge.overdue{background:#a92626;color:#fff;}
+.expense-due-badge.today{background:#ffe0a0;color:#533900;}
+.expense-pending-value{white-space:nowrap;}

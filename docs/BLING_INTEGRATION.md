@@ -1,3 +1,7 @@
+11/11/2026 — Extrato Bling salvo por conta, vínculo explícito e saldo inicial opcional; atualização em segundo plano ao abrir, importação manual por período, comparação líquida diária/por período e diferença de saldos com cobertura validada. Histórico preservado em falhas/exclusões; sem lançamentos automáticos no financeiro. ADR 0057. Preparado fora da main; homologação real pendente.
+
+10/11/2026 — Busca automática de notas Bling: serviço Docker separado, intervalos independentes de vendas/compras, janela de emissão configurável, retomada por página, estado/heartbeat e configuração exclusiva master. Desativada por padrão; não confirma notas nem movimenta estoque/financeiro. Busca manual preservada. ADR 0056.
+
 # Bling — avaliação de integração
 
 Consulta pública em 18/09/2026. **Avaliação e escopo: importação assistida de NF implementada; conexão real ainda não ativada/homologada.** Não foram solicitadas credenciais nem realizadas chamadas autenticadas na conta da empresa. Contratos e exemplos foram examinados na [referência oficial interativa](https://developer.bling.com.br/referencia), que publica seu OpenAPI. Exemplos não garantem preenchimento dos campos na conta Mercadovet.

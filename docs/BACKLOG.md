@@ -1,3 +1,13 @@
+11/11/2026 — Extrato Bling salvo por conta, vínculo explícito e saldo inicial opcional; atualização em segundo plano ao abrir, importação manual por período, comparação líquida diária/por período e diferença de saldos com cobertura validada. Histórico preservado em falhas/exclusões; sem lançamentos automáticos no financeiro. ADR 0057. Preparado fora da main; homologação real pendente.
+
+10/11/2026 — Busca automática de notas Bling: serviço Docker separado, intervalos independentes de vendas/compras, janela de emissão configurável, retomada por página, estado/heartbeat e configuração exclusiva master. Desativada por padrão; não confirma notas nem movimenta estoque/financeiro. Busca manual preservada. ADR 0056.
+
+10/11/2026 — Despesas abre em Pendentes do mês atual (competência), inclusive ao limpar filtros, paginar sem filtros e exportar. Pagas integralmente ocultas no padrão, parciais mantidas. Vencimentos crescentes, saldo por linha e destaques textuais/visuais para vencidas e hoje. Relatório por competência e DRE preservados. ADR 0055.
+
+09/11/2026 — Planejamento permite filtrar pelo fornecedor da última compra recebida ou sem histórico e agrupar por fornecedor, com SKU dentro de cada grupo. Filtros salvos e aplicados antes da paginação; cotação segue filtro e ordem e inclui fornecedor quando agrupada.
+
+09/11/2026 — Planejamento: sugestão arredondada para cima em unidades inteiras, inclusive PDF/Excel; tela mostra preço unitário, fornecedor e data da última compra recebida (qualquer depósito), sem bonificações/canceladas. Preço da nota antes de descontos/rateios, sem inferir quitação. Cotação externa preserva somente produtos e quantidades. ADR 0054.
+
 07/11/2026 — Navegação revisada: ações rápidas em janelas sobre a tela atual, com filtros/posição preservados, erros no formulário, aviso ao descartar edição, fallback para página normal e baixa direta a partir de pendências. Fluxos extensos mantêm página própria. Ver docs/NAVIGATION.md. Preparado, aguardando integração.
 
 06/11/2026 — Parcelas na nova venda para controle de comissão (vencimento e valor), com preservação dos vencimentos recebidos do Bling. Não gera recebíveis ou recebimentos. Descrição de transferência explicitamente opcional; revisão de parcelas aceita observação vazia e preserva auditoria. ADR 0053.

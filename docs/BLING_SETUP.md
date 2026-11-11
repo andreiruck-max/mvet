@@ -1,8 +1,10 @@
+10/11/2026 — Busca automática de notas Bling: serviço Docker separado, intervalos independentes de vendas/compras, janela de emissão configurável, retomada por página, estado/heartbeat e configuração exclusiva master. Desativada por padrão; não confirma notas nem movimenta estoque/financeiro. Busca manual preservada. ADR 0056.
+
 # Bling — instalação e operação da importação assistida
 
 ## Escopo entregue
 
-Conexão OAuth pelo master; consulta de NF-e emitidas; fila separada, vínculo de códigos, conferência de deduções e confirmação pelos serviços do MVet. Conferência de estoque/preços (ADR 0048) permite correções comerciais explícitas e cadastro local. Não há escrita fiscal, sincronização automática, caixa/bancos, pedidos, webhooks ou importação financeira.
+Conexão OAuth pelo master; consulta de NF-e emitidas; fila separada, vínculo de códigos, conferência de deduções e confirmação pelos serviços do MVet. Conferência de estoque/preços (ADR 0048) permite correções comerciais explícitas e cadastro local. Não há escrita fiscal, pedidos ou webhooks. Notas podem ser consultadas automaticamente; extrato financeiro é somente espelho para conferência, sem gerar lançamentos locais.
 
 Sem credenciais a interface mostra conexão pendente. Testes usam exclusivamente respostas sintéticas; homologar com notas reais antes do uso operacional.
 
@@ -104,3 +106,16 @@ Comparar saldos, preços ou ambos, com filtro imediato das diferenças do campo 
 ### SKUs encontrados e paginação após filtros (22/10/2026)
 
 Filtro Todos/Encontrados/Não encontrados no Bling. Existência do SKU é independente de erros de saldo, unidade ou duplicidade; erro não significa ausência. A consulta completa é feita em pequenos lotes com progresso no navegador, preservando o resultado anterior até concluir. Após a consulta, filtros e paginação usam apenas os dados salvos, em ordem numérica de SKU, até 50 resultados filtrados por página. Trocar filtro volta à primeira página. Consulta antiga de uma página é preservada com aviso para atualização explícita.
+
+
+## Extrato de contas Bling
+
+Na conta financeira MVet, use **Vincular conta ao Bling** (master), **Buscar contas no Bling** e escolha a correspondente. Carregue mais páginas caso necessário. Informe data inicial e, se quiser comparação de saldo, o saldo Bling antes dos movimentos dessa data. Vazio não significa zero. O saldo inicial MVet não será alterado.
+
+O aplicativo Bling precisa ter leitura de **Contas Financeiras** e **Caixas e Bancos**. Se o acesso for recusado, conferir escopos no Bling e reautorizar a conexão. Nenhuma credencial bancária é solicitada no MVet.
+
+Após salvar, o serviço `bling-worker` importa o intervalo; o histórico fica no PostgreSQL e nos backups existentes. Ao abrir a conta ou o extrato, uma consulta atualiza o dia e eventuais dias sem visitas desde a última importação. Você continua usando o sistema ou fecha o navegador; o Docker precisa permanecer ligado. A opção pode ser desativada no vínculo. Para histórico superior a 366 dias, consultas automáticas encadeiam blocos até hoje. Visitas durante consulta histórica também deixam atualização até hoje pendente.
+
+**Ver extrato e diferenças** apresenta os movimentos salvos (50 por página), créditos/débitos, exclusões e origem. Filtros consultam o histórico local. **Atualizar período no Bling** reconsulta o intervalo selecionado e detecta alterações retroativas nesse intervalo. Períodos não consultados aparecem como incompletos, nunca como saldo zero.
+
+Comparar valores líquidos por dia ou período, não quantidade de lançamentos. Abertura + movimentos salvos gera a posição calculada Bling; não é consulta direta ao banco. A data da última importação é exibida. Uma diferença de saldo não gera ajustes, receita, despesa ou baixa. O saldo pode ficar defasado se houver alterações antigas fora dos períodos reconsultados.

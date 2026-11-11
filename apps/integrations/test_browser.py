@@ -426,3 +426,30 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
         self.product.refresh_from_db()
         self.assertEqual(self.product.fixed_sale_price, Decimal('9.10'))
         self.assertEqual(Product.objects.get(sku='NEW-UI').quantity, 0)
+
+    def test_automatic_schedule_configuration_does_not_start_http_import(self):
+        from pathlib import Path
+        from playwright.sync_api import sync_playwright, expect
+        from .models import BlingSchedule
+        BlingConnection.objects.create(pk=1, issuer=ISSUER, tokens='synthetic')
+        client=Client();client.force_login(self.actor)
+        output=Path('artifacts');output.mkdir(exist_ok=True)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1000})
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page()
+            page.goto(self.live_server_url+'/integracoes/bling/automaticas/')
+            page.locator('#sale_enabled').check()
+            page.locator('#sale_interval_hours').fill('2')
+            page.get_by_role('button',name='Salvar vendas',exact=True).click()
+            expect(page.locator('#sale_enabled')).to_be_checked()
+            expect(page.locator('#sale_interval_hours')).to_have_value('2')
+            expect(page.locator('#purchase_enabled')).not_to_be_checked()
+            page.screenshot(path=str(output/'bling-schedule-desktop.png'),full_page=True)
+            page.set_viewport_size({'width':390,'height':844})
+            page.screenshot(path=str(output/'bling-schedule-mobile.png'),full_page=True)
+            self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390)
+            browser.close()
+        self.assertTrue(BlingSchedule.objects.get(kind='SALE').enabled)
+        from .models import ImportRun
+        self.assertFalse(ImportRun.objects.exists())

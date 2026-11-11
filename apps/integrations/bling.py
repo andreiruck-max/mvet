@@ -55,7 +55,7 @@ def request_json(path, *, token=None, form=None, method="GET", payload=None):
     if form is not None:
         if path != '/oauth/token' or payload is not None: raise BlingError('Operação remota não permitida.')
     elif method == 'GET' and payload is None:
-        if not re.fullmatch(r'/(?:nfe(?:/[0-9]+)?|produtos(?:/[0-9]+)?|depositos(?:/[0-9]+)?|estoques/saldos/[0-9]+)(?:\?[^#]*)?', path):
+        if not re.fullmatch(r'/(?:caixas(?:/[0-9]+)?|contas-contabeis(?:/[0-9]+)?|nfe(?:/[0-9]+)?|produtos(?:/[0-9]+)?|depositos(?:/[0-9]+)?|estoques/saldos/[0-9]+)(?:\?[^#]*)?', path):
             raise BlingError('Consulta remota não permitida.')
     elif method == 'PATCH' and re.fullmatch(r'/produtos/[0-9]+', path):
         if not isinstance(payload, dict) or set(payload) != {'preco'}: raise BlingError('Somente preço pode ser alterado.')
@@ -157,7 +157,7 @@ def read(path, *, method="GET", payload=None):
         raise failure
 
 
-def sync_page(*, actor, start, end, page=1, source_status=5, kind="SALE", number=None, series=None):
+def sync_page(*, actor, start, end, page=1, source_status=5, kind="SALE", number=None, series=None, time_budget=40):
     require(actor, 'core.fetch_bling')
     require(actor, 'core.operate_purchases' if kind == 'PURCHASE' else 'core.review_bling')
     if kind not in ('SALE', 'PURCHASE'): raise BlingError('Tipo de consulta inválido.')
@@ -172,7 +172,7 @@ def sync_page(*, actor, start, end, page=1, source_status=5, kind="SALE", number
         from .purchase_services import stage
     else:
         from .services import stage
-    deadline = time.monotonic() + 40
+    deadline = time.monotonic() + min(max(time_budget, 40), 300)
     try:
         # 56 is a local combined selection, never an API status. Each status
         # retains its own page; stop only when both lists have ended.
