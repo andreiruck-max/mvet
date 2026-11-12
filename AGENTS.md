@@ -6,7 +6,7 @@ Monólito Django 5.2 LTS, PostgreSQL, templates, CSS/JS locais. Código em ingl�
 - Comissão na venda: confirmação cria plano para pessoa explícita ou vínculo do canal, com cliente e total manual opcional (zero explícito). Não libera pagamento sem recebimento, não duplica custo/DRE e não cria banco. ADR 0051.
 - Títulos: edição master auditada por FinancialTitleRevision; valor nunca abaixo do liquidado, livro bancário e origem preservados. Título de despesa usa editor da despesa. Parcelas exibem obrigação atual e preservam contrato. ADR 0050.
 - Posição Excel: master, prévia obrigatória, substituição atual ou histórica, ausentes preservados por padrão. Digest impede replay; ajuste histórico com conciliação posterior é bloqueado. ADR 0042.
-- Baixas futuras são permitidas: principal reservado, caixa realizado somente na data, projeção sem duplicar título; estorno antecipado na data original. Plano Mercadovet aditivo e depreciação manual sem título, abaixo do EBITDA. ADR 0037.
+- Baixas futuras são permitidas: principal reservado, realizado inclui baixas futuras na data informada (ADR 0058), projeção sem duplicar título; estorno antecipado na data original. Plano Mercadovet aditivo e depreciação manual sem título, abaixo do EBITDA. ADR 0037.
 - Comissões: base produtos − descontos sem frete; liberação por recebimento; pagamento alocado e compensação negativa auditável. Não duplicar Sale.commission na DRE, nem gerar banco/recebível automaticamente. ADR 0036.
 - CRM: carteira própria via operate_crm; governança master. Interações/eventos imutáveis, ativos com próxima data, não contatar imediato sem recorrência. Sem efeitos em estoque/financeiro. ADR 0035.
 - Decimal/NUMERIC: quantidade 4 casas, custo e valorização 6 casas, dinheiro 2 casas.

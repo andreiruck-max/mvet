@@ -36,6 +36,7 @@ class Purchase(models.Model):
     series=models.CharField('Série',max_length=20,blank=True)
     date=models.DateField('Data da compra',db_index=True)
     location=models.ForeignKey(StockLocation,on_delete=models.PROTECT,verbose_name='Estoque de destino')
+    account=models.ForeignKey('finance.FinancialAccount', null=True, blank=True, on_delete=models.PROTECT, verbose_name='Conta bancária prevista')
     acquisition_kind=models.CharField('Tipo de entrada', max_length=10, choices=[('NORMAL','Compra com financeiro'),('BONUS','Bonificação sem financeiro')], default='NORMAL')
     discount=money('Desconto (R$)')
     freight=money('Frete de aquisição (R$)')

@@ -33,7 +33,7 @@ def daily_cash(start,end,account_id=None, *, active_only=False):
     if account_id: accounts=accounts.filter(pk=account_id)
     accounts=list(accounts)
     ids=[a.pk for a in accounts]
-    posted=Entry.objects.filter(account_id__in=ids,operation__status='POSTED',operation__date__lte=min(end,today))
+    posted=Entry.objects.filter(account_id__in=ids,operation__status='POSTED',operation__date__lte=end)
     prior={r['account_id']:r['total'] for r in posted.filter(operation__date__lt=start).values('account_id').annotate(total=Sum('amount'))}
     movements=defaultdict(lambda:[ZERO,ZERO])
     for row in posted.filter(operation__date__gte=start).values('account_id','operation__date').annotate(credit=Sum('amount',filter=Q(amount__gt=0)),debit=Sum('amount',filter=Q(amount__lt=0))):
@@ -43,7 +43,7 @@ def daily_cash(start,end,account_id=None, *, active_only=False):
     forecast_debits=defaultdict(lambda:ZERO)
     opening_dates={a.pk:a.opening_date for a in accounts}
     # Overdue forecasts roll forward to today; history is only actual cash.
-    for row in Entry.objects.filter(account_id__in=ids,operation__date__lte=end).filter(Q(operation__status='PLANNED') | Q(operation__status='POSTED', operation__date__gt=today)).values('account_id','operation__date').annotate(total=Sum('amount'),credit=Sum('amount',filter=Q(amount__gt=0)),debit=Sum('amount',filter=Q(amount__lt=0))):
+    for row in Entry.objects.filter(account_id__in=ids,operation__date__lte=end).filter(Q(operation__status='PLANNED')).values('account_id','operation__date').annotate(total=Sum('amount'),credit=Sum('amount',filter=Q(amount__gt=0)),debit=Sum('amount',filter=Q(amount__lt=0))):
         date=max(row['operation__date'],today)
         if date<=end:
             forecast[(row['account_id'],date)]+=row['total']
@@ -111,13 +111,12 @@ def cash_matrix(rows, dates, mode='projected'):
 def account_statement(account, start, end):
     from django.db.models import Case, When, Value, Window, DecimalField
     money=DecimalField(max_digits=24,decimal_places=2)
-    prior=Entry.objects.filter(account=account,operation__status='POSTED',operation__date__lt=start,
-        operation__date__lte=timezone.localdate()).aggregate(total=Sum('amount'))['total'] or ZERO
+    prior=Entry.objects.filter(account=account,operation__status='POSTED',operation__date__lt=start).aggregate(total=Sum('amount'))['total'] or ZERO
     initial=account.opening_balance+prior if account.opening_date<=start else ZERO
     rows=Entry.objects.filter(account=account,operation__date__range=(start,end)).select_related('operation','operation__title').order_by('operation__date','pk')
     # Opening can occur inside the selected range; every entry is on/after it.
     running_base=account.opening_balance+prior
     rows=rows.annotate(running_balance=Value(running_base,output_field=money)+Window(
-        expression=Sum(Case(When(operation__status='POSTED',operation__date__lte=timezone.localdate(),then=F('amount')),default=Value(ZERO),output_field=money)),
+        expression=Sum(Case(When(operation__status='POSTED',then=F('amount')),default=Value(ZERO),output_field=money)),
         order_by=[F('operation__date').asc(),F('pk').asc()]))
     return rows, initial

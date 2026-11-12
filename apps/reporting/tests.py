@@ -181,12 +181,13 @@ class CompactPayablesTests(ReportingFixture, TestCase):
         self.pay(titles[0])
         response=self.client.get(reverse('purchase_payables'))
         self.assertEqual(response.context['totals']['pending'],25)
-        self.assertEqual(len(response.context['page']),1)
+        self.assertEqual(len(response.context['page']),2)
+        self.assertEqual(response.context['totals']['commitment'],50)
         history=self.client.get(reverse('purchase_payables'),{'period':'all','status':'paid'})
         self.assertEqual(len(history.context['page']),1)
         form=PayablesForm({'period':'all'});self.assertTrue(form.is_valid());self.assertIsNone(form.cleaned_data['start'])
         from .datasets import build
-        self.assertEqual(len(build('payables',self.actor,{}).rows),1)
+        self.assertEqual(len(build('payables',self.actor,{}).rows),2)
 
     def test_past_dates_hidden_without_overdue_label_and_history_retrievable(self):
         p=self.purchase();title=p.installments.first().financial_title
@@ -342,3 +343,16 @@ class DashboardCustomizationTests(ReportingFixture, TestCase):
         unauthorized=User.objects.create_user('no-dashboard')
         self.client.force_login(unauthorized)
         self.assertEqual(self.client.post(endpoint,{'order':[]},content_type='application/json').status_code,403)
+
+class CommitmentCutoffTests(ReportingFixture,TestCase):
+    def test_payments_today_and_future_only_leave_commitments_next_day(self):
+        from unittest.mock import patch
+        p=self.purchase();titles=list(Title.objects.filter(purchase_installment__purchase=p).order_by('due_date'))
+        self.pay(titles[0]);self.pay(titles[1],date=self.today+timedelta(days=4))
+        rows=selectors.payables({'status':'all'})
+        self.assertEqual(selectors.payable_totals(rows)['commitment'],50)
+        with patch('django.utils.timezone.localdate',return_value=self.today+timedelta(days=1)):
+            self.assertEqual(selectors.payable_totals(selectors.payables({'status':'all'}))['commitment'],25)
+        with patch('django.utils.timezone.localdate',return_value=self.today+timedelta(days=5)):
+            self.assertEqual(selectors.payable_totals(selectors.payables({'status':'all'}))['commitment'],0)
+        self.assertEqual(sum(r['pending'] for r in selectors.payable_groups(rows)[0]),50)

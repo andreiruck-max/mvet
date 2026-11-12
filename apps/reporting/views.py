@@ -120,7 +120,7 @@ def dre_sources(request):
 @require_GET
 @transaction.atomic
 def purchase_payables(request):
-    domain_lock();form=forms.PayablesForm(request.GET or {'period':'future','status':'pending'});d=form.cleaned_data if form.is_valid() else None;ctx={'form':form}
+    domain_lock();form=forms.PayablesForm(request.GET or {'period':'future','status':'all'});d=form.cleaned_data if form.is_valid() else None;ctx={'form':form}
     if d:
         rows=selectors.payables(d)
         months,suppliers=selectors.payable_groups(rows)

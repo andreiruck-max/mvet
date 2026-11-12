@@ -126,3 +126,13 @@ class FinancialTitleRevision(models.Model):
     class Meta:
         ordering = ['-number']
         constraints = [models.UniqueConstraint(fields=['title','number'], name='finance_title_revision_unique')]
+
+
+class DuePayment(models.Model):
+    title = models.OneToOneField(FinancialTitle, on_delete=models.PROTECT, related_name='due_payment')
+    account = models.ForeignKey(FinancialAccount, null=True, on_delete=models.PROTECT)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    enabled = models.BooleanField(default=False)
+    message = models.CharField(max_length=500, blank=True)
+    operation = models.ForeignKey(FinancialOperation, null=True, on_delete=models.PROTECT)
+    updated_at = models.DateTimeField(auto_now=True)

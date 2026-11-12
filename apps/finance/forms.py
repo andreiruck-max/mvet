@@ -42,7 +42,7 @@ class SettlementForm(forms.Form):
     key=forms.UUIDField(initial=uuid4,widget=forms.HiddenInput)
     revision=forms.IntegerField(widget=forms.HiddenInput)
     account=forms.ModelChoiceField(label='Conta efetiva',queryset=Account.objects.filter(active=True))
-    date=forms.DateField(label='Data da baixa',widget=DateInput(),initial=timezone.localdate,help_text='Aceita data futura: afeta a projeção nessa data, sem alterar o saldo realizado hoje.')
+    date=forms.DateField(label='Data da baixa',widget=DateInput(),initial=timezone.localdate,help_text='Aceita data futura: a baixa aparece no realizado na data informada.')
     principal=forms.DecimalField(label='Principal a baixar (R$)',max_digits=18,decimal_places=2,min_value=Decimal('0.01'))
     interest=forms.DecimalField(label='Juros / acréscimos (R$)',initial=0,max_digits=18,decimal_places=2,min_value=0)
     discount=forms.DecimalField(label='Desconto / abatimento (R$)',initial=0,max_digits=18,decimal_places=2,min_value=0)
@@ -61,7 +61,7 @@ class TransferForm(forms.Form):
 
 
 class ReverseForm(forms.Form):
-    date=forms.DateField(label='Data efetiva',widget=DateInput(),initial=timezone.localdate,help_text='Data futura entra na projeção; o saldo realizado só muda na data informada. Estornar este lançamento também remove sua previsão.')
+    date=forms.DateField(label='Data efetiva',widget=DateInput(),initial=timezone.localdate,help_text='Baixas futuras aparecem no realizado na data informada. Estornar este lançamento também remove sua previsão.')
     reason=forms.CharField(label='Motivo',max_length=500)
 
 
@@ -98,7 +98,7 @@ class CashForm(forms.Form):
 class AccountEntryForm(forms.Form):
     key=forms.UUIDField(initial=uuid4,widget=forms.HiddenInput)
     direction=forms.ChoiceField(label='Movimento',choices=[('RECEIVE','Crédito — entrada'),('PAY','Débito — saída')])
-    date=forms.DateField(label='Data efetiva',widget=DateInput(),initial=timezone.localdate,help_text='Data futura entra na projeção; o saldo realizado só muda na data informada. Estornar este lançamento também remove sua previsão.')
+    date=forms.DateField(label='Data efetiva',widget=DateInput(),initial=timezone.localdate,help_text='Baixas futuras aparecem no realizado na data informada. Estornar este lançamento também remove sua previsão.')
     description=forms.CharField(label='Descrição',max_length=240)
     amount=forms.DecimalField(label='Valor (R$)',max_digits=18,decimal_places=2,min_value=Decimal('.01'),initial=Decimal('0.00'),localize=True)
     category=forms.ChoiceField(label='Classificação',choices=[c for c in Title.CATEGORIES if c[0]!='OPENING'])
@@ -121,3 +121,15 @@ class TitleEditForm(forms.ModelForm):
             self.fields['direction'].disabled=True
             self.fields['opening'].disabled=True
             self.fields['direction'].help_text='Preservado pelo vínculo de origem ou pelo histórico de baixas.'
+
+
+class DuePaymentForm(forms.Form):
+    account=forms.ModelChoiceField(label='Conta para a baixa automática',queryset=Account.objects.filter(active=True),required=False)
+    enabled=forms.BooleanField(label='Pagar no vencimento (baixa automática no MVet)',required=False,
+        help_text='Não envia pagamento ao banco. Baixa o saldo restante no vencimento, sem juros/descontos. Se o MVet estiver desligado, processa ao voltar a funcionar, mantendo a data do vencimento.')
+    revision=forms.IntegerField(widget=forms.HiddenInput)
+
+    def clean(self):
+        data=super().clean()
+        if data.get('enabled') and not data.get('account'):self.add_error('account','Selecione a conta para a baixa.')
+        return data

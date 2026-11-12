@@ -44,15 +44,20 @@ def payables(d):
     if d.get('supplier'):rows=rows.filter(purchase_installment__purchase__supplier=d['supplier'])
     if d.get('purchase_start'):rows=rows.filter(purchase_installment__purchase__date__gte=d['purchase_start'])
     if d.get('purchase_end'):rows=rows.filter(purchase_installment__purchase__date__lte=d['purchase_end'])
-    status=d.get('status') or 'pending'
+    status=d.get('status') or 'all'
     if status=='paid':rows=rows.filter(settled=F('amount'))
     elif status in ['pending','overdue']:rows=rows.filter(settled__lt=F('amount'))
     if status=='overdue':rows=rows.filter(due_date__lt=timezone.localdate())
+    from django.db.models import OuterRef, Subquery, DecimalField, Value, ExpressionWrapper
+    from django.db.models.functions import Coalesce
+    money=DecimalField(max_digits=18,decimal_places=2)
+    paid_before=Operation.objects.filter(title_id=OuterRef('pk'),kind='SETTLEMENT',status='POSTED',date__lt=timezone.localdate(),reversal__isnull=True).order_by().values('title_id').annotate(v=Sum('principal')).values('v')
+    rows=rows.annotate(commitment=ExpressionWrapper(F('amount')-Coalesce(Subquery(paid_before),Value(ZERO),output_field=money),output_field=money))
     return rows.order_by('due_date','pk')
 
 def payable_totals(rows):
-    result=rows.aggregate(total_amount=Sum('amount'),paid=Sum('settled'),pending=Sum(F('amount')-F('settled')))
-    return dict(amount=result['total_amount'] or ZERO,paid=result['paid'] or ZERO,pending=result['pending'] or ZERO)
+    result=rows.aggregate(total_amount=Sum('amount'),paid=Sum('settled'),pending=Sum(F('amount')-F('settled')),commitment=Sum('commitment'))
+    return dict(commitment=result['commitment'] or ZERO,amount=result['total_amount'] or ZERO,paid=result['paid'] or ZERO,pending=result['pending'] or ZERO)
 
 def financial_result(d):
     """Manual financial titles accrue on origin date, additional interest when assessed.
@@ -102,8 +107,8 @@ def dre(d):
 
 def payable_groups(rows):
     from django.db.models.functions import TruncMonth
-    remaining=F('amount')-F('settled')
-    aggregates = dict(pending=Sum(remaining), open_count=Count('pk',filter=Q(settled__lt=F('amount'))))
+    remaining=F('commitment')
+    aggregates = dict(pending=Sum(remaining), open_count=Count('pk',filter=Q(commitment__gt=0)))
     months=list(rows.order_by().annotate(month=TruncMonth('due_date')).values('month').annotate(**aggregates).order_by('month'))
     suppliers=list(rows.order_by().values('purchase_installment__purchase__supplier_id','purchase_installment__purchase__supplier__legal_name').annotate(**aggregates).order_by('-pending','purchase_installment__purchase__supplier__legal_name'))
     def average(row): return (row['pending']/row['open_count']).quantize(Decimal('.01')) if row['open_count'] else ZERO

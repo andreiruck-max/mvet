@@ -82,12 +82,12 @@ class AccountFlowTests(Fixture, TestCase):
         debit=self.entry(date=day)
         self.entry(date=day,direction='RECEIVE',amount=D(10))
         summary=selectors.cash_summary(self.today,day)
-        self.assertEqual(summary['actual'],1000)
+        self.assertEqual(summary['actual'],985)
         self.assertEqual(summary['projected'],985)
         self.assertEqual(FinancialTitle.objects.filter(settled=0).count(),0)
         services.reverse(actor=self.admin,pk=debit.pk,date=self.today,reason='Cancelar débito futuro')
         summary=selectors.cash_summary(self.today,day)
-        self.assertEqual(summary['actual'],1000)
+        self.assertEqual(summary['actual'],1010)
         # Direct entries have no independent obligation after reversal.
         self.assertEqual(summary['projected'],1010)
 

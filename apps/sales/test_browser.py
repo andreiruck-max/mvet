@@ -29,7 +29,7 @@ class RecoveryBrowser(Fixture,StaticLiveServerTestCase):
             page=context.new_page();page.goto(self.live_server_url+reverse('sale_detail',args=[sale.pk]))
             page.get_by_role('link',name='Corrigir venda').click()
             fees=page.get_by_label('Taxas (R$):',exact=True);fees.click();fees.press_sequentially('2081')
-            self.assertEqual(fees.input_value(),'20.81')
+            self.assertEqual(fees.input_value(),'20,81')
             shipping=page.get_by_label('Frete pago (R$):',exact=True);shipping.click();shipping.press_sequentially('23500')
             self.assertEqual(shipping.input_value(),'235.00')
             shipping.press('Backspace');self.assertEqual(shipping.input_value(),'23.50')

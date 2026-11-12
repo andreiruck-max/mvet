@@ -15,6 +15,8 @@ class PurchaseReviewForm(forms.Form):
     revision = forms.IntegerField(widget=forms.HiddenInput)
     supplier = forms.ModelChoiceField(label='Fornecedor cadastrado', queryset=Supplier.objects.filter(active=True),required=False)
     create_supplier=forms.BooleanField(label='Cadastrar novo fornecedor com os dados da nota',required=False)
+    from apps.finance.models import FinancialAccount
+    account = forms.ModelChoiceField(label='Conta bancária prevista para as parcelas',queryset=FinancialAccount.objects.filter(active=True),required=False,help_text='Será aplicada aos títulos quando a compra for confirmada. Não registra pagamento.')
     location = forms.ModelChoiceField(label='Estoque de destino', queryset=StockLocation.objects.filter(active=True))
     discount = forms.DecimalField(label='Desconto geral adicional (R$)', max_digits=18, decimal_places=2, min_value=0, initial=Decimal('0'), localize=True, widget=MoneyInput)
     freight = forms.DecimalField(label='Frete incluído na nota (R$)', max_digits=18, decimal_places=2, min_value=0, initial=Decimal('0'), localize=True, widget=MoneyInput)

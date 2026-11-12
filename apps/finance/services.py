@@ -253,7 +253,7 @@ def create_purchase_titles(purchase, actor):
         classifications.add(nature if nature in {'OPERATING','FINANCIAL'} else 'PRINCIPAL' if nature in {'ASSET','LIABILITY','EQUITY'} else 'OTHER')
     category=next(iter(classifications)) if len(classifications)==1 else 'OTHER'
     for installment in purchase.installments.all():
-        Title.objects.get_or_create(purchase_installment=installment,defaults=dict(direction='PAY',description=f'Compra {purchase.document} · parcela {installment.number}',counterparty=supplier_name,date=purchase.date,due_date=installment.due_date,amount=installment.amount,actor=actor,source='purchase',category=category))
+        Title.objects.get_or_create(purchase_installment=installment,defaults=dict(direction='PAY',description=f'Compra {purchase.document} · parcela {installment.number}',counterparty=supplier_name,date=purchase.date,due_date=installment.due_date,amount=installment.amount,actor=actor,source='purchase',category=category,account=purchase.account))
 
 
 def cancel_origin(actor, reason, **filters):

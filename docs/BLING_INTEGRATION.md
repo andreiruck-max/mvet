@@ -125,3 +125,9 @@ Fila de venda exibe série/número em ordem crescente, valor fiscal e nome do cl
 O detalhe JSON pode omitir descontos. Quando disponibiliza XML HTTPS do Bling, a consulta valida chave, total e itens antes de extrair vDesc. Venda recebe o total uma única vez; compra recebe descontos por item e somente o residual no desconto geral. Download limitado, sem credenciais OAuth nem redirecionamentos; XML/URL não são persistidos. Falha de download ou validação do XML não interrompe a consulta/importação: o desconto fica sem pré-preenchimento e a tela orienta a conferência manual. As validações do JSON fiscal e a confirmação local continuam obrigatórias. Sem XML, informar manualmente; nunca inferir desconto pela diferença de totais. Reconsultar notas pendentes após atualizar. Vendas confirmadas e escolhas locais não são reescritas.
 
 A fila de vendas transporta o endereço filtrado para a conferência e ações POST. Voltar às notas preserva série, situação, pesquisa e paginação; destinos externos são rejeitados pelo validador de navegação.
+
+## Conferência e extrato — ADR 0058
+
+Clique no número da nota de venda/compra para conferir em pop-up mantendo a lista e filtros. Informações principais aparecem primeiro. Compra importada permite escolher conta bancária prevista, aplicada aos títulos na confirmação; não movimenta caixa nem habilita baixa automática. Rascunho e confirmação continuam etapas explícitas.
+
+Extrato aceita débito com sinal negativo e datas ISO com horário sem inverter ou converter a data. Falha identifica campo e página; histórico anterior só é substituído após consulta completa válida. A causa específica de um retorno real deve ser conferida com o campo indicado, sem desativar as validações de conta/período.

@@ -279,5 +279,27 @@ def settlement_form(request,pk):
     return render(request,'finance/form.html',{
         'form':form,'title':'Pagar / antecipar parcela' if title.direction=='PAY' else 'Registrar recebimento',
         'button':'Confirmar liquidação','form_action':reverse('financial_settle',args=[pk]),
-        'help':f'{title.description} · {title.counterparty_display} · Pendente R$ {title.remaining:.2f}. A baixa pode ser parcial. Confira conta, data e valor; uma baixa futura afeta o saldo realizado apenas na data informada.',
+        'help':f'{title.description} · {title.counterparty_display} · Pendente R$ {title.remaining:.2f}. A baixa pode ser parcial. Confira conta, data e valor; baixas futuras também aparecem no realizado na data informada.',
     })
+
+
+@login_required
+@permission_required(['core.operate_finance','core.pay_titles'],raise_exception=True)
+def due_payment(request,pk):
+    from .models import DuePayment
+    from .due_payments import configure
+    title=get_object_or_404(Title,pk=pk,direction='PAY')
+    scheduled=DuePayment.objects.filter(title=title).first()
+    form=forms.DuePaymentForm(request.POST if request.method=='POST' else None, initial={
+        'account':scheduled.account_id if scheduled else title.account_id,
+        'enabled':scheduled.enabled if scheduled else True,'revision':title.revision})
+    if request.method=='POST' and form.is_valid():
+        data=form.cleaned_data
+        try:
+            configure(actor=request.user,title_id=pk,account_id=data['account'].pk if data['account'] else None,
+                enabled=data['enabled'],revision=data['revision'])
+            messages.success(request,'Baixa no vencimento programada.' if data['enabled'] else 'Baixa automática desativada.')
+            return redirect('financial_title',pk=pk)
+        except (ValidationError,IntegrityError) as exc:error(form,exc)
+    return render(request,'finance/form.html',{'form':form,'title':'Pagar no vencimento',
+        'button':'Salvar programação','help':f'{title.description} · Vencimento {title.due_date:%d/%m/%Y}. A programação acompanha alterações de vencimento e baixa somente o saldo restante. Conta escolhida é preservada; alterações de conta prevista não mudam esta autorização.'})
