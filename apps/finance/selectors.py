@@ -1,7 +1,7 @@
 from collections import defaultdict
 from datetime import timedelta
 from decimal import Decimal
-from django.db.models import F, Q, Sum
+from django.db.models import F, Q, Sum, Case, When
 from django.utils import timezone
 from .models import FinancialAccount as Account, FinancialTitle as Title, FinancialEntry as Entry
 
@@ -49,14 +49,14 @@ def daily_cash(start,end,account_id=None, *, active_only=False):
             forecast[(row['account_id'],date)]+=row['total']
             forecast_credits[(row['account_id'],date)]+=row['credit'] or ZERO
             forecast_debits[(row['account_id'],date)]-=row['debit'] or ZERO
-    pending=Title.objects.filter(status='OPEN',settled__lt=F('amount'),due_date__lte=end)
-    for row in pending.filter(account_id__in=ids).values('account_id','due_date').annotate(total=Sum(F('amount')-F('settled'),filter=Q(direction='RECEIVE')),pay=Sum(F('amount')-F('settled'),filter=Q(direction='PAY'))):
-        date=max(row['due_date'],today,opening_dates[row['account_id']])
+    pending=Title.objects.filter(status='OPEN',settled__lt=F('amount'),due_date__lte=end).annotate(forecast_account_id=Case(When(due_payment__enabled=True,then=F('due_payment__account_id')),default=F('account_id')))
+    for row in pending.filter(forecast_account_id__in=ids).values('forecast_account_id','due_date').annotate(total=Sum(F('amount')-F('settled'),filter=Q(direction='RECEIVE')),pay=Sum(F('amount')-F('settled'),filter=Q(direction='PAY'))):
+        date=max(row['due_date'],today,opening_dates[row['forecast_account_id']])
         if date<=end:
-            forecast[(row['account_id'],date)]+=(row['total'] or ZERO)-(row['pay'] or ZERO)
-            forecast_credits[(row['account_id'],date)]+=row['total'] or ZERO
-            forecast_debits[(row['account_id'],date)]+=row['pay'] or ZERO
-    unallocated=pending.filter(account__isnull=True).aggregate(pay=Sum(F('amount')-F('settled'),filter=Q(direction='PAY')),receive=Sum(F('amount')-F('settled'),filter=Q(direction='RECEIVE')))
+            forecast[(row['forecast_account_id'],date)]+=(row['total'] or ZERO)-(row['pay'] or ZERO)
+            forecast_credits[(row['forecast_account_id'],date)]+=row['total'] or ZERO
+            forecast_debits[(row['forecast_account_id'],date)]+=row['pay'] or ZERO
+    unallocated=pending.filter(forecast_account_id__isnull=True).aggregate(pay=Sum(F('amount')-F('settled'),filter=Q(direction='PAY')),receive=Sum(F('amount')-F('settled'),filter=Q(direction='RECEIVE')))
     result=[]
     for account in accounts:
         balance=account.opening_balance+prior.get(account.pk,ZERO) if account.opening_date<=start else ZERO

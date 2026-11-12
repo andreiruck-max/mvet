@@ -17,6 +17,7 @@
       el.inputMode='decimal';enhanced.add(el);
     }
     let value=el.value.trim();
+    el.setCustomValidity('');
     if(!value)return;
     if(value.includes(','))value=value.replaceAll('.','');
     else value=value.replace('.',',');

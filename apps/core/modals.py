@@ -61,7 +61,13 @@ class ActionModalMiddleware:
         if response.status_code in (301, 302, 303):
             target = response.get('Location', '')
             if url_has_allowed_host_and_scheme(target, {request.get_host()}, require_https=request.is_secure()):
-                if request.method == 'POST' and request.resolver_match.url_name not in {'bling_alias','bling_purchase_refresh'} and not (request.resolver_match.url_name == 'bling_purchase_detail' and '/compras/' in target) and not target.split('?')[0].rstrip('/') == request.path.rstrip('/'):
+                name=request.resolver_match.url_name
+                action=request.resolver_match.kwargs.get('action')
+                continue_review = (name in {'bling_alias','bling_purchase_refresh'}
+                    or name == 'bling_decision' and action in {'refresh','reopen'}
+                    or name == 'bling_purchase_decision' and action == 'reopen'
+                    or name == 'bling_purchase_detail' and '/compras/' in target)
+                if request.method == 'POST' and not continue_review:
                     # Leave Django messages for the origin page. Never replay a POST.
                     response = render(request, 'core/action_complete.html')
                 else:

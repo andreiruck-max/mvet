@@ -49,7 +49,7 @@ class PurchasesBrowser(StaticLiveServerTestCase):
             page.get_by_role('button',name='Adicionar parcela',exact=True).click()
             page.get_by_label('Valor da parcela (R$):',exact=True).fill('21')
             page.get_by_role('button',name='Adicionar parcela',exact=True).click()
-            self.assertEqual(page.get_by_label('Valor da parcela (R$):',exact=True).nth(1).input_value(),'21.00')
+            self.assertEqual(page.get_by_label('Valor da parcela (R$):',exact=True).nth(1).input_value(),'21,00')
             page.evaluate('window.scrollTo(0,0)');page.screenshot(path=str(output/'purchase-entry-desktop.png'),full_page=True)
             page.get_by_role('button',name='Salvar e revisar compra',exact=True).click()
             page.get_by_text('Rascunho salvo. Confira o total, o rateio e as parcelas.',exact=True).wait_for()
