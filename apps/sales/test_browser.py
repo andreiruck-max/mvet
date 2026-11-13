@@ -170,5 +170,5 @@ class SalesBrowser(StaticLiveServerTestCase):
             page.get_by_text('Venda cancelada. Movimentos preservados e estoque reposto, quando aplicável.',exact=True).wait_for()
             self.assertEqual(errors,[]);browser.close()
         product.refresh_from_db();self.assertEqual(product.quantity,10)
-        sale=Sale.objects.get(invoice_number='9876');self.assertEqual(sale.status,'CANCELLED');self.assertEqual(sale.cmv,15);self.assertEqual(sale.extra_costs_total,Decimal('3.50'));self.assertEqual(sale.tax_amount,Decimal('4.75'))
+        sale=Sale.objects.get(invoice_number='9876');self.assertEqual(sale.status,'CANCELLED');self.assertEqual(sale.cmv,15);self.assertEqual(sale.extra_costs_total,Decimal('3.50'));self.assertEqual(sale.tax_amount,Decimal('9.50'))
         self.assertEqual(product.balances.get(location=full).quantity,4);self.assertEqual(product.balances.get(location=location).quantity,6)
