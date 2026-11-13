@@ -8,8 +8,8 @@ from apps.reporting.datasets import Dataset
 from apps.reporting.files import xlsx
 from .models import Payment
 
-NOTES = ('A comissão é liberada conforme o recebimento das parcelas. Base da venda = produtos menos descontos, sem frete. '
-         'O total aplicado pode incluir ajuste manual; parcelas e recebimentos liberam valores proporcionais, com arredondamento. '
+NOTES = ('A comissão é liberada conforme o recebimento das parcelas. Base: P = produtos − descontos; L = lucro da venda antes da comissão. '
+         'O total aplicado pode incluir ajuste manual; no lucro, o total é dividido igualmente nas parcelas; recebimentos parciais liberam proporcionalmente, com arredondamento. '
          'Ajustes e estornos entram na data efetiva. Pago no mês considera a data do pagamento; pago da apuração considera '
          'as alocações às liberações do mês até o corte. Pendente anterior é o saldo das liberações anteriores após essas alocações. '
          'Total a pagar/compensar = pendente anterior + pendente do mês. Saldo negativo é compensação. '
@@ -25,11 +25,11 @@ def datasets(rows, events, payments, start, end):
     detail = Dataset('Liberações e ajustes',
         ['Comissionado','Venda','Data da venda','Cliente','Parcela','Data da liberação','Base da venda aplicada',
          'Percentual aplicado (%)','Comissão total aplicada','Comissão prevista da parcela','Valor da parcela',
-         'Recebimento / estorno','Liberada / ajuste','Paga até o corte','Pendente','Origem'],
+         'Recebimento / estorno','Liberada / ajuste','Paga até o corte','Pendente','Origem','Tipo de base'],
         [[str(e.installment.plan.payee),e.installment.plan.sale.reference,e.installment.plan.sale.date,
           e.installment.plan.customer,e.installment.number,e.date,Decimal(e.terms['base']),
           Decimal(e.terms['rate']),Decimal(e.terms['total']),Decimal(e.terms['installment_forecast']),
-          Decimal(e.terms['installment_amount']),e.received,e.released,e.paid,e.pending,e.command.reason] for e in events], notes)
+          Decimal(e.terms['installment_amount']),e.received,e.released,e.paid,e.pending,e.command.reason,'Lucro da venda' if e.terms.get('basis')=='PROFIT' else 'Produtos − descontos'] for e in events], notes)
     paid = Dataset('Pagamentos no mês',['Comissionado','Data','Mês de apuração','Valor','Forma','Tipo','Observação'],
         [[str(p.payee),p.date,p.period,p.amount,p.method,'Estorno' if p.reversal_of_id else 'Pagamento',p.command.reason] for p in payments], notes)
     summary.sections = [detail, paid]
@@ -55,7 +55,8 @@ def render_pdf(rows, events, payments, start, end, company):
             if e.installment.plan.payee_id != person.pk:
                 continue
             plan = e.installment.plan
-            terms = (f"{fmt(Decimal(e.terms['base']))} / "
+            basis = 'L' if e.terms.get('basis')=='PROFIT' else 'P'
+            terms = (basis + ': ' + f"{fmt(Decimal(e.terms['base']))} / "
                      + format(Decimal(e.terms['rate']), '.4f').replace('.', ',') + '%\n'
                      + f"{fmt(Decimal(e.terms['total']))} / {fmt(Decimal(e.terms['installment_forecast']))}")
             identity = f'{plan.sale.reference} · {plan.sale.date:%d/%m/%Y}'

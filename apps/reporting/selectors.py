@@ -56,8 +56,8 @@ def payables(d):
     return rows.order_by('due_date','pk')
 
 def payable_totals(rows):
-    result=rows.aggregate(total_amount=Sum('amount'),paid=Sum('settled'),pending=Sum(F('amount')-F('settled')),commitment=Sum('commitment'))
-    return dict(commitment=result['commitment'] or ZERO,amount=result['total_amount'] or ZERO,paid=result['paid'] or ZERO,pending=result['pending'] or ZERO)
+    result=rows.aggregate(total_amount=Sum('amount'),paid=Sum('settled'),pending=Sum(F('amount')-F('settled')),commitment_total=Sum('commitment'))
+    return dict(commitment=result['commitment_total'] or ZERO,amount=result['total_amount'] or ZERO,paid=result['paid'] or ZERO,pending=result['pending'] or ZERO)
 
 def financial_result(d):
     """Manual financial titles accrue on origin date, additional interest when assessed.

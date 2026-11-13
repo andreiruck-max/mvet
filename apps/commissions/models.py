@@ -19,7 +19,7 @@ class CommissionSettings(models.Model):
 
 class Payee(models.Model):
     name = models.CharField('Nome', max_length=180)
-    kind = models.CharField('Tipo', max_length=20, choices=[('EMPLOYEE','Vendedor interno'),('REP','Representante'),('PARTNER','Parceiro comercial'),('OTHER','Outro')], default='EMPLOYEE')
+    kind = models.CharField('Tipo', max_length=20, choices=[('EMPLOYEE','Vendedor interno'),('REP','Representante'),('PARTNER','Parceiro comercial (base produtos)'),('PARTNER_PROFIT','Parceiro comercial (% do lucro)'),('OTHER','Outro')], default='EMPLOYEE')
     user = models.OneToOneField(settings.AUTH_USER_MODEL, verbose_name='Usuário para consulta (opcional)', null=True, blank=True, on_delete=models.PROTECT)
     default_rate = rate(null=True, blank=True)
     active = models.BooleanField('Ativo', default=True)
@@ -34,6 +34,7 @@ class CommissionPlan(models.Model):
     customer = models.CharField('Cliente', max_length=240, blank=True)
     rate = rate()
     rate_source = models.CharField(max_length=20, choices=[('MANUAL','Manual na venda'),('PAYEE','Padrão do comissionado'),('DEFAULT','Padrão global')])
+    basis = models.CharField(max_length=12, choices=[('PRODUCTS', 'Produtos − descontos'), ('PROFIT', 'Lucro da venda')], default='PRODUCTS')
     base = money()
     total = money()
     override_total = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
@@ -76,7 +77,7 @@ class Entry(Immutable):
     def save(self,*args,**kwargs):
         if self._state.adding:
             plan=self.installment.plan
-            self.terms={'base':str(plan.base),'rate':str(plan.rate),'source':plan.rate_source,
+            self.terms={'basis':plan.basis,'base':str(plan.base),'rate':str(plan.rate),'source':plan.rate_source,
                 'total':str(plan.total),'installment_forecast':str(self.installment.forecast),
                 'installment_amount':str(self.installment.amount)}
         return super().save(*args,**kwargs)

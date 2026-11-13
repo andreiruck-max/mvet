@@ -6,7 +6,7 @@ from django.db import connection, transaction
 from apps.accounts.access import master
 from apps.core.services import audit
 from apps.inventory.services import domain_lock, number, quant
-from .models import Sale, SaleCostRevision
+from .models import Sale, SaleCostRevision, SaleCorrection
 
 
 def cost_rows(sale):
@@ -52,7 +52,9 @@ def correct_cost(*, actor, sale_id, revision, key, reason, costs):
         if (prior.sale_id != sale.pk or prior.actor_id != actor.pk or prior.before_revision != revision
                 or prior.reason != reason or previous_costs != costs):
             raise ValidationError('Envio já utilizado com outros dados.')
-        if sale.revision != revision + 1 or sale.status != 'CONFIRMED':
+        commission_revision = sale.revision == revision + 2 and SaleCorrection.objects.filter(
+            sale=sale, before_revision=revision+1, reason__startswith=f'Correção do CMV {key}:').exists()
+        if (sale.revision != revision + 1 and not commission_revision) or sale.status != 'CONFIRMED':
             raise ValidationError('Esta correção já foi executada; reabra a venda.')
         return sale
     if sale.status != 'CONFIRMED' or sale.revision != revision:
@@ -75,5 +77,7 @@ def correct_cost(*, actor, sale_id, revision, key, reason, costs):
         if connection.vendor == 'postgresql':
             with connection.cursor() as cursor:
                 cursor.execute("SELECT set_config('mvet.sale_cost_revision', '', true)")
+    from apps.commissions.services import refresh_profit_commission
+    refresh_profit_commission(sale, actor, f'Correção do CMV {key}: {reason}'[:500])
     audit(actor, sale, 'correct_sale_cost', before, dict(after, reason=reason, correction_id=entry.pk))
     return sale

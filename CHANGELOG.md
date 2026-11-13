@@ -403,3 +403,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - Compras: conta bancária prevista na conferência Bling e rascunho; compromissos mantêm baixas de hoje/futuras; grupos expandidos e filtro Todas não canceladas.
 - Interface: separadores de milhares nos campos monetários, preservando precisão e regras de entrada; conferência de notas em diálogo com informações principais primeiro.
 - Bling: diagnóstico por campo/página e normalização de sinais/datas ISO/resíduos float, mantendo publicação atômica e validações.
+
+13/11/2026 — PR 90: parceiro comercial com percentual sobre lucro da venda, divisão por parcelas e compensações auditadas em mudanças tributárias/cancelamentos. Correções na baixa programada e soma de compromissos. ADR 0059.

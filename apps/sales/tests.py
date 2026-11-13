@@ -240,9 +240,9 @@ class SalesAdaptations(Fixture,TestCase):
         self.product.refresh_from_db();self.assertEqual(self.product.value,value);self.assertEqual(StockMovement.objects.count(),movements)
         revision=sale.tax_revisions.get();self.assertEqual(revision.before_amount,D('4.75'));self.assertEqual(revision.after_amount,D('9.50'))
         self.assertTrue(AuditLog.objects.filter(operation='recalculate_sale_tax').exists())
-    def test_today_rate_preserves_confirmed_sales_but_applies_to_next(self):
-        sale=self.confirmed();_,count=self.change(effective=timezone.localdate());self.assertEqual(count,0)
-        sale.refresh_from_db();self.assertEqual(sale.tax_amount,D('4.75'))
+    def test_today_rate_recalculates_confirmed_sales_and_applies_to_next(self):
+        sale=self.confirmed();_,count=self.change(effective=timezone.localdate());self.assertEqual(count,1)
+        sale.refresh_from_db();self.assertEqual(sale.tax_amount,D('9.50'))
         following=self.confirmed(invoice_number='200');self.assertEqual(following.tax_amount,D('9.50'))
     def test_future_rate_is_scheduled(self):
         from .taxes import effective_terms

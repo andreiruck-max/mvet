@@ -32,7 +32,7 @@ def configure(*, actor, title_id, account_id, enabled, revision):
 @transaction.atomic
 def execute(pk):
     domain_lock()
-    obj=DuePayment.objects.select_for_update().select_related('title','account','actor').get(pk=pk)
+    obj=DuePayment.objects.select_for_update(of=('self',)).select_related('title','account','actor').get(pk=pk)
     title=FinancialTitle.objects.select_for_update().get(pk=obj.title_id)
     if not obj.enabled or title.due_date>timezone.localdate():return
     if title.status!='OPEN' or not title.remaining:

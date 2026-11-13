@@ -27,7 +27,7 @@ def calculate_tax(sale):
     return amount,snapshot
 
 def affected_sales(rule,effective_from):
-    if effective_from>=timezone.localdate():return Sale.objects.none()
+    if effective_from>timezone.localdate():return Sale.objects.none()
     following=rule.changes.filter(effective_from__gt=effective_from).order_by('effective_from').first()
     rows=Sale.objects.filter(tax_rule=rule,status='CONFIRMED',tax_override__isnull=True,date__gte=effective_from).exclude(tax_snapshot__override=True)
     if following:rows=rows.filter(date__lt=following.effective_from)
@@ -56,6 +56,12 @@ def change_rate(*,actor,rule_id,rate,effective_from,base,reason,revision):
             before={'tax_amount':str(sale.tax_amount),'tax_snapshot':sale.tax_snapshot}
             sale.tax_amount=amount;sale.tax_snapshot=new_snapshot;sale.save(update_fields=['tax_amount','tax_snapshot'])
             audit(actor,sale,'recalculate_sale_tax',before,{'tax_amount':str(amount),'tax_snapshot':new_snapshot,'revision_id':revision_row.pk,'reason':reason})
+            from apps.commissions.services import refresh_profit_commission
+            following=rule.changes.filter(effective_from__gt=effective_from).order_by('effective_from').first()
+            from datetime import timedelta
+            end=following.effective_from-timedelta(days=1) if following else timezone.localdate()
+            refresh_profit_commission(sale,actor,
+                f'Alteração da alíquota de imposto período {effective_from:%d/%m/%Y} a {end:%d/%m/%Y}; regra {rule.pk}, revisão {change.pk}.')
             count+=1
     finally:
         if connection.vendor=='postgresql':
