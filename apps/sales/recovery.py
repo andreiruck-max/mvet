@@ -10,7 +10,7 @@ from apps.finance.models import FinancialTitle
 from apps.inventory.models import StockOperation
 from apps.inventory.services import domain_lock, _apply, _date, _fingerprint, number
 from apps.products.models import Product
-from .models import Sale, SaleRecovery
+from .models import Sale, SaleRecovery, SaleCorrection
 
 
 @transaction.atomic
@@ -27,7 +27,9 @@ def recover_sale(*, actor, sale_id, revision, key, fees, reason):
     if previous:
         if (previous.sale_id,previous.actor_id,previous.before_revision,previous.after_fees,previous.reason)!=(sale.pk,actor.pk,revision,fees,reason):
             raise ValidationError('Envio já utilizado com outros dados.')
-        if sale.status!='CONFIRMED' or sale.revision!=revision+1 or sale.stock_operation_id!=previous.recovery_operation_id:
+        commission_revision = sale.revision == revision+2 and SaleCorrection.objects.filter(
+            sale=sale,before_revision=revision+1,reason__startswith=f'Recuperação da venda {key}:').exists()
+        if sale.status!='CONFIRMED' or (sale.revision!=revision+1 and not commission_revision) or sale.stock_operation_id!=previous.recovery_operation_id:
             raise ValidationError('Esta recuperação já foi executada; a venda mudou depois dela.')
         return sale
     if sale.status!='CANCELLED' or sale.revision!=revision:
@@ -73,6 +75,6 @@ def recover_sale(*, actor, sale_id, revision, key, fees, reason):
     if connection.vendor=='postgresql':
         with connection.cursor() as cursor: cursor.execute("SELECT set_config('mvet.sale_recovery', '', true)")
     from apps.commissions.services import sale_state_changed
-    sale_state_changed(sale,actor,reason)
+    sale_state_changed(sale,actor,f'Recuperação da venda {key}: {reason}'[:500])
     audit(actor,sale,'recover_cancelled_sale',before,{'status':sale.status,'fees':str(fees),'revision':sale.revision,'recovery_id':recovery.pk,'stock_operation':operation.pk,'reason':reason})
     return sale

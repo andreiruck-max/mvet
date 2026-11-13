@@ -70,3 +70,28 @@ class CommissionBrowser(Fixture,StaticLiveServerTestCase):
             self.assertEqual(errors,[]);browser.close()
         self.assertEqual(CommissionPlan.objects.get().total,40)
         self.assertEqual(Payment.objects.get().amount,10)
+
+    def test_partner_profit_category_and_plan(self):
+        from playwright.sync_api import sync_playwright,expect
+        client=Client();client.force_login(self.actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1000},locale='pt-BR')
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page()
+            page.goto(self.live_server_url+reverse('commission_payee_edit',args=[self.payee.pk]))
+            page.get_by_label('Tipo:',exact=True).select_option('PARTNER_PROFIT')
+            page.get_by_role('button',name='Salvar comissionado',exact=True).click()
+            expect(page.get_by_role('cell',name='Parceiro comercial (% do lucro)',exact=False)).to_be_visible()
+            page.goto(self.live_server_url+reverse('commission_sale',args=[self.sale.pk]))
+            page.get_by_label('Comissionado:',exact=True).select_option(str(self.payee.pk))
+            page.get_by_label('Quantidade de parcelas iguais:',exact=True).fill('2')
+            page.get_by_role('button',name='Salvar',exact=True).click()
+            expect(page.get_by_text('Base: Lucro da venda',exact=True)).to_be_visible()
+            expect(page.locator('.commission-cards')).to_contain_text('43,88')
+            Path('artifacts').mkdir(exist_ok=True)
+            page.screenshot(path='artifacts/partner-profit-desktop.png',full_page=True)
+            page.set_viewport_size({'width':390,'height':844})
+            self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'),390)
+            page.screenshot(path='artifacts/partner-profit-mobile.png',full_page=True)
+            browser.close()
+        self.assertEqual(CommissionPlan.objects.get(sale=self.sale).basis,'PROFIT')

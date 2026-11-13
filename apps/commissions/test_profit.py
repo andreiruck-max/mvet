@@ -98,3 +98,21 @@ class ProfitCommissionTests(Fixture, TestCase):
         self.assertEqual(plan.total,D('43.38'))
         count=Entry.objects.count();correct_cost(**args)
         self.assertEqual(Entry.objects.count(),count)
+
+    def test_three_equal_commissions_and_partial_receipt_conserve_cents(self):
+        plan=self.plan(installments=[(self.today,D('100')),(self.today,D('350')),(self.today,D('500'))])
+        self.assertEqual([i.forecast for i in plan.installments.all()],[D('14.63'),D('14.62'),D('14.63')])
+        self.receipt(plan,'25');self.assertEqual(s.balance(self.payee),D('3.66'))
+        self.receipt(plan,'75');self.receipt(plan,'350',index=1);self.receipt(plan,'500',index=2)
+        self.assertEqual(s.balance(self.payee),plan.total)
+
+    def test_recovery_with_changed_fees_revalues_profit_and_preserves_retry(self):
+        from apps.sales.services import cancel
+        from apps.sales.recovery import recover_sale
+        plan=self.plan();self.receipt(plan);self.receipt(plan,index=1)
+        cancel(actor=self.actor,sale_id=self.sale.pk,reason='Cancelamento incorreto')
+        self.sale.refresh_from_db()
+        args=dict(actor=self.actor,sale_id=self.sale.pk,revision=self.sale.revision,key=uuid4(),reason='Recuperar e conferir taxas',fees=D('13'))
+        recover_sale(**args);plan.refresh_from_db()
+        self.assertEqual(plan.total,D('43.38'));self.assertEqual(s.balance(self.payee),plan.total)
+        count=Entry.objects.count();recover_sale(**args);self.assertEqual(Entry.objects.count(),count)
