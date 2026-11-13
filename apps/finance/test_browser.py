@@ -164,7 +164,7 @@ class FinanceBrowser(StaticLiveServerTestCase):
             modal.get_by_label('Valor (R$):',exact=True).fill('10')
             page.once('dialog',lambda d:d.dismiss())
             page.get_by_role('button',name='Fechar janela de ação').click()
-            expect(modal.get_by_label('Valor (R$):',exact=True)).to_have_value('10')
+            expect(modal.get_by_label('Valor (R$):',exact=True)).to_have_value('10,00')
             page.once('dialog',lambda d:d.accept())
             page.get_by_role('button',name='Fechar janela de ação').click()
             trigger.click()

@@ -82,7 +82,7 @@ class ExpenseBrowser(StaticLiveServerTestCase):
             page.get_by_role('button',name='Registrar despesa',exact=True).click()
             page.get_by_role('heading',name='Contabilidade mensal',exact=True).wait_for()
             detail_url=page.url
-            page.get_by_role('link',name='Abrir pagamento no financeiro',exact=True).click()
+            page.get_by_role('link',name='Pagar total ou parcialmente',exact=True).click()
             page.frame_locator('#action-modal-frame').get_by_role('button',name='Confirmar liquidação',exact=True).click()
             page.get_by_text('Operação financeira confirmada.',exact=True).wait_for()
             page.goto(detail_url)

@@ -158,7 +158,7 @@ class SalesBrowser(StaticLiveServerTestCase):
             page.get_by_label('Nova alíquota (%):',exact=True).fill('10')
             page.get_by_label('Motivo da alteração:',exact=True).fill('Ajuste de teste')
             page.get_by_role('button',name='Aplicar alíquota e vigência',exact=True).click()
-            page.get_by_text('Alíquota registrada. 0 venda(s) recalculada(s).',exact=True).wait_for()
+            page.get_by_text('Alíquota registrada. 1 venda(s) recalculada(s).',exact=True).wait_for()
             page.screenshot(path=str(output/'sales-tax-change.png'),full_page=True)
             page.goto(detail_url)
             page.screenshot(path=str(output/'sales-confirmed-desktop.png'),full_page=True)

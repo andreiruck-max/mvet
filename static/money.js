@@ -1,8 +1,8 @@
 /* Cent-based typing. Keep native field names, validation and canonical numbers. */
 (() => {
   const states=new WeakMap();
-  function isMoney(el) {
-    if (!(el instanceof HTMLInputElement) || el.disabled || el.readOnly || !['text','number'].includes(el.type)) return false;
+  function isMoney(el, display=false) {
+    if (!(el instanceof HTMLInputElement) || (!display && (el.disabled || el.readOnly)) || !['text','number'].includes(el.type)) return false;
     const label=[...(el.labels||[])].map(x=>x.textContent).join(' ');
     if (/quantidade|alíquota|percentual|margem|dias/i.test(label)) return false;
     return el.step==='0.01' || label.includes('R$') || el.dataset.money==='true';
@@ -10,7 +10,7 @@
   // Display Brazilian grouping without changing posted values or field precision.
   const enhanced=new WeakSet();
   function format(el) {
-    if(!isMoney(el))return;
+    if(!isMoney(el,true))return;
     if(!enhanced.has(el)) {
       el.dataset.numericType=el.type;
       if(el.type==='number')el.type='text';
