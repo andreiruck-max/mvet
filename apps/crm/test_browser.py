@@ -33,7 +33,9 @@ class CRMBrowser(Fixture,StaticLiveServerTestCase):
             modal.get_by_label('Resultado:',exact=True).select_option('CALLBACK')
             modal.get_by_role('button',name='+30 dias',exact=True).click()
             expect(modal.locator('#crm-suggestion')).to_contain_text('escolhido')
-            modal.get_by_role('button',name='Concluir contato',exact=True).click()
+            # The old page has the same heading; wait for the modal's parent reload.
+            with page.expect_navigation(wait_until='domcontentloaded'):
+                modal.get_by_role('button',name='Concluir contato',exact=True).click()
             expect(page.locator('h1')).to_have_text('João de demonstração')
             Path('artifacts').mkdir(exist_ok=True)
             page.screenshot(path='artifacts/crm-contact-desktop.png',full_page=True)
