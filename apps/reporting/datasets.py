@@ -139,8 +139,12 @@ def build(kind, user, query):
         else:
             rows = current_installments().filter(pk__in=bound(selectors.payables(d)).values('purchase_installment_id')).select_related('purchase__supplier','financial_title').prefetch_related('purchase__items__product','purchase__installments')
         result = Dataset('Compras',['DATA COMPRA','NF','FORNECEDOR','PARCELA','VCTO','VALOR','PRODUTOS','SITUAÇÃO','PENDENTE'],[],'Uma linha por parcela; não somar o valor total da compra repetidamente.')
+        commitments=dict(bound(selectors.payables(d)).values_list('purchase_installment_id','commitment')) if kind=='payables' else {}
         for i in bound(rows).order_by('current_due_date','pk'):
-            p=i.purchase; result.rows.append([p.date,p.document,str(p.supplier),f'{i.number}/{len(p.installments.all())}',i.effective_due_date,i.effective_amount,' + '.join(f'{j.quantity} × {j.name_snapshot or j.product.name}' for j in p.items.all()),i.display_status,i.remaining])
+            p=i.purchase; result.rows.append([p.date,p.document,str(p.supplier),f'{i.number}/{len(p.installments.all())}',i.effective_due_date,i.effective_amount,' + '.join(f'{j.quantity} × {j.name_snapshot or j.product.name}' for j in p.items.all()),i.display_status,commitments.get(i.pk,i.remaining)])
+        if kind=='payables':
+            result.headers[-1]='COMPROMISSO'
+            result.notes+=' Inclui baixas de hoje e futuras; pagamentos anteriores a hoje são retirados dos compromissos.'
         if kind=='purchases':
             for p in purchases(d).filter(installments__isnull=True).prefetch_related('items__product'):
                 result.rows.append([p.date,p.document,str(p.supplier),'Sem parcelas',None,p.total,' + '.join(f'{j.quantity} × {j.name_snapshot or j.product.name}' for j in p.items.all()),p.get_status_display(),None])

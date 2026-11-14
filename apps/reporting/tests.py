@@ -100,7 +100,7 @@ class ReportingTests(ReportingFixture,TestCase):
     def test_paid_purchase_list_totals_do_not_repeat_purchase(self):
         p=self.purchase();self.pay(p.installments.first().financial_title)
         d=dict(start=self.today,end=self.today+timedelta(days=31),status='all')
-        r=s.payable_totals(s.payables(d));self.assertEqual(r,dict(amount=D('50'),paid=D('25'),pending=D('25')))
+        r=s.payable_totals(s.payables(d));self.assertEqual(r,dict(amount=D('50'),paid=D('25'),pending=D('25'),commitment=D('50')))
         self.assertEqual(s.payables({**d,'status':'pending'}).count(),1)
         self.assertEqual(s.payables({**d,'purchase_start':self.today+timedelta(days=1)}).count(),0)
     def test_totals_cover_all_pages_and_filters_persist(self):
@@ -181,12 +181,13 @@ class CompactPayablesTests(ReportingFixture, TestCase):
         self.pay(titles[0])
         response=self.client.get(reverse('purchase_payables'))
         self.assertEqual(response.context['totals']['pending'],25)
-        self.assertEqual(len(response.context['page']),1)
+        self.assertEqual(len(response.context['page']),2)
+        self.assertEqual(response.context['totals']['commitment'],50)
         history=self.client.get(reverse('purchase_payables'),{'period':'all','status':'paid'})
         self.assertEqual(len(history.context['page']),1)
         form=PayablesForm({'period':'all'});self.assertTrue(form.is_valid());self.assertIsNone(form.cleaned_data['start'])
         from .datasets import build
-        self.assertEqual(len(build('payables',self.actor,{}).rows),1)
+        self.assertEqual(len(build('payables',self.actor,{}).rows),2)
 
     def test_past_dates_hidden_without_overdue_label_and_history_retrievable(self):
         p=self.purchase();title=p.installments.first().financial_title
@@ -293,11 +294,11 @@ class NavigationPayablesTests(ReportingFixture, TestCase):
         self.assertEqual(after['actual'],before['actual']-D('100'))
         self.assertEqual(after['projected'],before['projected'])
         months,suppliers=s.payable_groups(s.payables({'status':'all'}))
-        self.assertEqual(suppliers[-1]['open_count'],0);self.assertEqual(suppliers[-1]['average'],0)
+        self.assertEqual(suppliers[0]['open_count'],1);self.assertEqual(suppliers[0]['average'],100)
         self.client.force_login(self.actor)
         response=self.client.get(reverse('purchase_payables'))
-        self.assertContains(response,'Pagar / antecipar');self.assertContains(response,'Títulos abertos')
-        self.assertNotIn(title.pk,[row.pk for row in response.context['page']])
+        self.assertContains(response,'Pagar / antecipar');self.assertContains(response,'Compromissos')
+        self.assertIn(title.pk,[row.pk for row in response.context['page']])
 
     def test_exact_installment_discrepancy(self):
         from django.core.exceptions import ValidationError
@@ -342,3 +343,16 @@ class DashboardCustomizationTests(ReportingFixture, TestCase):
         unauthorized=User.objects.create_user('no-dashboard')
         self.client.force_login(unauthorized)
         self.assertEqual(self.client.post(endpoint,{'order':[]},content_type='application/json').status_code,403)
+
+class CommitmentCutoffTests(ReportingFixture,TestCase):
+    def test_payments_today_and_future_only_leave_commitments_next_day(self):
+        from unittest.mock import patch
+        p=self.purchase();titles=list(Title.objects.filter(purchase_installment__purchase=p).order_by('due_date'))
+        self.pay(titles[0]);self.pay(titles[1],date=self.today+timedelta(days=4))
+        rows=s.payables({'status':'all'})
+        self.assertEqual(s.payable_totals(rows)['commitment'],50)
+        with patch('django.utils.timezone.localdate',return_value=self.today+timedelta(days=1)):
+            self.assertEqual(s.payable_totals(s.payables({'status':'all'}))['commitment'],25)
+        with patch('django.utils.timezone.localdate',return_value=self.today+timedelta(days=5)):
+            self.assertEqual(s.payable_totals(s.payables({'status':'all'}))['commitment'],0)
+        self.assertEqual(sum(r['pending'] for r in s.payable_groups(rows)[0]),50)

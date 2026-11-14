@@ -44,16 +44,23 @@ def command(actor, key, kind, reason, payload, before=None, after=None):
 
 def weights(amount, installments):
     """Cumulative rounding conserves the total, including small equal installments."""
-    denominator=sum((i.amount for i in installments),ZERO)
+    equal = bool(installments) and installments[0].plan.basis == 'PROFIT'
+    denominator=Decimal(len(installments)) if equal else sum((i.amount for i in installments),ZERO)
     cumulative=ZERO; allocated=ZERO
     for i in installments:
-        cumulative+=i.amount
+        cumulative+=Decimal(1) if equal else i.amount
         target=rounded(amount*cumulative/denominator)
         i.forecast=target-allocated;allocated=target
         i.save(update_fields=['forecast'])
 
+def commission_base(sale, basis):
+    if basis == 'PROFIT':
+        # Contribution already subtracts commission. Add it back to avoid recursion.
+        return max(ZERO, rounded(sale.contribution + sale.commission))
+    return sale.products_amount-sale.discount
+
 def snapshot(plan):
-    return {'plan_id':plan.pk,'sale_id':plan.sale_id,'payee_id':plan.payee_id,'base':str(plan.base),
+    return {'plan_id':plan.pk,'sale_id':plan.sale_id,'payee_id':plan.payee_id,'basis':plan.basis,'base':str(plan.base),
         'rate':str(plan.rate),'rate_source':plan.rate_source,'total':str(plan.total),
         'override_total':str(plan.override_total) if plan.override_total is not None else None,
         'cancelled':plan.cancelled,'revision':plan.revision}
@@ -83,6 +90,17 @@ def configure(*,actor,data,pk=None):
     if pk and before['user_id'] not in ('None',str(obj.user_id)) and obj.plans.exists():
         raise ValidationError('Comissionado com histórico: preserve o usuário vinculado; cadastre outra pessoa.')
     obj.full_clean();obj.save();audit(actor,obj,'commission_payee',before,{f:str(getattr(obj,f)) for f in before})
+    if pk and before['kind'] != obj.kind:
+        basis = 'PROFIT' if obj.kind == 'PARTNER_PROFIT' else 'PRODUCTS'
+        for plan in obj.plans.select_related('sale').order_by('pk'):
+            if plan.basis != basis:
+                reason = 'Alteração da categoria do comissionado: ' + obj.get_kind_display()
+                sync_sale_values(plan.sale, actor, reason, basis=basis)
+                # sync updates the in-memory cost; persist through the audited exception.
+                target = plan.sale.commission
+                plan.sale.refresh_from_db(fields=['commission'])
+                if plan.sale.status == 'CONFIRMED':
+                    write_sale_cost(plan.sale, actor, target, reason)
     return obj
 
 @transaction.atomic
@@ -121,9 +139,11 @@ def _create_plan(*,actor,sale_id,payee_id,customer,rate,installments,key,reason,
     source='MANUAL' if rate is not None else 'PAYEE' if payee.default_rate is not None else 'DEFAULT'
     selected=rate if rate is not None else payee.default_rate if payee.default_rate is not None else default.default_rate if default else ZERO
     if default is None and rate is None and payee.default_rate is None: source='MANUAL'
+    basis='PROFIT' if payee.kind=='PARTNER_PROFIT' else 'PRODUCTS'
+    base=commission_base(sale,basis)
     plan=CommissionPlan(sale=sale,payee=payee,customer=customer.strip(),rate=selected,rate_source=source,
-        base=sale.products_amount-sale.discount,override_total=override_total,
-        total=override_total if override_total is not None else rounded((sale.products_amount-sale.discount)*selected/100))
+        basis=basis,base=base,override_total=override_total,
+        total=override_total if override_total is not None else rounded(base*selected/100))
     plan.full_clean();plan.save()
     parts=[Installment.objects.create(plan=plan,number=n,due_date=d,amount=a) for n,(d,a) in enumerate(rows,1)]
     weights(plan.total,parts)
@@ -285,22 +305,38 @@ def sale_state_changed(sale,actor,reason):
     """Internal hook: the caller already holds the atomic sale/domain lock."""
     plan=CommissionPlan.objects.filter(sale=sale).first()
     if not plan:return
+    if sale.status=='CONFIRMED' and plan.basis=='PROFIT':
+        refresh_profit_commission(sale,actor,reason)
+        plan.refresh_from_db()
     before=snapshot(plan);plan.cancelled=sale.status=='CANCELLED';plan.revision+=1;plan.save()
     cmd,_=command(actor,uuid4(),'SALE_STATE',reason,[sale.pk,sale.revision],before=before,after=snapshot(plan))
     rebalance(plan,cmd,timezone.localdate())
     audit(actor,plan,'commission_sale_state',before,snapshot(plan))
 
-def sync_sale_values(sale,actor,reason):
+def sync_sale_values(sale,actor,reason,*,basis=None):
     plan=CommissionPlan.objects.get(sale=sale)
-    base=sale.products_amount-sale.discount
-    if base!=plan.base:
-        before=snapshot(plan);plan.base=base
+    basis=basis or plan.basis
+    base=commission_base(sale,basis)
+    if base!=plan.base or basis!=plan.basis:
+        before=snapshot(plan);plan.base=base;plan.basis=basis
         plan.total=plan.override_total if plan.override_total is not None else rounded(base*plan.rate/100)
         plan.revision+=1;plan.full_clean();plan.save()
         cmd,_=command(actor,uuid4(),'SALE_VALUES',reason,[sale.pk,sale.revision,str(base)],before=before,after=snapshot(plan))
         weights(plan.total,list(plan.installments.all()));rebalance(plan,cmd,timezone.localdate())
         audit(actor,plan,'commission_sale_values',before,snapshot(plan))
     sale.commission=plan.total
+
+
+def refresh_profit_commission(sale, actor, reason):
+    """Internal hook under the caller's sale/domain locks and atomic transaction."""
+    if not CommissionPlan.objects.filter(sale=sale,basis='PROFIT').exists():
+        return
+    previous = sale.commission
+    sync_sale_values(sale, actor, reason)
+    target = sale.commission
+    sale.commission = previous
+    if sale.status == 'CONFIRMED':
+        write_sale_cost(sale, actor, target, reason)
 
 
 @transaction.atomic

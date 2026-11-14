@@ -95,7 +95,7 @@ def stage(*, actor, connection, payload):
 
 
 @transaction.atomic
-def create_draft(*, actor, invoice_id, revision, supplier, location, products, discount, freight, other_costs, installments, reviewed, acquisition_kind='NORMAL', treatments=None, supplier_data=None, external_freight=None):
+def create_draft(*, actor, invoice_id, revision, supplier, location, products, discount, freight, other_costs, installments, reviewed, acquisition_kind='NORMAL', treatments=None, supplier_data=None, external_freight=None, account=None):
     require(actor, 'core.operate_purchases'); domain_lock()
     invoice = PurchaseInvoiceImport.objects.select_for_update().get(pk=invoice_id)
     if invoice.purchase_id: return invoice.purchase
@@ -125,7 +125,7 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
         if mode!='NONSTOCK' and not product:raise ValidationError('Selecione ou cadastre o produto que entrará no estoque.')
         items.append(dict(product_id=product.pk if product else None,quantity=Decimal(row['quantity']),unit_cost=Decimal(row['price']),discount=treatment.get('discount',Decimal('0')),
             moves_stock=mode!='NONSTOCK',name=row['name'],category_id=treatment.get('category').pk if treatment.get('category') else None))
-    purchase = purchases.save_draft(actor=actor, key=uuid4(), data=dict(supplier=supplier, location=location,
+    purchase = purchases.save_draft(actor=actor, key=uuid4(), data=dict(supplier=supplier, location=location, account=account,
         document=invoice.number, series=invoice.series, date=invoice.issued_on, acquisition_kind=acquisition_kind,discount=discount,
         freight=freight, external_freight=external_freight or Decimal(0), other_costs=other_costs, notes='Importada do Bling; conferir parcelas e recebimento.'), items=items, installments=installments)
     # Financial composition must reconcile; no hidden inference for discount/tax.

@@ -1,7 +1,7 @@
 (() => {
  const form=document.getElementById('purchase-form');if(!form)return;
  function scaled(raw,places){
-  const s=(raw||'0').trim().replace(',','.');if(!/^\d*(\.\d*)?$/.test(s))throw new Error();
+  let s=(raw||'0').trim();s=s.includes(',')?s.replaceAll('.','').replace(',','.'):s;if(!/^\d*(\.\d*)?$/.test(s))throw new Error();
   const [whole='0',fraction='']=s.split('.');if(fraction.length>places)throw new Error();
   return BigInt(whole||'0')*10n**BigInt(places)+BigInt(fraction.padEnd(places,'0')||'0');
  }

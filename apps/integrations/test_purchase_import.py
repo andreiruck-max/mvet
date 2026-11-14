@@ -158,3 +158,13 @@ class PurchaseImportTests(Fixture, TestCase):
         row.refresh_from_db();self.assertFalse(row.rejected)
         self.assertEqual(self.client.post(url,{'revision':row.revision}).status_code,302)
         row.refresh_from_db();self.assertTrue(row.rejected)
+
+class PurchaseAccountImportTests(PurchaseImportTests):
+    def test_account_survives_draft_edit_and_populates_titles_without_payment(self):
+        from apps.finance.models import FinancialAccount
+        account=FinancialAccount.objects.create(name='Conta da compra',kind='BANK',opening_date=timezone.localdate())
+        p=self.draft(self.stage(),account=account)
+        self.assertEqual(p.account,account)
+        p=purchases.confirm(actor=self.actor,purchase_id=p.pk,revision=p.revision)
+        self.assertEqual(FinancialTitle.objects.get(purchase_installment__purchase=p).account,account)
+        self.assertFalse(FinancialEntry.objects.exists())

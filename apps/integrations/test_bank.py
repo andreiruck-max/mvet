@@ -149,3 +149,11 @@ class BankTests(TestCase):
             FinancialEntry.objects.create(operation=op,account=other,amount=-50)
         self.complete(self.queue(),[])
         self.assertEqual(svc.comparison(self.link,self.start,self.today)['local_balance'],100)
+
+    def test_signed_debit_iso_datetime_and_float_representation(self):
+        run=self.queue()
+        self.complete(run,[self.row(debCred='D',valor=-13.000000000000002,data=str(self.today)+'T12:30:00-03:00')])
+        self.assertEqual(self.link.entries.get().amount,D('-13'))
+        run=self.queue();self.page(run,[self.row(contaFinanceira={'id':99})])
+        self.assertIn('contaFinanceira.id',run.message)
+        self.assertEqual(self.link.entries.get().amount,D('-13'))

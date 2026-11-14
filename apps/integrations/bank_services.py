@@ -110,28 +110,52 @@ def enqueue(*, actor, link_id, start=None, end=None, automatic=False):
 
 
 def parse_entry(row, run):
+    """Normalize API scalars, retaining strict account/range/precision checks."""
+    field = 'estrutura'
     try:
-        ext = identifier(row['id'])
+        field = 'id'; ext = identifier(row['id'])
+        field = 'contaFinanceira.id'
         if identifier(row['contaFinanceira']['id']) != run.link.external.external_id:
             raise ValueError
-        day = date.fromisoformat(row['data'])
-        direction, state = row['debCred'], row['situacao']
-        value = Decimal(str(row['valor']))
-        if (direction not in ('D','C') or state != run.phase or not run.start <= day <= run.end
-                or not value.is_finite() or value < 0 or value >= 10**16 or value != value.quantize(Decimal('.01'))):
-            raise ValueError
-        value = -value if direction == 'D' else value
+        field = 'data'
+        raw_date = row['data']
+        # Some financial responses contain an ISO time suffix. Preserve calendar
+        # date supplied by Bling rather than converting it through UTC.
+        from datetime import datetime
+        if not isinstance(raw_date,str):raise ValueError
+        if len(raw_date)>10:
+            datetime.fromisoformat(raw_date.replace('Z','+00:00'))
+        day = date.fromisoformat(raw_date[:10])
+        if not run.start <= day <= run.end:raise ValueError
+        field = 'debCred'; direction = row['debCred']
+        if direction not in ('D','C'):raise ValueError
+        field = 'situacao'; state = row['situacao']
+        if state != run.phase:raise ValueError
+        field = 'valor'; raw_value=row['valor']
+        if isinstance(raw_value,bool):raise ValueError
+        value = Decimal(str(raw_value))
+        # Debit values can already carry a minus sign; debCred is authoritative.
+        if not value.is_finite() or abs(value) >= 10**16:raise ValueError
+        rounded=value.quantize(Decimal('.01'))
+        if value != rounded:
+            if not isinstance(raw_value,float) or abs(value-rounded)>Decimal('0.000000001'):raise ValueError
+            value=rounded
+        value = -abs(value) if direction == 'D' else abs(value)
         def text(value, limit):
             if value is None: return ''
             if not isinstance(value, str): raise ValueError
             return value[:limit]
-        origin = row.get('origem') or {}
+        field = 'origem'; origin = row.get('origem') or {}
+        source_type=text(origin.get('tipo'),80)
+        field = 'descricao'; description=text(row.get('descricao'),1000)
+        field = 'observacoes'; notes=text(row.get('observacoes'),10000)
+        field = 'contato.nome'; counterparty=text((row.get('contato') or {}).get('nome'),240)
         return ext, dict(date=str(day), amount=str(value), deleted=state == 'E',
-            description=text(row.get('descricao'),1000), notes=text(row.get('observacoes'),10000),
-            counterparty=text((row.get('contato') or {}).get('nome'),240),
-            source_type=text(origin.get('tipo'),80), source_id=str(origin.get('id') or '')[:40])
-    except (KeyError, TypeError, ValueError, InvalidOperation, AttributeError):
-        raise ValidationError('Lançamento financeiro inválido ou fora da conta/período solicitado. O extrato anterior foi preservado.') from None
+            description=description, notes=notes, counterparty=counterparty,
+            source_type=source_type, source_id=str(origin.get('id') or '')[:40])
+    except (KeyError, TypeError, ValueError, InvalidOperation, AttributeError, ValidationError):
+        # Report only field and page, never raw financial data or credentials.
+        raise ValidationError(f'Lançamento Bling inválido: campo {field}, página {run.page}, situação {run.phase}. Conta, período e precisão precisam corresponder à consulta. O extrato anterior foi preservado.') from None
 
 
 def tick():

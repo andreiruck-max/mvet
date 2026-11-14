@@ -24,6 +24,8 @@ class PurchaseForm(forms.ModelForm):
         widgets={'date':forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d'),'notes':forms.Textarea(attrs={'rows':2})}
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
+        from apps.finance.models import FinancialAccount
+        self.fields['account'].queryset=FinancialAccount.objects.filter(active=True)
         self.fields['supplier'].queryset=Supplier.objects.filter(active=True)
         self.fields['location'].queryset=StockLocation.objects.filter(active=True)
         self.fields['date'].initial=timezone.localdate

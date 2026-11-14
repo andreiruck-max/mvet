@@ -93,3 +93,13 @@ Saldos e fluxo de caixa e pendências da conta exibem fornecedor/favorecido abai
 
 ## Conferência com Bling
 Extrato externo persistido por conta e comparação líquida por dia/período, com saldo de abertura independente e cobertura validada. Atualização em segundo plano ao abrir; manual por período preservada. Sem alteração do livro local. Ver ADR 0057 e BLING_SETUP.md.
+
+## Baixas e compromissos — novembro/2026 (ADR 0058)
+
+Em Títulos e na ficha da despesa, **Baixar total ou parcial** permite informar o principal da baixa; valor efetivo acompanha principal + juros − desconto, podendo ser corrigido. Histórico e saldo restante são preservados.
+
+**Pagar no vencimento** programa uma baixa automática exclusivamente no MVet. Selecione a conta e confirme. Não emite pagamento ao banco. O serviço `bling-worker` também executa essas baixas, mesmo sem conexão Bling. Com o Docker desligado não há execução; ao iniciar, processa vencimentos pendentes com a data original. Baixa somente o saldo restante, respeita cancelamentos, permissões e conta ativa. Revisar permite desativar; falha fica visível no título.
+
+**Somente realizado** inclui baixas registradas com data futura nas respectivas colunas. **Realizado + previsto** acrescenta apenas valores ainda não baixados e transferências previstas, sem duplicação. Saldo de hoje continua restrito a movimentos datados até hoje.
+
+Compras a pagar usa **Todas não canceladas** por padrão. Compromissos incluem baixas de hoje e futuras: saem da soma no dia seguinte à data de pagamento. O saldo ainda disponível para pagar permanece separado. Grupos por mês/fornecedor abrem expandidos. Exportação respeita a mesma regra.

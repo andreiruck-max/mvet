@@ -8,9 +8,10 @@ from django.urls.resolvers import URLResolver, RoutePattern
 from django.utils.http import url_has_allowed_host_and_scheme
 
 QUICK_ACTIONS = frozenset({
+    'bling_detail', 'bling_purchase_detail', 'purchase_detail',
     'financial_transfer', 'financial_account_entry', 'financial_account_new', 'financial_account_edit',
     'financial_title_new', 'financial_title_edit',
-    'financial_settlement_form',
+    'financial_settlement_form', 'financial_due_payment',
     'expense_new', 'expense_edit',
     'expense_category_new', 'expense_category_edit', 'expense_rule_new', 'expense_rule_edit',
     'commission_action', 'commission_schedule', 'commission_payment_new',
@@ -21,7 +22,7 @@ QUICK_ACTIONS = frozenset({
 
 
 # POST-only services stay POST-only; they may receive forms from an embedded action.
-MODAL_POST_ACTIONS = frozenset({'financial_settle'})
+MODAL_POST_ACTIONS = frozenset({'financial_settle','bling_alias','bling_decision','bling_purchase_refresh','bling_purchase_decision','purchase_confirm','purchase_receive'})
 
 def is_modal(request):
     match = request.resolver_match
@@ -40,7 +41,7 @@ def action_patterns():
                 walk(item.url_patterns, route)
             elif item.name in QUICK_ACTIONS:
                 parts = re.split(r'(<[^>]+>)', '/' + route)
-                result.append('^' + ''.join('[^/]+' if p.startswith('<') else re.escape(p) for p in parts) + '$')
+                result.append('^' + ''.join(('[0-9]+' if p.startswith('<int:') else '[^/]+') if p.startswith('<') else re.escape(p) for p in parts) + '$')
     walk(get_resolver().url_patterns)
     return result
 
@@ -60,7 +61,13 @@ class ActionModalMiddleware:
         if response.status_code in (301, 302, 303):
             target = response.get('Location', '')
             if url_has_allowed_host_and_scheme(target, {request.get_host()}, require_https=request.is_secure()):
-                if request.method == 'POST':
+                name=request.resolver_match.url_name
+                action=request.resolver_match.kwargs.get('action')
+                continue_review = (name in {'bling_alias','bling_purchase_refresh'}
+                    or name == 'bling_decision' and action in {'refresh','reopen'}
+                    or name == 'bling_purchase_decision' and action == 'reopen'
+                    or name == 'bling_purchase_detail' and '/compras/' in target)
+                if request.method == 'POST' and not continue_review:
                     # Leave Django messages for the origin page. Never replay a POST.
                     response = render(request, 'core/action_complete.html')
                 else:

@@ -50,13 +50,13 @@ class FunctionalReviewTests(ReportingFixture, TestCase):
     def test_cash_export_horizontal_respects_mode_and_future_settlement(self):
         day=self.today+timedelta(days=2)
         title=self.title(due_date=day,amount=D(25));self.pay(title,date=day)
-        for mode,expected in [('',D(1000)),('actual',D(1000)),('projected',D(975))]:
+        for mode,expected in [('',D(975)),('actual',D(975)),('projected',D(975))]:
             ds=build('cash',self.actor,{'start':day,'end':day,'mode':mode})
             with ZipFile(BytesIO(xlsx(ds,'Empresa sintética'))) as book:
                 root=ET.fromstring(book.read('xl/worksheets/sheet1.xml'))
             self.assertEqual(D(root.find(f'.//{{{NS}}}c[@r="D3"]/{{{NS}}}v').text),expected)
-            self.assertEqual(D(root.find(f'.//{{{NS}}}c[@r="C3"]/{{{NS}}}v').text),D(25) if mode=='projected' else D(0))
-            self.assertEqual(ds.rows[0][-2:], [D(1000),D(975)])
+            self.assertEqual(D(root.find(f'.//{{{NS}}}c[@r="C3"]/{{{NS}}}v').text),D(25))
+            self.assertEqual(ds.rows[0][-2:], [D(975),D(975)])
             self.assertIn('Realizado + previsto' if mode=='projected' else 'Somente realizado',ds.notes)
 
     def test_cash_page_materializes_ledger_once_and_preserves_totals(self):

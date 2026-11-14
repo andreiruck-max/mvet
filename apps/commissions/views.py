@@ -35,7 +35,7 @@ def detail(request,pk):
     from apps.core.models import AuditLog
     history=AuditLog.objects.filter(entity='commissions.CommissionPlan',entity_id=str(plan.pk)).select_related('actor')
     from django.utils.formats import number_format
-    labels={'base':'Base de comissão','rate':'Percentual','total':'Comissão prevista','override_total':'Total manual','cancelled':'Cancelada'}
+    labels={'basis':'Tipo de base','base':'Base de comissão','rate':'Percentual','total':'Comissão prevista','override_total':'Total manual','cancelled':'Cancelada'}
     operations={'commission_create':'Definição da comissão','commission_adjust':'Ajuste da comissão','commission_sale_values':'Correção dos valores da venda','commission_sale_state':'Cancelamento / recuperação','commission_receipt':'Recebimento registrado','commission_receipt_reversal':'Recebimento estornado','commission_schedule':'Revisão do cronograma'}
     for log in history:
         log.description=operations.get(log.operation,'Atualização da comissão')
@@ -46,6 +46,7 @@ def detail(request,pk):
             def display(value):
                 if value is None:return '—'
                 if isinstance(value,bool):return 'Sim' if value else 'Não'
+                if name=='basis':return dict(CommissionPlan._meta.get_field('basis').choices).get(value,value)
                 from decimal import Decimal
                 return number_format(Decimal(value),4 if name=='rate' else 2,force_grouping=True)
             log.changes.append((label,display(old),display(new)))

@@ -2,6 +2,7 @@ import signal
 from threading import Event
 from django.core.management.base import BaseCommand
 from django.db import close_old_connections, connections
+from apps.finance.due_payments import tick as payment_tick
 from apps.integrations.scheduling import tick
 from apps.integrations.bank_services import tick as bank_tick
 
@@ -18,7 +19,7 @@ class Command(BaseCommand):
             signal.signal(signal.SIGTERM, lambda *_: stop.set())
             signal.signal(signal.SIGINT, lambda *_: stop.set())
         while not stop.is_set():
-            for runner in (bank_tick, tick):
+            for runner in (payment_tick, bank_tick, tick):
                 close_old_connections()
                 try:
                     runner()

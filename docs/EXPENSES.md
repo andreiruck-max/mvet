@@ -57,3 +57,7 @@ Cartões de totais usam faixa compacta no computador e duas colunas no celular, 
 Na ficha, **Editar despesa** (master) permite alterar os campos comerciais, vencimento e conta prevista, com motivo obrigatório. Conta prevista não transfere pagamentos anteriores. Alterar categoria conserva revisão; manter a categoria preserva sua classificação histórica. Converter entre obrigação financeira e depreciação sem título exige cancelar/registrar. Edição da base não altera ocorrências já geradas. Canceladas não são editáveis.
 
 Na lista, marque as despesas pendentes ou **Selecionar pendentes desta página** → **Baixar selecionadas** → escolha conta/data → **Conferir baixa** → **Confirmar baixa**. A conferência mostra soma e categoria de cada despesa. Baixa integral dos saldos pendentes, com lançamentos individuais na mesma conta/data; categorias permanecem independentes. Para parcial/juros/descontos, abra o pagamento individual. Não inclui outras páginas automaticamente. Se houver alteração durante a conferência, todo o lote é recusado. Repetir a confirmação não duplica. Baixas futuras só impactam caixa na data escolhida. Exige permissões de operar despesas, financeiro e pagar títulos. ADR 0046.
+
+## Pagamento parcial e no vencimento
+
+A ficha da despesa abre diretamente o pagamento total/parcial do título. Informe o principal que está baixando; o restante continua pendente. No título, Pagar no vencimento autoriza o worker a baixar o saldo restante na conta escolhida. É registro interno: não envia pagamento ao banco. Veja ADR 0058.

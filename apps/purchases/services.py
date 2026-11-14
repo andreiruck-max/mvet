@@ -12,7 +12,7 @@ from apps.inventory.services import domain_lock, number, QTY, MONEY, quant, _fin
 from .models import Supplier, Purchase, PurchaseItem, PurchaseInstallment
 
 CENT=Decimal('0.01')
-FIELDS=['acquisition_kind','supplier','document','series','date','location','discount','freight','external_freight','other_costs','notes']
+FIELDS=['account','acquisition_kind','supplier','document','series','date','location','discount','freight','external_freight','other_costs','notes']
 
 def normalized_document(value):
     value=value.strip().upper()
@@ -84,11 +84,12 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
         if purchase.revision!=revision:raise ValidationError('A compra mudou em outra sessão. Reabra a edição.')
         before=snapshot(purchase)
     if not items or len(items)>100 or len(installments)>120:raise ValidationError('Informe de 1 a 100 itens e no máximo 120 parcelas.')
-    data = {'acquisition_kind':'NORMAL','external_freight':Decimal(purchase.external_freight),**data}
+    data = {'account':purchase.account,'acquisition_kind':'NORMAL','external_freight':Decimal(purchase.external_freight),**data}
     for field in FIELDS:setattr(purchase,field,data[field])
     if purchase.acquisition_kind not in ('NORMAL','BONUS'):raise ValidationError('Tipo de entrada inválido.')
     purchase.document=normalized_document(purchase.document);purchase.series=normalized_document(purchase.series)
     validate_active(purchase)
+    if purchase.account_id and not purchase.account.active:raise ValidationError('Conta prevista inativa.')
     for field in ['discount','freight','external_freight','other_costs']:number(getattr(purchase,field),CENT,zero=True)
     # Legacy callers retain stock movement by default. Extended rows carry explicit treatment.
     items=[dict(product_id=i[0],quantity=i[1],unit_cost=i[2],moves_stock=True) if not isinstance(i,dict) else dict(i) for i in items]

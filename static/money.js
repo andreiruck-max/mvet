@@ -1,12 +1,45 @@
 /* Cent-based typing. Keep native field names, validation and canonical numbers. */
 (() => {
   const states=new WeakMap();
-  function isMoney(el) {
-    if (!(el instanceof HTMLInputElement) || el.disabled || el.readOnly || !['text','number'].includes(el.type)) return false;
+  function isMoney(el, display=false) {
+    if (!(el instanceof HTMLInputElement) || (!display && (el.disabled || el.readOnly)) || !['text','number'].includes(el.type)) return false;
     const label=[...(el.labels||[])].map(x=>x.textContent).join(' ');
     if (/quantidade|alíquota|percentual|margem|dias/i.test(label)) return false;
     return el.step==='0.01' || label.includes('R$') || el.dataset.money==='true';
   }
+  // Display Brazilian grouping without changing posted values or field precision.
+  const enhanced=new WeakSet();
+  function format(el) {
+    if(!isMoney(el,true))return;
+    if(!enhanced.has(el)) {
+      el.dataset.numericType=el.type;
+      if(el.type==='number')el.type='text';
+      el.inputMode='decimal';enhanced.add(el);
+    }
+    let value=el.value.trim();
+    el.setCustomValidity('');
+    if(!value)return;
+    if(value.includes(','))value=value.replaceAll('.','');
+    else value=value.replace('.',',');
+    if(!/^-?\d+(,\d*)?$/.test(value))return;
+    let [whole,fraction='']=value.split(',');
+    el.value=whole.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+','+fraction.padEnd(2,'0');
+    const canonical=el.value.replaceAll('.','').replace(',','.');
+    const number=Number(canonical);
+    el.setCustomValidity((el.min!==''&&number<Number(el.min))||(el.max!==''&&number>Number(el.max))?'Valor fora do limite permitido.':'');
+  }
+  function enhance(root) {root.querySelectorAll('input').forEach(format);}
+  document.addEventListener('DOMContentLoaded',()=>enhance(document));
+  new MutationObserver(records=>records.forEach(r=>r.addedNodes.forEach(n=>{if(n.nodeType===1){if(n.matches('input'))format(n);enhance(n);}}))).observe(document.documentElement,{childList:true,subtree:true});
+  document.addEventListener('change',e=>format(e.target));
+  document.addEventListener('formdata',e=>{
+    for(const el of e.target.elements) {
+      if(!enhanced.has(el)||!el.name||el.disabled)continue;
+      let value=el.value;
+      if(value.includes(',')){value=value.replaceAll('.','');if(el.dataset.numericType==='number')value=value.replace(',','.');}
+      e.formData.set(el.name,value);
+    }
+  });
   function state(el) {
     if(!states.has(el)) states.set(el,{replace:true});
     return states.get(el);
@@ -16,6 +49,7 @@
     if(digits.length>18)return;
     const separator=el.type==='number'?'.':',';
     el.value=(negative?'-':'')+digits.slice(0,-2)+separator+digits.slice(-2);
+    format(el);
     el.dispatchEvent(new Event('input',{bubbles:true}));
     el.dispatchEvent(new Event('change',{bubbles:true}));
   }
@@ -24,7 +58,7 @@
     let digits=s.replace?'':el.value.replace(/\D/g,'');
     if(/^\d$/.test(key)){write(el,digits+key,!s.replace&&negative);s.replace=false;return true;}
     if(key==='Backspace'||key==='Delete'){
-      if(s.replace||key==='Delete'){el.value='';s.replace=true;el.dispatchEvent(new Event('input',{bubbles:true}));}
+      if(s.replace||key==='Delete'){el.value='';el.setCustomValidity('');s.replace=true;el.dispatchEvent(new Event('input',{bubbles:true}));}
       else write(el,digits.slice(0,-1)||'0',negative);
       return true;
     }
@@ -33,7 +67,7 @@
   }
   document.addEventListener('focusin',e=>{
     if(!isMoney(e.target))return;
-    state(e.target).replace=true;e.target.inputMode='decimal';
+    format(e.target);state(e.target).replace=true;e.target.inputMode='decimal';
     if(e.target.type==='text')e.target.select();
   });
   document.addEventListener('keydown',e=>{
@@ -62,7 +96,7 @@
       const precision=e.target.step?Math.max(2,(e.target.step.split('.')[1]||'').length):2;
       if(fraction.length>precision)return;
       e.preventDefault();e.target.value=(negative?'-':'')+whole+(e.target.type==='number'?'.':',')+fraction.padEnd(2,'0');
-      e.target.dispatchEvent(new Event('input',{bubbles:true}));
+      format(e.target);e.target.dispatchEvent(new Event('input',{bubbles:true}));
     }else{e.preventDefault();write(e.target,raw,negative);}
     state(e.target).replace=false;
   });
