@@ -9,6 +9,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 
 QUICK_ACTIONS = frozenset({
     'bling_detail', 'bling_purchase_detail', 'purchase_detail',
+    'financial_account', 'financial_day',
     'financial_transfer', 'financial_account_entry', 'financial_account_new', 'financial_account_edit',
     'financial_title_new', 'financial_title_edit',
     'financial_settlement_form', 'financial_due_payment',

@@ -10,7 +10,7 @@ import re
 class ModalPolicyTests(SimpleTestCase):
     def test_routes_are_explicit_and_long_flows_are_not_modals(self):
         patterns=action_patterns()
-        for name,args in [('financial_transfer',[]),('commission_schedule',[3]),('crm_state',[3,'pause']),('product_count',[2,1]),('expense_edit',[3])]:
+        for name,args in [('financial_account',[3]),('financial_day',[3,'2026-11-16']),('financial_transfer',[]),('commission_schedule',[3]),('crm_state',[3,'pause']),('product_count',[2,1]),('expense_edit',[3])]:
             self.assertTrue(any(re.fullmatch(p,reverse(name,args=args)) for p in patterns),name)
         for name in ['sale_new','purchase_new','inventory_reconcile','bling_queue','finance','crm_import','expense_bulk_payment']:
             self.assertFalse(any(re.fullmatch(p,reverse(name)) for p in patterns),name)

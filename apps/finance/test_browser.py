@@ -15,7 +15,7 @@ from .services import save_account
 @override_settings(STORAGES={'default':{'BACKEND':'django.core.files.storage.FileSystemStorage'},'staticfiles':{'BACKEND':'django.contrib.staticfiles.storage.StaticFilesStorage'}})
 class FinanceBrowser(StaticLiveServerTestCase):
     def test_bank_statement_default_window_and_sticky_header(self):
-        from playwright.sync_api import sync_playwright
+        from playwright.sync_api import sync_playwright, expect
         today=timezone.localdate();Company.objects.create(pk=1)
         actor=User.objects.create_superuser('bank-flow-browser')
         account=save_account(actor=actor,data=dict(name='Banco sintético',kind='BANK',opening_date=today,opening_balance=Decimal('1000')))
@@ -24,7 +24,12 @@ class FinanceBrowser(StaticLiveServerTestCase):
         with sync_playwright() as pw:
             browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1050},locale='pt-BR')
             context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
-            page=context.new_page();page.goto(self.live_server_url+'/financeiro/')
+            from django.urls import reverse
+            page=context.new_page();page.goto(self.live_server_url+reverse('dashboard'))
+            page.locator('[data-card="cash"] a').click()
+            expect(page).to_have_url(self.live_server_url+'/financeiro/')
+            expect(page.locator('#id_period')).to_have_value('next15')
+            expect(page.locator('#id_mode')).to_have_value('actual')
             self.assertTrue(page.locator('.cash-payments-table').get_by_text('Fornecedor / favorecido: Fornecedor demonstrativo',exact=True).is_visible())
             self.assertEqual(page.locator('.cash-date').count(),16)
             self.assertEqual(page.locator('.cash-page nav[aria-label="Paginação"]').count(),0)
@@ -37,6 +42,21 @@ class FinanceBrowser(StaticLiveServerTestCase):
             page.locator('#theme-toggle').click()
             page.screenshot(path=str(output/'cash-header-scrolled-dark.png'),full_page=True)
             page.locator('.cash-matrix tbody .cash-account a').click()
+            modal=page.frame_locator('#action-modal-frame')
+            expect(modal.get_by_role('heading',name='Banco sintético',exact=True)).to_be_visible()
+            expect(page).to_have_url(self.live_server_url+'/financeiro/')
+            modal.get_by_role('button',name='Consultar',exact=True).click()
+            expect(modal.get_by_role('heading',name='Banco sintético',exact=True)).to_be_visible()
+            expect(modal.locator('.sidebar')).to_have_count(0)
+            page.get_by_role('button',name='Fechar janela de ação').click()
+            page.locator('.cash-matrix tbody .cash-balance a').first.click()
+            expect(modal.get_by_role('heading',name='Banco sintético · '+today.strftime('%d/%m/%Y'),exact=True)).to_be_visible()
+            expect(page).to_have_url(self.live_server_url+'/financeiro/')
+            self.assertEqual(len(context.pages),1)
+            page.get_by_role('button',name='Fechar janela de ação').click()
+            page.locator('.cash-matrix tbody .cash-account a').click()
+            expect(modal.get_by_role('heading',name='Banco sintético',exact=True)).to_be_visible()
+            page.get_by_role('link',name='Abrir nesta página',exact=True).click()
             page.get_by_role('heading',name='Banco sintético',exact=True).wait_for()
             page.get_by_role('link',name='Novo débito',exact=True).click()
             modal=page.frame_locator('#action-modal-frame')

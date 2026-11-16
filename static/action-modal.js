@@ -25,6 +25,10 @@
       if (!(form instanceof HTMLFormElement) || event.defaultPrevented) return;
       const url = new URL(form.getAttribute('action') || location.href, location.href);
       if (url.origin === location.origin && (eligible(url) || (form.getAttribute('method') || 'get').toLowerCase() === 'post')) { url.searchParams.set('_modal', '1'); form.setAttribute('action', url.href); }
+      // GET forms replace the query string, so carry modal mode as a field.
+      if (eligible(url) && (form.getAttribute('method') || 'get').toLowerCase() === 'get' && !form.querySelector('[name="_modal"]')) {
+        const mode = document.createElement('input'); mode.type = 'hidden'; mode.name = '_modal'; mode.value = '1'; form.appendChild(mode);
+      }
       // Native form validation has already run. Do not disable named submit buttons.
       if ((form.getAttribute('method') || 'get').toLowerCase() === 'post') {
         if (form.dataset.actionSubmitting) { event.preventDefault(); return; }
