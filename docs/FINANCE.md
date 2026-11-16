@@ -103,3 +103,7 @@ Em Títulos e na ficha da despesa, **Baixar total ou parcial** permite informar 
 **Somente realizado** inclui baixas registradas com data futura nas respectivas colunas. **Realizado + previsto** acrescenta apenas valores ainda não baixados e transferências previstas, sem duplicação. Saldo de hoje continua restrito a movimentos datados até hoje.
 
 Compras a pagar usa **Todas não canceladas** por padrão. Compromissos incluem baixas de hoje e futuras: saem da soma no dia seguinte à data de pagamento. O saldo ainda disponível para pagar permanece separado. Grupos por mês/fornecedor abrem expandidos. Exportação respeita a mesma regra.
+
+## Datas dos cartões de caixa — 16/11/2026
+
+O cartão **Saldo realizado das contas ativas hoje** usa a data local de hoje, mesmo quando ela está fora do período filtrado. O cartão **Projeção das contas ativas até** usa o último dia do filtro. Ambos respeitam a conta selecionada e excluem contas inativas. A matriz continua seguindo as datas e a visão selecionadas.

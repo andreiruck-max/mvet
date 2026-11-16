@@ -155,7 +155,8 @@ def operation_action(request,pk,action):
 def cash(request):
     domain_lock()
     form=forms.CashForm(request.GET or {'period':'next15','mode':'actual'})
-    rows=[];unallocated={};days=[];page=None;summary=None;pending=[];matrix=[];day_totals=[]
+    rows=[];unallocated={};days=[];page=None;summary=None;today_summary=None;pending=[];matrix=[];day_totals=[]
+    today=timezone.localdate()
     if form.is_valid():
         data=form.cleaned_data
         display=form.data.copy()
@@ -164,6 +165,7 @@ def cash(request):
         account_id=data['account'].pk if data['account'] else None
         rows,unallocated=selectors.daily_cash(data['start'],data['end'],account_id,active_only=True)
         summary=selectors.summarize_cash(rows,unallocated,data['end'],account_id)
+        today_summary=selectors.cash_summary(today,today,account_id,active_only=True)
         pending=Title.objects.filter(status='OPEN',settled__lt=F('amount'),direction='PAY',due_date__lte=data['end']).select_related('account','purchase_installment__purchase__supplier').order_by('due_date','pk')
         if account_id: pending=pending.filter(account_id=account_id)
         pending=Paginator(pending,20).get_page(request.GET.get('payments_page'))
@@ -173,7 +175,7 @@ def cash(request):
         for row in rows:grouped[row['date']].append(row)
         days=[{'date':date,'rows':values} for date,values in grouped.items()]
         matrix,day_totals=selectors.cash_matrix(rows,page.object_list,data['mode'])
-    return render(request,'reporting/cash.html',{'form':form,'rows':rows,'days':days,'page':page,'unallocated':unallocated,'summary':summary,'pending':pending,'matrix':matrix,'day_totals':day_totals,'today':timezone.localdate()})
+    return render(request,'reporting/cash.html',{'form':form,'rows':rows,'days':days,'page':page,'unallocated':unallocated,'summary':summary,'pending':pending,'matrix':matrix,'day_totals':day_totals,'today':today,'today_summary':today_summary})
 
 
 @login_required
