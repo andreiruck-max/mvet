@@ -1,3 +1,4 @@
+from decimal import Decimal
 from datetime import timedelta
 from collections import OrderedDict
 from django.contrib import messages
@@ -165,7 +166,10 @@ def cash(request):
         account_id=data['account'].pk if data['account'] else None
         rows,unallocated=selectors.daily_cash(data['start'],data['end'],account_id,active_only=True)
         summary=selectors.summarize_cash(rows,unallocated,data['end'],account_id)
-        today_summary=selectors.cash_summary(today,today,account_id,active_only=True)
+        if data['start'] <= today <= data['end']:
+            today_summary={'end':today,'actual':sum((row['final'] for row in rows if row['date']==today),Decimal('0'))}
+        else:
+            today_summary=selectors.cash_summary(today,today,account_id,active_only=True)
         pending=Title.objects.filter(status='OPEN',settled__lt=F('amount'),direction='PAY',due_date__lte=data['end']).select_related('account','purchase_installment__purchase__supplier').order_by('due_date','pk')
         if account_id: pending=pending.filter(account_id=account_id)
         pending=Paginator(pending,20).get_page(request.GET.get('payments_page'))
