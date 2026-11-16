@@ -1,3 +1,5 @@
+16/11/2026 — Bancos e saldos do fluxo abrem detalhes em pop-up, preservando a tela de origem. Cartão Saldo bancário atual dos indicadores abre o filtro padrão do fluxo.
+
 16/11/2026 — Saldos e fluxo de caixa: cartão realizado calcula e exibe o saldo de hoje, independente do período selecionado; projeção permanece até o último dia do filtro. Ambos respeitam a conta selecionada e contas ativas.
 
 11/11/2026 — Extrato Bling salvo por conta, vínculo explícito e saldo inicial opcional; atualização em segundo plano ao abrir, importação manual por período, comparação líquida diária/por período e diferença de saldos com cobertura validada. Histórico preservado em falhas/exclusões; sem lançamentos automáticos no financeiro. ADR 0057. Preparado fora da main; homologação real pendente.
