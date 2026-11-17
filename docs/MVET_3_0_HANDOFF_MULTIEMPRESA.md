@@ -49,7 +49,7 @@ Foi inspecionada a árvore Git do commit de referência (588 arquivos versionado
 6. Os depósitos representam **locais físicos** compartilháveis: barracão, Full e demais locais reais. A propriedade de cada quantidade é atribuída à empresa. Não duplicar a quantidade física quando ocorrer só mudança de proprietário.
 7. A empresa que vende ao cliente pode registrar saldo individual negativo mesmo se a outra empresa for proprietária das unidades despachadas. Após venda interempresa documentada, os saldos por CNPJ são regularizados sem segunda baixa física.
 8. Compras próprias de qualquer empresa elevam seu saldo individual e o físico quando mercadoria realmente entra; compras interempresas em depósito compartilhado não elevam físico.
-9. O Bling Multiempresas permanece autoridade da disponibilidade comercial nos marketplaces. Cada CNPJ terá sua conexão/credenciais Bling; MVet é sistema gerencial e de conciliação.
+9. Cada empresa possui uma CONTA INDEPENDENTE no Bling, com autenticação OAuth, tokens, notas fiscais, pedidos, compras, depósitos, produtos e bancos próprios. A disponibilidade comercial publicada por cada conta/marketplace é de responsabilidade daquela configuração externa. O MVet produz a visão física consolidada do grupo internamente; nunca assumir que contas Bling independentes compartilham automaticamente saldos ou a funcionalidade Bling Multiempresas.
 10. Para operação interempresa, o fornecedor forma preço a partir de SEU custo próprio e de imposto parametrizado; margem de contribuição padrão zero, ajustável de forma explícita. Referência ilustrativa: preço = CMV / (1 - alíquota - margem), para uma fórmula percentual compatível com a base tributária configurada. Não assumir 8% real para todo produto.
 11. Pedido de venda interempresa enviado ao Bling da **fornecedora**, nas duas direções, mediante ação explícita e rastreável. Emissão de NF continua no Bling. Vincular pedido e documentos posteriores à operação interna.
 12. A **compradora** registra contas a pagar; não criar contas a receber operacionais automáticas na fornecedora, conforme decisão vigente, mas registrar a receita e conciliar entradas/saídas bancárias. Não compensar pagamentos automaticamente entre CNPJs.
@@ -147,9 +147,32 @@ Estratégia: primeiro adicionar colunas por DDL com default CONSTANTE Mercadovet
 
 ## 5. Bling e operação interempresa
 
-### 5.1. Multiconexão
+### 5.1. Uma conta Bling INDEPENDENTE por CNPJ — contrato obrigatório (17/11/2026)
 
-Hoje apps/integrations/bling.py usa conexão pk=1, configuração de issuer única e allowlist de endpoints GET, PATCH /produtos/<id> e POST /estoques. Não existe criação de pedido de venda nessa allowlist. Novo adaptador deve aceitar conexão explícita, master/autorização por empresa, OAuth state vinculando CNPJ e worker com fila por empresa. Respeitar refresh token, lock da conexão, limites, idempotência e logs sem revelar tokens.
+**Não usar conta única, token compartilhado ou apenas filtrar uma conta Bling pela empresa.** Mercadovet tem sua conta Bling; MVet Agro tem OUTRA conta Bling. A conexão é a identidade empresarial externa, não um seletor visual.
+
+| Controle | Bling Mercadovet | Bling MVet Agro |
+|---|---|---|
+| CNPJ emitente e conta Bling | Mercadovet | MVet Agro |
+| Autorização OAuth | Login/autorização próprios | Login/autorização próprios |
+| Access token e refresh token | Secret e ciclo de rotação próprios | Secret e ciclo de rotação próprios |
+| Notas de venda/compra, pedidos e NF-e | Consulta e identidade próprios | Consulta e identidade próprios |
+| Produtos, depósitos, IDs externos e preços | Mapeamento por conexão | Mapeamento por conexão |
+| Bancos, extratos, saldo de abertura e conciliação | Contas financeiras Mercadovet | Contas financeiras MVet Agro |
+| Rotinas automáticas, filas, páginas, cursores e erros | Independentes | Independentes |
+| Permissões e logs de execução | Escopo empresarial | Escopo empresarial |
+
+**API e dados:** todos os métodos públicos do adaptador devem receber um objeto `BlingConnection` (ou `company` que seja resolvido e validado para a conexão correta), nunca usar `pk=1`, token global ou company inferida da NF. Uma conexão pertence de forma imutável a um CNPJ; `UNIQUE(company)` e `UNIQUE(issuer)` se a política for uma conexão por empresa; nunca permitir que dois CNPJs usem a mesma conexão. Preferir FK `BlingConnection.company` com `OneToOneField` e `issuer == company.cnpj`, com verificação no backend. O produto SKU 100 pode mapear para IDs externos distintos em cada conta.
+
+**OAuth:** a tela administrativa permite "Autorizar Bling Mercadovet" e "Autorizar Bling MVet Agro" separadamente, com status por empresa. O `state` do OAuth deve associar, de forma íntegra e de uso único, usuário, empresa e tentativa; o callback salva o token APENAS na conexão originadora. Reautorizar, expirar ou desconectar MVet Agro jamais invalida a Mercadovet. Um mesmo aplicativo integrador OAuth pode, se suportado pela configuração do Bling, autorizar duas contas distintas; não confundir `CLIENT_ID/SECRET` do aplicativo com os tokens individuais de cada conta. Prever credenciais de aplicativo por conexão se forem necessárias em homologação, sem fixar essas credenciais no código e sem publicar segredos.
+
+**Operação:** filas de notas de venda e compra, agendamento `(company, kind)`, `ImportRun`, `ReviewDefaults`, `ComparisonCache`, aliases, estoque/preço, consulta por série/número, movimentações financeiras, status e histórico ficam isolados por conexão. Worker processa cada conta com escopo persistido e erro de uma conta não suspende a outra. IDs de pedidos/produtos do Bling nunca são considerados globalmente únicos: usar `(connection, external_id)`.
+
+**Segurança:** chamadas de leitura/escrita conferem no serviço (não somente na view) que empresa selecionada = empresa da conexão = empresa da operação. Não aceitar `connection_id` arbitrário em POST de funcionário. Nenhuma movimentação no Bling de uma conta poderá ocorrer com token da outra. Na visão Grupo, agregar leituras internas já importadas e segregadas; não emitir pedidos ou alterar estoque por uma "conexão do grupo".
+
+**Estoque comercial:** como as duas contas Bling são independentes, NÃO pressupor sincronização comercial automática entre suas quantidades, mesmo que cada marketplace utilize integração Bling. Se houver configuração adicional de Bling Multiempresas ou estoque virtual compartilhado, verificar comportamento e mapear suas regras como INTEGRAÇÃO EXTERNA explícita; não criar estoque físico pelo espelhamento, não sobrescrever balanços cruzados e não confundir saldo comercial com estoque gerencial do grupo. A disponibilidade publicada por cada conta é um dado de integração, não a fonte de propriedade patrimonial do MVet.
+
+**Estado do código 2.0:** apps/integrations/bling.py ainda usa conexão `pk=1`, `settings.BLING_ISSUER_CNPJ` único e allowlist de endpoints GET, PATCH preço e POST balanço de estoque; **não existe** POST de pedido de venda na allowlist. apps/integrations/scheduling.py usa `BlingSchedule.kind` globalmente e `BlingConnection(pk=1)`; apps/integrations/bank_services.py também usa `pk=1`. Implementar adaptação explícita em todos esses pontos e nas views, workers, testes e comandos — não apenas remover constraint singleton.
 
 ### 5.2. Entidade IntercompanyOperation
 
@@ -199,7 +222,7 @@ Implementar seletor Mercadovet / MVet Agro / Grupo com indicação inequívoca d
 
 **PR 4 — Funções comerciais e financeiras completas em MVet Agro.** Reutilizar telas e fluxos para segunda empresa; vendas, compras próprias, impostos, parcelas, despesas, saldo bancário, comissões, CRM, notificações, PDFs/Excel, dashboard individual. Segurança e testes por empresa.
 
-**PR 5 — Bling por CNPJ.** Duas autorizações OAuth, filas de venda/compra separadas, identificação de NF, comparação de estoque/preço, extrato por conta, worker e status por CNPJ. Sem token/operacão cruzada; consulta real somente em homologação controlada e autorizada.
+**PR 5 — UMA CONTA BLING INDEPENDENTE POR CNPJ.** Conexão OneToOne empresa, duas contas Bling independentes e autorizações OAuth distintas, tokens e refresh isolados, issuer verificado, filas de venda/compra separadas, IDs externos compostos por conexão, identificação de NF, comparação de estoque/preço por conexão, extrato bancário vinculado à empresa, workers/caches/agendamentos/status por CNPJ. Não presumir estoque comercial compartilhado entre as contas; caso haja sincronização Bling Multiempresas, homologar explicitamente. Sem token/operação cruzada; consulta real somente em homologação controlada e autorizada.
 
 **PR 6 — Operações Interempresas bidirecionais.** Origem das unidades e déficit persistente; precificação, pedido Bling da fornecedora, NF vinculada, mudança de propriedade sem segundo físico, CMV provisório/definitivo sem duplicidade, contas a pagar e conciliação.
 
@@ -225,7 +248,7 @@ Executar o CI existente .github/workflows/tests.yml: Windows PowerShell updater,
 - Compra externa MVet Agro +5 incrementa físico +5 e somente saldo/custo MVet Agro; compra externa Mercadovet idem.
 - Mesma localização para dois proprietários, transferência entre locais, Full, kit de componentes, fracionamento, contagem, estoque negativo, bonificação, frete de compra fora NF, transferências múltiplas, reversões/cancelamentos e CMV histórico.
 - Margens/CVM definitivo e StockMovement.cost_variance não duplicam mesmo custo na DRE; tributos interempresa conservados conforme efetivo; DRE individual e grupo reconciliam.
-- Cada CNPJ importa apenas suas próprias NF (mesmo número/série pode existir nas duas), idempotência ao reconsultar, preservação de vínculo mesmo após cancelamento; dados não cruzados em origem externa.
+- Cada CNPJ importa apenas NF de sua conta Bling independente (mesmo número/série pode existir nas duas), idempotência ao reconsultar, preservação do vínculo mesmo após cancelamento e IDs externos por conexão; desconectar/reautorizar uma conta não afeta a outra. Testar OAuth state por CNPJ, expiração/refresh simultâneos, agendamentos independentes, consulta por conta e token cruzado bloqueado.
 - Pedido interempresa em ambos sentidos não duplica em duplo clique/timeout/HTTP500; nenhum ajuste externo automático sem confirmação.
 - Banco Bling de MVet Agro nunca confere com FinancialAccount da Mercadovet; saldos por empresa e grupo somam corretamente.
 - Títulos, comissões, CRM e alertas segregados; módulos CRM, despesas, caixa e exportações permanecem usáveis na empresa secundária; nenhuma página só funciona com pk1.
@@ -252,7 +275,7 @@ Executar o CI existente .github/workflows/tests.yml: Windows PowerShell updater,
 ## 11. Pontos que não devem ser inferidos silenciosamente
 
 - O projeto não substitui o Bling como emissor fiscal; não implementar emissão fiscal no MVet.
-- Uma unidade do Bling Multiempresas ou depósito virtual NÃO é necessariamente uma unidade física adicional.
+- Duas contas Bling independentes NÃO significam estoque comercial automaticamente unificado. Se houver Bling Multiempresas/depósito virtual externo, exigir teste específico; uma unidade espelhada NÃO é unidade física adicional.
 - O custo da Mercadovet NÃO é automaticamente o custo da MVet Agro.
 - A média do Produto global NÃO pode determinar CMV de uma das empresas.
 - A perda fiscal/tributária efetiva e o lucro interempresa em estoque não devem desaparecer/duplicar na DRE do grupo por uma soma ingênua.
