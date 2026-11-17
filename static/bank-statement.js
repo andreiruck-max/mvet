@@ -26,7 +26,7 @@
       const filters = new URLSearchParams(location.search);
       ['period','start','end'].forEach(key => { if (filters.has(key)) body.set(key, filters.get(key)); });
       if (!body.get('period') && !body.get('start')) body.set('period','month');
-      body.set('mode', automatic ? 'automatic' : 'manual');
+      body.set('mode', automatic ? (widget.dataset.openRefresh === '1' ? 'open' : 'automatic') : 'manual');
       message.textContent = 'Solicitando atualização em segundo plano…';
       const response = await fetch(widget.dataset.refreshUrl, {method:'POST',body,credentials:'same-origin',headers:{'Accept':'application/json'}});
       if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('Sessão expirada ou acesso recusado. Entre novamente para atualizar.');
@@ -35,7 +35,7 @@
       await status();
     }
     if (form) form.addEventListener('submit', event => { event.preventDefault(); refresh(false).catch(showError); });
-    if (widget.dataset.automatic === '1') refresh(true).catch(showError);
+    if (widget.dataset.automatic === '1' || widget.dataset.openRefresh === '1') refresh(true).catch(showError);
     else status().catch(showError);
     window.addEventListener('pagehide', () => clearTimeout(timer), {once:true});
   });

@@ -1,4 +1,4 @@
 {% extends 'base.html' %}{% block title %}Extrato Bling · {{ account.name }}{% endblock %}{% block content %}<div class="compact-page cash-page">
 <header class="page-heading"><h1>{{ account.name }} · conferência com Bling</h1><a class="button" href="{% url 'financial_account' account.pk %}">Extrato MVet</a></header>
-<form method="get" class="panel filter-bar">{{ bank_form.as_p }}<button>Consultar histórico salvo</button></form>
+<form method="get" class="panel filter-bar"><p><label for="bank-account">Conta bancária:</label><select id="bank-account" name="account" onchange="this.form.requestSubmit()">{% for item in bank_accounts %}<option value="{{ item.pk }}" {% if item.pk == account.pk %}selected{% endif %}>{{ item.name }}</option>{% endfor %}</select></p>{{ bank_form.as_p }}<button>Consultar histórico salvo</button></form>
 {% include 'integrations/bank_widget.html' %}</div>{% endblock %}

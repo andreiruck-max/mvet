@@ -53,6 +53,7 @@
     return;
   }
   if (embedded) return;
+  let accountReturn = null, accountChanged = false;
   const dialog = document.getElementById('action-modal');
   if (!dialog || !dialog.showModal) return;
   const frame = document.getElementById('action-modal-frame');
@@ -87,7 +88,10 @@
   document.getElementById('action-modal-close').addEventListener('click', close);
   dialog.addEventListener('close', () => {
     clearTimeout(timer); frame.removeAttribute('src'); frameDirty = false; busy = false;
-    document.body.classList.remove('action-modal-open'); trigger?.focus({preventScroll: true});
+    document.body.classList.remove('action-modal-open');
+    if (accountChanged) { location.reload(); return; }
+    accountReturn = null;
+    trigger?.focus({preventScroll: true});
   });
   expand.addEventListener('click', event => {
     event.preventDefault();
@@ -127,6 +131,7 @@
         frameForms = formSignature(frame.contentDocument);
         const current = clean(frame.contentWindow.location.href);
         if (eligible(current)) expand.href = current.href;
+        if (/^\/financeiro\/contas\/\d+\/$/.test(current.pathname)) accountReturn = current.href;
         frame.contentDocument.querySelector('.errorlist input, .errorlist, input:not([type="hidden"]), select, textarea, button')?.focus();
       } catch (_) {}
     } else if (data.mvetAction === 'dirty') frameDirty = true;
@@ -138,6 +143,10 @@
       if (url.origin === location.origin && mayClose()) location.assign(url.href);
     } else if (data.mvetAction === 'complete') {
       busy = false; frameDirty = false;
+      if (accountReturn && !dirty) {
+        accountChanged = true; frameForms = null;
+        const target = new URL(accountReturn); target.searchParams.set('_modal', '1'); frame.src = target.href; return;
+      }
       if (dirty || (originForms && originForms !== formSignature(document))) {
         dialog.close();
         const notice = document.createElement('p'); notice.className = 'notice'; notice.setAttribute('role', 'status');

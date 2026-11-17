@@ -167,3 +167,7 @@ body.action-modal-open { overflow: hidden; }
 .expense-due-badge.overdue{background:#a92626;color:#fff;}
 .expense-due-badge.today{background:#ffe0a0;color:#533900;}
 .expense-pending-value{white-space:nowrap;}
+
+.modal-mode .compact-page > nav.account-actions { display:flex; }
+.bank-match { color:#16723b; font-weight:700; }
+.bank-mismatch { color:var(--danger,#b42318); font-weight:700; }

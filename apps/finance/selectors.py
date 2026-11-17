@@ -120,3 +120,24 @@ def account_statement(account, start, end):
         expression=Sum(Case(When(operation__status='POSTED',then=F('amount')),default=Value(ZERO),output_field=money)),
         order_by=[F('operation__date').asc(),F('pk').asc()]))
     return rows, initial
+
+
+def withdrawals(start, end, account_id=None):
+    from django.db.models import Q
+    from .models import FinancialEntry
+    rows=FinancialEntry.objects.filter(operation__status='POSTED',operation__date__range=(start,end)).filter(
+        Q(operation__title__category='WITHDRAWAL') | Q(operation__reversal_of__title__category='WITHDRAWAL'))
+    if account_id: rows=rows.filter(account_id=account_id)
+    rows=rows.select_related('account','operation__title','operation__reversal_of__title').order_by('-operation__date','-pk')
+    outgoing=ZERO; incoming=ZERO
+    months={}; people={}
+    for row in rows:
+        if row.amount < 0: outgoing-=row.amount
+        else: incoming+=row.amount
+        title=row.operation.title or row.operation.reversal_of.title
+        row.person=title.counterparty or 'Sócio não informado'
+        month=row.operation.date.replace(day=1)
+        months[month]=months.get(month,ZERO)-row.amount
+        people[row.person]=people.get(row.person,ZERO)-row.amount
+    return dict(rows=rows,outgoing=outgoing,incoming=incoming,net=outgoing-incoming,
+        months=sorted(months.items()),people=sorted(people.items()))

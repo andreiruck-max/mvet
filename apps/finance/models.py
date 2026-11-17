@@ -27,7 +27,7 @@ class FinancialAccount(models.Model):
 
 class FinancialTitle(models.Model):
     DIRECTIONS = [('PAY','Pagar'),('RECEIVE','Receber')]
-    CATEGORIES = [('OPERATING','Operacional'),('FINANCIAL','Financeiro / juros'),('PRINCIPAL','Patrimonial / principal'),('OPENING','Pendência de abertura'),('OTHER','A classificar')]
+    CATEGORIES = [('OPERATING','Operacional'),('FINANCIAL','Financeiro / juros'),('PRINCIPAL','Patrimonial / principal'),('WITHDRAWAL','Retirada / distribuição de sócio'),('OPENING','Pendência de abertura'),('OTHER','A classificar')]
     @property
     def counterparty_display(self):
         if self.counterparty.strip():

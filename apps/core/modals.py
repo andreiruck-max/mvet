@@ -9,7 +9,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 
 QUICK_ACTIONS = frozenset({
     'bling_detail', 'bling_purchase_detail', 'purchase_detail',
-    'financial_account', 'financial_day',
+    'financial_account', 'financial_day', 'financial_operation', 'bling_bank_statement',
     'financial_transfer', 'financial_account_entry', 'financial_account_new', 'financial_account_edit',
     'financial_title_new', 'financial_title_edit',
     'financial_settlement_form', 'financial_due_payment',
@@ -23,7 +23,7 @@ QUICK_ACTIONS = frozenset({
 
 
 # POST-only services stay POST-only; they may receive forms from an embedded action.
-MODAL_POST_ACTIONS = frozenset({'financial_settle','bling_alias','bling_decision','bling_purchase_refresh','bling_purchase_decision','purchase_confirm','purchase_receive'})
+MODAL_POST_ACTIONS = frozenset({'financial_reverse','financial_post','financial_settle','bling_alias','bling_decision','bling_purchase_refresh','bling_purchase_decision','purchase_confirm','purchase_receive'})
 
 def is_modal(request):
     match = request.resolver_match

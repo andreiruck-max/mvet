@@ -81,8 +81,15 @@ def panel_context(request, account, *, compact=False):
 @login_required
 @permission_required('core.view_finance', raise_exception=True)
 def statement(request, pk):
+    selected=request.GET.get('account')
+    if selected and selected != str(pk):
+        target=get_object_or_404(FinancialAccount,pk=selected)
+        params=request.GET.copy();params.pop('account',None);params.pop('page',None)
+        return redirect(reverse('bling_bank_statement',args=[target.pk])+'?'+params.urlencode())
     account = get_object_or_404(FinancialAccount,pk=pk)
-    return render(request,'integrations/bank_statement.html',panel_context(request,account))
+    context=panel_context(request,account)
+    context.update(bank_accounts=FinancialAccount.objects.filter(active=True),bank_open_refresh=True)
+    return render(request,'integrations/bank_statement.html',context)
 
 
 @login_required
@@ -100,10 +107,10 @@ def status(request, pk):
 def refresh(request, pk):
     services.access(request.user)
     link=get_object_or_404(BlingBankLink,account_id=pk)
-    automatic=request.POST.get('mode')=='automatic'
+    automatic=request.POST.get('mode') in ('automatic','open')
     try:
         if automatic:
-            run=services.enqueue(actor=request.user,link_id=link.pk,automatic=True)
+            run=services.enqueue(actor=request.user,link_id=link.pk,automatic=True, on_open=request.POST.get('mode')=='open')
         else:
             form=PeriodForm(request.POST)
             if not form.is_valid(): raise ValidationError('Informe um período válido para atualizar o extrato.')
