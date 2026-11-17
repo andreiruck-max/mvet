@@ -79,6 +79,38 @@ class BankTests(TestCase):
         self.assertEqual(self.link.entries.count(),2)
         self.assertEqual(svc.comparison(self.link,self.start,self.today)['remote_net'],0)
 
+    def test_blank_situation_is_accepted_when_query_phase_matches(self):
+        run = self.queue()
+        self.page(run, [self.row(situacao='')])
+        self.page(run, [])
+        self.page(run, [])
+        run.refresh_from_db()
+        self.assertEqual(run.status, 'DONE')
+        self.assertEqual(self.link.entries.count(), 1)
+        self.assertFalse(self.link.entries.get().deleted)
+        self.assertEqual(svc.comparison(self.link, self.start, self.today)['remote_net'], D('1200'))
+
+    def test_blank_situation_in_excluded_phase_remains_excluded(self):
+        run = self.queue()
+        self.page(run, [])
+        self.page(run, [self.row(situacao='')])
+        self.page(run, [])
+        run.refresh_from_db()
+        self.assertEqual(run.status, 'DONE')
+        entry = self.link.entries.get()
+        self.assertTrue(entry.deleted)
+        self.assertEqual(svc.comparison(self.link, self.start, self.today)['remote_net'], D('0'))
+
+    def test_conflicting_blank_phase_response_is_not_published(self):
+        run = self.queue()
+        self.page(run, [self.row(situacao='')])
+        self.page(run, [])
+        self.page(run, [self.row(situacao='')])
+        run.refresh_from_db()
+        self.assertEqual(run.status, 'QUEUED')
+        self.assertIn('registrado e excluído', run.message)
+        self.assertEqual(self.link.entries.count(), 0)
+
     def test_no_false_zero_for_unknown_days_or_missing_opening(self):
         self.complete(self.queue(start=self.today),[self.row()])
         c=svc.comparison(self.link,self.start,self.today)

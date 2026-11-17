@@ -130,7 +130,10 @@ def parse_entry(row, run):
         field = 'debCred'; direction = row['debCred']
         if direction not in ('D','C'):raise ValueError
         field = 'situacao'; state = row['situacao']
-        if state != run.phase:raise ValueError
+        # Bling may return an empty situation even when a situation filter is
+        # supplied. For an empty value, use only the explicitly requested phase;
+        # reject any conflicting non-empty value to avoid incorrect balances.
+        if state not in ('', run.phase): raise ValueError
         field = 'valor'; raw_value=row['valor']
         if isinstance(raw_value,bool):raise ValueError
         value = Decimal(str(raw_value))
@@ -150,7 +153,7 @@ def parse_entry(row, run):
         field = 'descricao'; description=text(row.get('descricao'),1000)
         field = 'observacoes'; notes=text(row.get('observacoes'),10000)
         field = 'contato.nome'; counterparty=text((row.get('contato') or {}).get('nome'),240)
-        return ext, dict(date=str(day), amount=str(value), deleted=state == 'E',
+        return ext, dict(date=str(day), amount=str(value), deleted=run.phase == 'E',
             description=description, notes=notes, counterparty=counterparty,
             source_type=source_type, source_id=str(origin.get('id') or '')[:40])
     except (KeyError, TypeError, ValueError, InvalidOperation, AttributeError, ValidationError):
@@ -191,7 +194,9 @@ def process_page(run):
                 return
             for ext, values in parsed:
                 prior = run.staged.filter(external_id=ext).first()
-                if prior and prior.data['deleted'] == values['deleted']:
+                if prior:
+                    if prior.data['deleted'] != values['deleted']:
+                        raise ValidationError('O Bling retornou o mesmo lançamento como registrado e excluído. Importação interrompida para proteger o saldo.')
                     raise ValidationError('O Bling repetiu uma página. Reconsulte o período.')
                 BlingBankStaging.objects.update_or_create(run=run, external_id=ext, defaults={'data': values})
             if parsed:
