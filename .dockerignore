@@ -6,3 +6,8 @@ __pycache__
 *.xlsx
 backups
 upload
+
+.env.*
+*.dump
+*.sql
+.git*

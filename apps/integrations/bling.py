@@ -33,12 +33,18 @@ class NoRedirect(HTTPRedirectHandler):
         return None
 
 
+def ensure_network_enabled():
+    if not getattr(settings, "BLING_NETWORK_ENABLED", False):
+        raise BlingError("Comunicação com o Bling bloqueada neste ambiente de laboratório.")
+
+
 def cipher():
     try: return Fernet(settings.BLING_TOKEN_KEY.encode())
     except (ValueError, TypeError): raise BlingError('Configure a chave de proteção dos tokens no servidor.')
 
 
 def configured():
+    ensure_network_enabled()
     if not all([settings.BLING_CLIENT_ID, settings.BLING_CLIENT_SECRET, settings.BLING_REDIRECT_URI]):
         raise BlingError('Configure o aplicativo Bling no ambiente do servidor.')
     issuer = settings.BLING_ISSUER_CNPJ
@@ -52,6 +58,7 @@ def configured():
 
 
 def request_json(path, *, token=None, form=None, method="GET", payload=None):
+    ensure_network_enabled()
     if form is not None:
         if path != '/oauth/token' or payload is not None: raise BlingError('Operação remota não permitida.')
     elif method == 'GET' and payload is None:
@@ -126,6 +133,7 @@ def disconnect(*, actor):
 @transaction.atomic
 def get(path, *, method="GET", payload=None):
     """Serialize requests/refresh across workers; never hold the inventory lock."""
+    ensure_network_enabled()
     obj = BlingConnection.objects.select_for_update(nowait=True).get(pk=1)
     if not obj.tokens: raise BlingError('Bling desconectado. Solicite autorização ao master.')
     try: tokens = json.loads(cipher().decrypt(obj.tokens.encode()))
@@ -145,6 +153,7 @@ def get(path, *, method="GET", payload=None):
 
 
 def read(path, *, method="GET", payload=None):
+    ensure_network_enabled()
     for attempt in range(2):
         try: result, failure = get(path) if method == "GET" else get(path, method=method, payload=payload)
         except BlingConnection.DoesNotExist: raise BlingError("Conecte o Bling antes de consultar.") from None
