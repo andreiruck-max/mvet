@@ -87,3 +87,7 @@ Fila em `/integracoes/bling/`, conexão exclusiva do master e revisão antes de 
 ## Preparação da implantação
 
 Siga o [roteiro de implantação e aceite](docs/INSTALLATION_CHECKLIST.md). `python manage.py check_installation --network` verifica configuração e banco sem escrever dados; verificações presenciais de rede, recuperação e permissões continuam necessárias.
+
+## Desenvolvimento MVet 3.0
+
+Ambiente separado: [manual do laboratório](docs/MVET_3_0_DEVELOPMENT.md). Não usar o atualizador operacional no clone 3.0.

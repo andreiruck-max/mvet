@@ -57,7 +57,7 @@ def extract(raw, payload):
 
 
 def enrich(payload):
-    from .bling import BlingError, NoRedirect
+    from .bling import BlingError, NoRedirect, ensure_network_enabled
     if not isinstance(payload, dict):
         raise BlingError('Detalhe inválido.')
     result = dict(payload)
@@ -65,6 +65,7 @@ def enrich(payload):
     link = payload.get('xml')
     if not link:
         return result
+    ensure_network_enabled()
     try:
         url = urlsplit(link)
         if url.scheme != 'https' or url.hostname not in ('www.bling.com.br', 'bling.com.br') or url.port not in (None, 443) or url.username or url.password or url.fragment:

@@ -89,3 +89,6 @@ BLING_CLIENT_SECRET = os.environ.get('BLING_CLIENT_SECRET', '')
 BLING_REDIRECT_URI = os.environ.get('BLING_REDIRECT_URI', '')
 BLING_ISSUER_CNPJ = os.environ.get('BLING_ISSUER_CNPJ', '')
 BLING_TOKEN_KEY = os.environ.get('BLING_TOKEN_KEY', '')
+
+# Legacy production remains enabled; isolated settings force this off.
+BLING_NETWORK_ENABLED = os.environ.get('BLING_NETWORK_ENABLED', '1') == '1'

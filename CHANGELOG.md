@@ -1,3 +1,5 @@
+18/11/2026 — PR 0 MVet 3.0: laboratório Docker/PostgreSQL independente, porta 8001, Bling bloqueado, auditoria e ensaio sintético de restauração. Sem schema multiempresa ou implantação. Ver docs/MVET_3_0_DEVELOPMENT.md e ADR 0061.
+
 16/11/2026 — Bancos e saldos do fluxo abrem detalhes em pop-up, preservando a tela de origem. Cartão Saldo bancário atual dos indicadores abre o filtro padrão do fluxo.
 
 16/11/2026 — Saldos e fluxo de caixa: cartão realizado calcula e exibe o saldo de hoje, independente do período selecionado; projeção permanece até o último dia do filtro. Ambos respeitam a conta selecionada e contas ativas.

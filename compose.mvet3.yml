@@ -1,0 +1,33 @@
+# Standalone laboratory: never combine with docker-compose.yml.
+name: mvet3
+services:
+  lab-db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: mvet3_lab
+      POSTGRES_USER: mvet3_lab
+      POSTGRES_PASSWORD: ${MVET3_DB_PASSWORD:?Execute python scripts/mvet3_lab.py init}
+    volumes:
+      - lab_pgdata:/var/lib/postgresql/data
+    networks: [lab]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mvet3_lab -d mvet3_lab"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+  lab-web:
+    build: .
+    environment:
+      DJANGO_SETTINGS_MODULE: config.settings_mvet3
+      DJANGO_SECRET_KEY: ${MVET3_SECRET_KEY:?Execute python scripts/mvet3_lab.py init}
+      POSTGRES_PASSWORD: ${MVET3_DB_PASSWORD:?Execute python scripts/mvet3_lab.py init}
+    ports: ["127.0.0.1:8001:8000"]
+    networks: [lab]
+    depends_on:
+      lab-db:
+        condition: service_healthy
+networks:
+  lab:
+    internal: true
+volumes:
+  lab_pgdata:
