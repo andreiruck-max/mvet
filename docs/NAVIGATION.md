@@ -30,3 +30,5 @@ A navegação entre áreas e consultas continua na própria aba. Ações curtas 
 Novas ações devem ser classificadas nessa lista e ter teste de retorno à origem, validação e permissão. Não abrir modais dentro de modais. A revisão cobriu rotas, templates, scripts de navegação e fluxos de testes dos módulos acima; as páginas longas foram mantidas por decisão de uso, e não por conversão incompleta.
 
 16/11/2026: ficha da conta e lançamentos do dia abrem em modal ao clicar no banco ou saldo do fluxo. Filtros GET internos preservam o modal; fechar mantém o fluxo de origem. O cartão Saldo bancário atual dos indicadores usa a mesma entrada padrão do menu Financeiro (hoje até 15 dias à frente, somente realizado).
+
+17/11/2026: barra de ações da conta visível em modal; lançamento retorna ao extrato dentro da mesma janela. Consulta Bling em modal permite seleção de conta e atualização na abertura.

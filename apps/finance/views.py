@@ -179,6 +179,8 @@ def cash(request):
         for row in rows:grouped[row['date']].append(row)
         days=[{'date':date,'rows':values} for date,values in grouped.items()]
         matrix,day_totals=selectors.cash_matrix(rows,page.object_list,data['mode'])
+        from apps.integrations.bank_services import balance_badge
+        for bank in matrix: bank['bling_badge']=balance_badge(bank['account'])
     return render(request,'reporting/cash.html',{'form':form,'rows':rows,'days':days,'page':page,'unallocated':unallocated,'summary':summary,'pending':pending,'matrix':matrix,'day_totals':day_totals,'today':today,'today_summary':today_summary})
 
 
@@ -309,3 +311,15 @@ def due_payment(request,pk):
         except (ValidationError,IntegrityError) as exc:error(form,exc)
     return render(request,'finance/form.html',{'form':form,'title':'Pagar no vencimento',
         'button':'Salvar programação','help':f'{title.description} · Vencimento {title.due_date:%d/%m/%Y}. A programação acompanha alterações de vencimento e baixa somente o saldo restante. Conta escolhida é preservada; alterações de conta prevista não mudam esta autorização.'})
+
+
+@login_required
+@permission_required('core.view_finance',raise_exception=True)
+def withdrawals(request):
+    form=forms.CashForm(request.GET or {'period':'month','mode':'actual'})
+    form.fields.pop('mode')
+    result=None
+    if form.is_valid():
+        d=form.cleaned_data
+        result=selectors.withdrawals(d['start'],d['end'],d['account'].pk if d['account'] else None)
+    return render(request,'finance/withdrawals.html',{'form':form,'result':result})

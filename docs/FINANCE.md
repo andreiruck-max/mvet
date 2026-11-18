@@ -107,3 +107,7 @@ Compras a pagar usa **Todas não canceladas** por padrão. Compromissos incluem 
 ## Datas dos cartões de caixa — 16/11/2026
 
 O cartão **Saldo realizado das contas ativas hoje** usa a data local de hoje, mesmo quando ela está fora do período filtrado. O cartão **Projeção das contas ativas até** usa o último dia do filtro. Ambos respeitam a conta selecionada e excluem contas inativas. A matriz continua seguindo as datas e a visão selecionadas.
+
+17/11/2026: ações da conta permanecem disponíveis no modal. Após lançar, o extrato retorna no mesmo modal; fechar atualiza a origem. Conferência Bling permite trocar de conta e solicita atualização em segundo plano a cada abertura, preservando histórico. Indicador ao lado do banco compara saldos de hoje: verde exige última consulta concluída hoje, cobertura completa e diferença zero; não certifica cada lançamento.
+
+Retiradas de sócios: classificação financeira específica, fora da DRE, relatório por data da baixa com filtro de conta/período, saídas, devoluções/estornos e líquido, detalhado por mês e favorecido. Baixas parciais contam somente o efetivamente movimentado; estorno entra na sua data. Movimentos antigos genéricos precisam de reclassificação auditada do título, sem repetir pagamentos. Não identifica retiradas pelo texto da descrição.

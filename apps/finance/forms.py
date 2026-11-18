@@ -96,6 +96,7 @@ class CashForm(forms.Form):
 
 
 class AccountEntryForm(forms.Form):
+    counterparty=forms.CharField(label='Favorecido / sócio (opcional)',max_length=240,required=False)
     key=forms.UUIDField(initial=uuid4,widget=forms.HiddenInput)
     direction=forms.ChoiceField(label='Movimento',choices=[('RECEIVE','Crédito — entrada'),('PAY','Débito — saída')])
     date=forms.DateField(label='Data efetiva',widget=DateInput(),initial=timezone.localdate,help_text='Baixas futuras aparecem no realizado na data informada. Estornar este lançamento também remove sua previsão.')

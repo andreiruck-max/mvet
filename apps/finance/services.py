@@ -95,7 +95,7 @@ def create_title(*, actor, key, data):
 
 
 @transaction.atomic
-def account_entry(*, actor, account_id, key, direction, date, description, amount, category, notes=''):
+def account_entry(*, actor, account_id, key, direction, date, description, amount, category, notes='', counterparty=''):
     """Manual cash entry via the existing obligation and settlement ledger."""
     require(actor,'core.view_finance'); require(actor,'core.operate_finance')
     require(actor,'core.create_financial_titles')
@@ -105,7 +105,7 @@ def account_entry(*, actor, account_id, key, direction, date, description, amoun
     domain_lock(); validate_date(date, future=True)
     account=account_for(account_id,date)
     title=create_title(actor=actor,key=key,data=dict(direction=direction,description=description,date=date,
-        due_date=date,amount=amount,account=account,category=category,opening=False,notes=notes))
+        due_date=date,amount=amount,account=account,category=category,opening=False,notes=notes,counterparty=counterparty))
     return settle(actor=actor,key=uuid5(UUID(str(key)),'account-entry-settlement'),title_id=title.pk,
         account_id=account_id,date=date,principal=amount,interest=ZERO,discount=ZERO,actual=amount,notes=notes,revision=0)
 

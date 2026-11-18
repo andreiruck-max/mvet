@@ -189,3 +189,28 @@ class BankTests(TestCase):
         run=self.queue();self.page(run,[self.row(contaFinanceira={'id':99})])
         self.assertIn('contaFinanceira.id',run.message)
         self.assertEqual(self.link.entries.get().amount,D('-13'))
+
+    def test_badge_and_open_refresh_with_automatic_disabled(self):
+        self.assertNotEqual(svc.balance_badge(self.account)['symbol'],'✓')
+        self.link.automatic=False;self.link.save()
+        self.client.force_login(self.actor)
+        response=self.client.post(reverse('bling_bank_refresh',args=[self.account.pk]),{'mode':'open'})
+        self.assertEqual(response.status_code,200)
+        run=self.link.runs.get()
+        run.status='DONE';run.finished_at=timezone.now();run.save()
+        for offset in range(3): BlingBankDay.objects.create(link=self.link,date=self.start+timedelta(days=offset),checked_at=timezone.now())
+        self.assertEqual(svc.balance_badge(self.account)['symbol'],'✓')
+        self.account.opening_balance=D('101');self.account.save()
+        self.assertEqual(svc.balance_badge(self.account)['symbol'],'≠')
+        run.status='FAILED';run.save()
+        self.assertNotEqual(svc.balance_badge(self.account)['symbol'],'✓')
+
+    def test_statement_account_switch_preserves_period(self):
+        self.client.force_login(self.actor)
+        other=FinancialAccount.objects.create(name='Outra',kind='BANK',opening_date=self.start)
+        response=self.client.get(reverse('bling_bank_statement',args=[self.account.pk]),{'account':other.pk,'period':'today'})
+        self.assertEqual(response.status_code,302)
+        self.assertIn(reverse('bling_bank_statement',args=[other.pk]),response.url)
+        self.assertIn('period=today',response.url)
+        response=self.client.get(reverse('bling_bank_statement',args=[self.account.pk]))
+        self.assertContains(response,'data-open-refresh="1"')

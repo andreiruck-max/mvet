@@ -30,7 +30,8 @@ def decorate(plan):
     plan.receipt_state='FULL' if plan.received==plan.face else 'PARTIAL' if plan.received else 'OPEN'
     plan.state='CANCELLED' if plan.cancelled else 'NEGATIVE' if plan.pending<0 else 'PAID' if plan.paid and plan.paid>=plan.total else 'PART_PAID' if plan.paid else 'RELEASED' if plan.released==plan.total and plan.total else 'PARTIAL' if plan.released else 'FORECAST'
     plan.state_label=dict([('CANCELLED','Cancelada'),('NEGATIVE','A compensar'),('PAID','Totalmente paga'),('PART_PAID','Parcialmente paga'),('RELEASED','Totalmente liberada'),('PARTIAL','Parcialmente liberada'),('FORECAST','Prevista')])[plan.state]
-    plan.face_difference=plan.sale.products_amount-plan.sale.discount+plan.sale.shipping_received-plan.face
+    plan.sale_value=plan.sale.products_amount-plan.sale.discount+plan.sale.shipping_received
+    plan.face_difference=plan.sale_value-plan.face
     return plan
 
 def filtered(actor,d):

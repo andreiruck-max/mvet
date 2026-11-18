@@ -81,10 +81,10 @@ def configure(*, actor, account_id, external, start_date, opening_balance, autom
 
 
 @transaction.atomic
-def enqueue(*, actor, link_id, start=None, end=None, automatic=False):
+def enqueue(*, actor, link_id, start=None, end=None, automatic=False, on_open=False):
     access(actor)
     obj = BlingBankLink.objects.select_for_update().get(pk=link_id)
-    if automatic and not obj.automatic:
+    if automatic and not obj.automatic and not on_open:
         return None
     today = timezone.localdate()
     if automatic:
@@ -270,3 +270,17 @@ def comparison(link, start, end):
         complete=period_complete, daily=[dict(date=d, local=local_daily.get(d,ZERO),
             remote=remote_daily.get(d,ZERO) if d in covered else None,
             difference=local_daily.get(d,ZERO)-remote_daily.get(d,ZERO) if d in covered else None) for d in reversed(days)])
+
+
+def balance_badge(account):
+    today=timezone.localdate()
+    link=BlingBankLink.objects.filter(account=account).select_related('account').first()
+    if not link: return dict(symbol='—',label='Sem vínculo Bling',css='')
+    run=link.runs.order_by('-pk').first()
+    if not run or run.status!='DONE' or not run.finished_at or timezone.localdate(run.finished_at)!=today:
+        return dict(symbol='◷',label='Bling: consulta pendente ou desatualizada',css='')
+    result=comparison(link,today,today)
+    difference=result['balance_difference'] if result else None
+    if difference is None: return dict(symbol='?',label='Bling: histórico incompleto ou saldo inicial ausente',css='')
+    if difference == ZERO: return dict(symbol='✓',label='Saldo igual ao Bling na consulta de hoje; não valida cada lançamento',css='bank-match')
+    return dict(symbol='≠',label='Saldo diferente do Bling na consulta de hoje',css='bank-mismatch')
