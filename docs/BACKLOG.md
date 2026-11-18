@@ -1,3 +1,5 @@
+18/11/2026 — Comissões: valor da venda (produtos − desconto + frete recebido) exibido separadamente da base no controle, conferência e detalhe. Cálculos e valores das comissões preservados.
+
 17/11/2026 — Movimentações no modal bancário, troca de conta e consulta Bling na abertura, indicador de igualdade de saldos com estado de atualização e relatório de retiradas de sócios fora da DRE.
 
 16/11/2026 — Bancos e saldos do fluxo abrem detalhes em pop-up, preservando a tela de origem. Cartão Saldo bancário atual dos indicadores abre o filtro padrão do fluxo.
