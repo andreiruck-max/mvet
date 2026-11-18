@@ -19,7 +19,9 @@ CSRF têm nomes próprios para não derrubar a sessão do 2.0 no mesmo navegador
 bloqueia transporte HTTP, OAuth e XML, inclusive com tokens em uma cópia do banco.
 Rede Docker interna fornece segunda barreira contra saída externa. O build precisa
 acessar os registros de imagens/dependências; isso ocorre antes da execução do app.
-Não acrescentar uma segunda rede, não usar host networking ou credenciais reais.
+Apenas o gateway Nginx sem credenciais usa também a rede de entrada e publica a
+porta 8001. Ele encaminha HTTP exclusivamente ao lab-web; não é proxy de saída.
+Não acrescentar segunda rede ao app/banco, nem usar host networking ou credenciais reais.
 O bloqueio não cria escopo empresarial: isso pertence às próximas PRs.
 
 ## Inicialização com dados sintéticos

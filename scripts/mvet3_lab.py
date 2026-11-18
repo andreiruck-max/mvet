@@ -30,12 +30,16 @@ def validate_config():
     cfg = json.loads(run("config", "--format", "json", capture_output=True, text=True).stdout)
     if cfg["name"] != "mvet3":
         raise RuntimeError("Projeto incorreto")
-    if set(cfg["services"]) != {"lab-web", "lab-db"}:
+    if set(cfg["services"]) != {"lab-web", "lab-db", "lab-gateway"}:
         raise RuntimeError("Serviços incorretos")
     if cfg["networks"]["lab"]["internal"] is not True:
         raise RuntimeError("Rede permite saída externa")
     if cfg["volumes"]["lab_pgdata"]["name"] != "mvet3_lab_pgdata":
         raise RuntimeError("Volume incorreto")
+    for name in ("lab-web", "lab-db"):
+        service = cfg["services"][name]
+        if set(service["networks"]) != {"lab"} or service.get("ports"):
+            raise RuntimeError("Aplicação/banco expostos fora da rede interna")
     print("Projeto mvet3; volume mvet3_lab_pgdata; rede interna; HTTP 127.0.0.1:8001")
 
 
@@ -62,7 +66,7 @@ def main():
         return
     validate_config()
     if action == "build":
-        run("build", "lab-web")
+        run("build", "lab-web", "lab-gateway")
     elif action == "start-db":
         run("up", "-d", "--wait", "lab-db")
     elif action == "stop":
@@ -74,7 +78,7 @@ def main():
                        "check": ["check"]}[action]
             run("run", "--rm", "--no-deps", "lab-web", "python", "manage.py", *command)
         elif action == "up":
-            run("up", "-d", "lab-web")
+            run("up", "-d", "lab-web", "lab-gateway")
         elif action == "restore-test":
             # Synthetic laboratory source only; never reads a production dump.
             target = "mvet3_restore_" + uuid.uuid4().hex

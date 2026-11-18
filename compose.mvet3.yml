@@ -21,12 +21,17 @@ services:
       DJANGO_SETTINGS_MODULE: config.settings_mvet3
       DJANGO_SECRET_KEY: ${MVET3_SECRET_KEY:?Execute python scripts/mvet3_lab.py init}
       POSTGRES_PASSWORD: ${MVET3_DB_PASSWORD:?Execute python scripts/mvet3_lab.py init}
-    ports: ["127.0.0.1:8001:8000"]
     networks: [lab]
     depends_on:
       lab-db:
         condition: service_healthy
+  lab-gateway:
+    build: ./docker/mvet3-gateway
+    ports: ["127.0.0.1:8001:8000"]
+    networks: [edge, lab]
+    depends_on: [lab-web]
 networks:
+  edge:
   lab:
     internal: true
 volumes:
