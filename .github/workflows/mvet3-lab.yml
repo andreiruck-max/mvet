@@ -5,6 +5,7 @@ permissions:
 jobs:
   isolated-docker:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -21,11 +22,14 @@ jobs:
       - run: python scripts/mvet3_lab.py up
       - name: Verify HTTP and blocked egress
         run: |
-          curl --retry 20 --retry-delay 2 --retry-connrefused --fail http://127.0.0.1:8001/entrar/ -o /dev/null
+          curl --connect-timeout 2 --max-time 5 --retry-max-time 60 --retry 10 --retry-delay 2 --retry-connrefused --fail http://127.0.0.1:8001/entrar/ -o /dev/null
           docker compose --project-name mvet3 --env-file .env.mvet3 --file compose.mvet3.yml exec -T lab-web python -c "import socket; s=socket.socket(); s.settimeout(3); result=s.connect_ex(('1.1.1.1',443)); s.close(); assert result != 0, 'External egress is available'"
       - run: pip install playwright==1.58.0
       - run: python -m playwright install --with-deps chromium
       - run: python scripts/test_mvet3_browser.py
+      - name: Diagnose failed startup
+        if: failure()
+        run: docker compose --project-name mvet3 --env-file .env.mvet3 --file compose.mvet3.yml logs --tail=60 lab-web
       - name: Stop laboratory without removing data
         if: always()
         run: python scripts/mvet3_lab.py stop
