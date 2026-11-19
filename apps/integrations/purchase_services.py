@@ -172,6 +172,8 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
         price=Decimal(row['price'])
         item_discount=Decimal(treatment.get('discount') or 0)
         net_basis=(quantity*price).quantize(CENT,rounding=ROUND_HALF_UP)-item_discount
+        if net_basis < 0:
+            raise ValidationError('Desconto do item não pode exceder o valor bruto da linha.')
         items.append(dict(product_id=product.pk if product else None,quantity=quantity,unit_cost=price,discount=item_discount,
             ncm=ncm,ipi=ipi,st=Decimal('0'),difal=Decimal('0'),net_basis=net_basis,
             moves_stock=mode!='NONSTOCK',name=row['name'],category_id=treatment.get('category').pk if treatment.get('category') else None))
