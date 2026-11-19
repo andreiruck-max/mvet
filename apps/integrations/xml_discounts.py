@@ -29,12 +29,14 @@ def extract(raw, payload):
             return Decimal(decimal_text(node.findtext('n:'+name, namespaces=NS), 2))
         if money(total, 'vNF') != Decimal(decimal_text(payload.get('valorNota'), 2)):
             raise ValueError
-        products = info.findall('n:det/n:prod', NS)
+        details = info.findall('n:det', NS)
+        products = [detail.find('n:prod', NS) for detail in details]
         items = payload.get('itens', [])
-        if not products or len(products) != len(items):
+        if not products or any(product is None for product in products) or len(products) != len(items):
             raise ValueError
         discounts = []
-        for product, item in zip(products, items):
+        tax_items = []
+        for detail, product, item in zip(details, products, items):
             if product.findtext('n:cProd', namespaces=NS) != str(item.get('codigo')):
                 raise ValueError
             quantity = Decimal(decimal_text(product.findtext('n:qCom', namespaces=NS), 4))
@@ -48,10 +50,18 @@ def extract(raw, payload):
             if discount > gross:
                 raise ValueError
             discounts.append(discount)
+            ncm = product.findtext('n:NCM', default='', namespaces=NS).strip()
+            if ncm and (len(ncm) != 8 or not ncm.isascii() or not ncm.isdecimal()):
+                raise ValueError
+            ipi = Decimal(decimal_text(detail.findtext('n:imposto/n:IPI/n:IPITrib/n:vIPI', default='0', namespaces=NS), 2))
+            tax_items.append({'ncm': ncm, 'ipi': str(ipi)})
         discount = money(total, 'vDesc')
         if sum(discounts) != discount:
             raise ValueError
-        return {'total': str(discount), 'items': [str(value) for value in discounts]}
+        total_ipi = Decimal(decimal_text(total.findtext('n:vIPI', default='0', namespaces=NS), 2))
+        if sum((Decimal(tax['ipi']) for tax in tax_items), Decimal('0')) != total_ipi:
+            raise ValueError
+        return {'total': str(discount), 'items': [str(value) for value in discounts], 'tax_items': tax_items}
     except (ET.ParseError, ValueError, TypeError, AttributeError, KeyError):
         raise ValidationError('XML não corresponde aos valores ou itens da nota. Reconsulte antes de confirmar.') from None
 

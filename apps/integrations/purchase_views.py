@@ -61,7 +61,7 @@ def detail(request, pk):
         prefix='new_supplier',initial=dict(legal_name=source.get('supplier_name',''),document=source.get('supplier_document',''),
             phone=source.get('supplier_phone',''),email=source.get('supplier_email',''),trade_name=source.get('supplier_trade_name','')))
     item_initial = [{'product': Product.objects.filter(sku=row['code'], active=True, kind='SIMPLE').first(),
-        'discount':Decimal(row.get('discount', '0')), 'new_sku':row['code'] if len(row['code'])<=60 else '', 'new_name':row['name'],'new_unit':'UN',
+        'discount':Decimal(row.get('discount', '0')), 'ncm':row.get('ncm',''), 'ipi':Decimal(row.get('ipi','0')), 'new_sku':row['code'] if len(row['code'])<=60 else '', 'new_name':row['name'],'new_unit':'UN',
         'mode':invoice.review_overrides.get('item_mode','STOCK'),'category':invoice.review_overrides.get('category')} for row in source.get('items', [])]
     items = PurchaseProducts(post, initial=item_initial, prefix='products')
     schedule = [{'due_date': date.fromisoformat(row['date']), 'amount': Decimal(row['amount']), 'notes': ''} for row in source.get('installments', [])]

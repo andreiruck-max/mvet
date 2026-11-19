@@ -53,10 +53,15 @@ class ItemForm(forms.Form):
     quantity=forms.DecimalField(label='Quantidade',max_digits=18,decimal_places=4,min_value=Decimal('0.0001'),initial=1)
     unit_cost=forms.DecimalField(label='Preço unitário (R$)',max_digits=24,decimal_places=6,min_value=0)
     discount=forms.DecimalField(label='Desconto total deste item (R$)',max_digits=18,decimal_places=2,min_value=0,initial=Decimal('0.00'),required=False)
+    ncm=forms.CharField(label='NCM (8 dígitos)',max_length=8,required=False)
+    ipi=forms.DecimalField(label='IPI deste item, incluído na NF (R$)',max_digits=18,decimal_places=2,min_value=0,required=False,initial=Decimal('0.00'))
+    st=forms.DecimalField(label='ICMS-ST de entrada, fora da NF (R$)',max_digits=18,decimal_places=2,min_value=0,required=False,initial=Decimal('0.00'))
+    difal=forms.DecimalField(label='DIFAL de entrada, fora da NF (R$)',max_digits=18,decimal_places=2,min_value=0,required=False,initial=Decimal('0.00'))
 
     def clean(self):
         data=super().clean();data['mode']=data.get('mode') or 'STOCK'
-        data['discount']=data.get('discount') or Decimal('0')
+        for field in ('discount','ipi','st','difal'):
+            data[field]=data.get(field) or Decimal('0')
         if data['mode']=='STOCK':
             if not data.get('product'):self.add_error('product','Selecione um produto.')
             data['category']=None
