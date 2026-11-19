@@ -1,6 +1,6 @@
 """Assisted incoming NF-e import: stage first, create an editable draft only."""
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from uuid import uuid4
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -10,6 +10,43 @@ from apps.purchases import services as purchases
 from apps.products.models import Product
 from .models import PurchaseInvoiceImport
 from .normalization import normalize, text, decimal_text
+
+CENT=Decimal('0.01')
+
+
+def parse_ncm_taxes(raw, label):
+    """Explicit tax amounts from accounting, keyed by NCM; never infer from NF total."""
+    totals={}
+    for line in str(raw or '').splitlines():
+        line=line.strip()
+        if not line:
+            continue
+        if line.count('=') != 1:
+            raise ValidationError(f'{label}: informe uma linha por NCM no formato 85437092=510,82.')
+        ncm,amount=(part.strip() for part in line.split('=',1))
+        if len(ncm)!=8 or not ncm.isascii() or not ncm.isdecimal() or ncm in totals:
+            raise ValidationError(f'{label}: NCM inválido ou repetido: {ncm}.')
+        amount=amount.replace('R$', '').replace(' ', '')
+        if ',' in amount:
+            amount=amount.replace('.', '').replace(',', '.')
+        try:
+            value=Decimal(decimal_text(amount,2))
+        except (InvalidOperation, ValidationError):
+            raise ValidationError(f'{label}: valor inválido no NCM {ncm}.') from None
+        totals[ncm]=value
+    return totals
+
+
+def allocate_ncm_taxes(items, totals, field):
+    """Exact-cent allocation only among matching NCM lines, by net product value."""
+    for ncm,amount in totals.items():
+        indices=[idx for idx,item in enumerate(items) if item['ncm']==ncm]
+        if not indices:
+            raise ValidationError(f'{field.upper()}: NCM {ncm} não corresponde a nenhum item da nota.')
+        basis=[items[idx]['net_basis'] for idx in indices]
+        shares=purchases.allocation(basis,amount)
+        for index,share in zip(indices,shares):
+            items[index][field]=share
 
 
 def normalize_purchase(payload, issuer):
@@ -95,7 +132,7 @@ def stage(*, actor, connection, payload):
 
 
 @transaction.atomic
-def create_draft(*, actor, invoice_id, revision, supplier, location, products, discount, freight, other_costs, installments, reviewed, acquisition_kind='NORMAL', treatments=None, supplier_data=None, external_freight=None, account=None):
+def create_draft(*, actor, invoice_id, revision, supplier, location, products, discount, freight, other_costs, installments, reviewed, acquisition_kind='NORMAL', treatments=None, supplier_data=None, external_freight=None, account=None, st_by_ncm='', difal_by_ncm=''):
     require(actor, 'core.operate_purchases'); domain_lock()
     invoice = PurchaseInvoiceImport.objects.select_for_update().get(pk=invoice_id)
     if invoice.purchase_id: return invoice.purchase
@@ -116,6 +153,8 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
     treatments=treatments or [{} for _ in source_rows]
     if len(treatments)!=len(source_rows):raise ValidationError('Confira o tratamento de todos os itens.')
     items = []
+    st_groups=parse_ncm_taxes(st_by_ncm,'ICMS-ST')
+    difal_groups=parse_ncm_taxes(difal_by_ncm,'DIFAL')
     from apps.products.services import save_product
     for product, row, treatment in zip(products, source_rows,treatments):
         mode=treatment.get('mode','STOCK')
@@ -123,13 +162,28 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
         if mode=='NEW':
             product=save_product(actor=actor,data=dict(sku=treatment.get('new_sku',''),name=treatment.get('new_name',''),unit=treatment.get('new_unit','UN'),kind='SIMPLE',active=True))
         if mode!='NONSTOCK' and not product:raise ValidationError('Selecione ou cadastre o produto que entrará no estoque.')
-        items.append(dict(product_id=product.pk if product else None,quantity=Decimal(row['quantity']),unit_cost=Decimal(row['price']),discount=treatment.get('discount',Decimal('0')),
+        ncm=str(treatment.get('ncm') or row.get('ncm') or '').strip()
+        if row.get('ncm') and ncm!=row['ncm']:
+            raise ValidationError('NCM diverge do XML validado. Reconsulte o documento.')
+        ipi=Decimal(treatment.get('ipi') or 0)
+        if 'ipi' in row and ipi!=Decimal(row['ipi']):
+            raise ValidationError('IPI diverge do XML validado. Reconsulte o documento.')
+        quantity=Decimal(row['quantity'])
+        price=Decimal(row['price'])
+        item_discount=Decimal(treatment.get('discount') or 0)
+        net_basis=(quantity*price).quantize(CENT,rounding=ROUND_HALF_UP)-item_discount
+        items.append(dict(product_id=product.pk if product else None,quantity=quantity,unit_cost=price,discount=item_discount,
+            ncm=ncm,ipi=ipi,st=Decimal('0'),difal=Decimal('0'),net_basis=net_basis,
             moves_stock=mode!='NONSTOCK',name=row['name'],category_id=treatment.get('category').pk if treatment.get('category') else None))
+    allocate_ncm_taxes(items,st_groups,'st')
+    allocate_ncm_taxes(items,difal_groups,'difal')
+    for item in items:
+        item.pop('net_basis')
     purchase = purchases.save_draft(actor=actor, key=uuid4(), data=dict(supplier=supplier, location=location, account=account,
         document=invoice.number, series=invoice.series, date=invoice.issued_on, acquisition_kind=acquisition_kind,discount=discount,
         freight=freight, external_freight=external_freight or Decimal(0), other_costs=other_costs, notes='Importada do Bling; conferir parcelas e recebimento.'), items=items, installments=installments)
-    # Financial composition must reconcile; no hidden inference for discount/tax.
-    fiscal_composition=purchase.products_total-purchase.item_discounts-discount+freight+other_costs
+    # The supplier's invoice includes IPI, but entry ST/DIFAL must not enter its debt.
+    fiscal_composition=purchase.total
     if fiscal_composition != Decimal(invoice.source['total']):
         raise ValidationError(purchases.reconciliation_message(Decimal(invoice.source['total']),fiscal_composition,'Total dos itens com descontos e custos'))
     purchase.source='bling';purchase.external_id=invoice.external_id;purchase.save(update_fields=['source','external_id'])
