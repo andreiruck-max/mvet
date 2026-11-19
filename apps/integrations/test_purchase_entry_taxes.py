@@ -58,6 +58,7 @@ class PurchaseEntryTaxTests(Fixture, TestCase):
         return service.create_draft(**data)
 
     def test_zebu_multiple_lines_share_st_by_value_not_quantity(self):
+        before_movements=StockMovement.objects.count()
         invoice=self.stage_invoice()
         purchase=self.import_note(invoice)
         lines=list(purchase.items.order_by('pk'))
@@ -75,7 +76,7 @@ class PurchaseEntryTaxTests(Fixture, TestCase):
         self.assertEqual([line.landed_unit_cost for line in lines[:3]],
             [D('166.800000'),D('475.440000'),D('88.943333')])
         self.assertFalse(FinancialTitle.objects.exists())
-        self.assertFalse(StockMovement.objects.exists())
+        self.assertEqual(StockMovement.objects.count(),before_movements)
 
         purchase=purchases.confirm(actor=self.actor,purchase_id=purchase.pk,revision=purchase.revision)
         self.assertEqual(FinancialTitle.objects.count(),4)
@@ -99,7 +100,7 @@ class PurchaseEntryTaxTests(Fixture, TestCase):
                 self.import_note(invoice,st_by_ncm=st,difal_by_ncm=difal)
         self.assertFalse(self.supplier.purchases.exists())
 
-    def test_missing_xml_ncm_requires_explicit_review_before_tax_allocation(self):
+    def test_validated_xml_ncm_is_used_when_review_field_is_blank(self):
         invoice=self.stage_invoice()
         treatments=[dict(mode='STOCK',discount=D(r[3]),ipi=D(r[4]),ncm='') for r in ROWS]
         # XML NCM is authoritative even if UI input is missing: derive from validated source.
