@@ -54,7 +54,7 @@
     {% if perms.core.view_dre %}<a href="{% url 'dre' %}">DRE gerencial</a>{% endif %}
     {% if can_manage_settings or user.is_staff or user.is_superuser %}<details class="nav-submenu" data-menu="settings"><summary>Configurações</summary>
     {% if can_manage_settings %}<a href="{% url 'configuration' %}">Central de configurações</a>{% endif %}
-    {% if user.is_superuser %}<a href="{% url 'bling_connection' %}">Conexão Bling</a><a href="{% url 'user_access_list' %}">Funcionários e acessos</a>{% endif %}
+    {% if user.is_superuser %}<a href="{% url 'bling_connection' %}">Conexão Bling</a><a href="{% url 'user_access_list' %}">Funcionários e acessos</a><a href="{% url 'company_registry' %}">Empresas · preparação 3.0</a>{% endif %}
     {% if user.is_staff %}<a href="{% url 'admin:index' %}">Administração</a>{% endif %}</details>{% endif %}
     <p class="nav-empty" hidden>Nenhuma tela encontrada.</p>
   </nav>

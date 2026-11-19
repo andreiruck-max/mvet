@@ -15,7 +15,13 @@ from apps.purchases.views import supplier_summary
 from apps.finance.views import cash_api
 from apps.expenses.views import report_api as expense_report_api
 
+from apps.core.companies import registry as company_registry
+from apps.accounts.company_access import access as company_user_access
+
 urlpatterns = [
+    path('empresas/', company_registry, name='company_registry'),
+    path('empresas/<int:pk>/', company_registry, name='company_registry_edit'),
+    path('usuarios/<int:user_id>/empresas/<int:company_id>/', company_user_access, name='company_user_access'),
     path('indicadores/evolucao/', reports.evolution, name='report_evolution'),
     path('indicadores/ordem-cartoes/', reports.dashboard_order, name='dashboard_order'),
     path('comissoes/', include('apps.commissions.urls')),
