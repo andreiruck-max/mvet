@@ -1,5 +1,6 @@
 """Synthetic purchase tax preview, import and isolated installment cancellation."""
 import os
+import re
 from unittest import skipUnless
 from pathlib import Path
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
@@ -41,8 +42,15 @@ class PurchaseTaxesBrowser(Fixture,StaticLiveServerTestCase):
             page.get_by_text('Compra confirmada. Parcelas registradas; estoque aguarda recebimento.',exact=True).wait_for()
             Path('artifacts').mkdir(exist_ok=True)
             page.screenshot(path='artifacts/purchase-tax-preview-confirmed.png',full_page=True)
+            href=page.get_by_role('link',name=re.compile('Parcela 1 —')).get_attribute('href')
+            page.goto(self.live_server_url+href)
+            page.get_by_text('Cancelar somente este título / parcela',exact=True).click()
+            page.get_by_label('Motivo:',exact=True).fill('Dispensa da parcela sintética')
+            page.get_by_role('button',name='Cancelar título',exact=True).click()
+            page.get_by_text('Operação financeira confirmada.',exact=True).wait_for()
             self.assertEqual(errors,[])
             browser.close()
         purchase=Purchase.objects.get()
         self.assertEqual(purchase.total,110)
         self.assertEqual(purchase.acquisition_total,130)
+        self.assertEqual(purchase.installments.get().status,"CANCELLED")

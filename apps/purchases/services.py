@@ -129,7 +129,7 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
     ipi_total=sum((item['ipi']+item['invoice_st']+item['invoice_other_tax'] for item in items),Decimal('0.00'))
     purchase.total=net_total-purchase.discount+purchase.freight+purchase.other_costs+ipi_total
     if purchase.acquisition_kind=='BONUS':
-        if purchase.discount or purchase.freight or purchase.external_freight or purchase.other_costs or installments or any(i[tax] for i in items for tax in ('ipi','st','difal','invoice_st','invoice_other_tax','recoverable_tax')):raise ValidationError('Bonificação não gera parcelas nem custos pagos. Registre custos cobrados separadamente.')
+        if purchase.discount or purchase.freight or purchase.external_freight or purchase.other_costs or installments or any(i[tax] for i in items for tax in ('st','difal','recoverable_tax')):raise ValidationError('Bonificação não gera parcelas nem custos pagos. Registre custos cobrados separadamente.')
         if any(not i['moves_stock'] for i in items):raise ValidationError('Bonificação exige itens destinados ao estoque.')
         purchase.total=Decimal('0.00')
     # The supplier invoice includes IPI; ST/DIFAL assessed on entry are separate obligations.
@@ -138,9 +138,10 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
     direct_total=sum(direct,Decimal(0))
     if direct_total>purchase.freight+purchase.other_costs:
         raise ValidationError('Frete/seguro/despesas da NF não podem ser menores que os componentes por item do XML.')
-    allocated=allocation(net_subtotals,purchase.total-ipi_total-direct_total)
+    allocated=allocation(net_subtotals,net_total-purchase.discount+purchase.freight+purchase.other_costs-direct_total)
     allocated=[value+charge for value,charge in zip(allocated,direct)]
     allocated=[value+item['ipi']+item['invoice_st']+item['invoice_other_tax']+item['st']+item['difal']-item['recoverable_tax'] for value,item in zip(allocated,items)]
+    if purchase.acquisition_kind=='BONUS':allocated=[Decimal('0.00') for _ in items]
     if any(value<0 for value in allocated):raise ValidationError('Crédito tributário não pode exceder o custo da linha.')
     if purchase.external_freight:
         # Carrier freight increases the inventory value only; never the supplier debt.
@@ -255,7 +256,7 @@ def create_tax_obligation(*,actor,purchase_id,kind,counterparty,due_date,account
     if not counterparty.strip():raise ValidationError('Informe o credor fiscal.')
     amount=sum((getattr(i,kind.lower()) for i in purchase.items.all()),Decimal(0))
     if amount<=0:raise ValidationError('Esta compra não possui esse tributo externo.')
-    title=create_title(actor=actor,key=uuid4(),data=dict(direction='PAY',
+    title=create_title(actor=actor,key=uuid4(),source='purchase_tax',data=dict(direction='PAY',
         description=f'{kind} externo · compra {purchase.document}/{purchase.series}',
         counterparty=counterparty,date=purchase.date,due_date=due_date,amount=amount,account=account,
         category='PRINCIPAL',notes='Encargo de aquisição / crédito tributário. Não lançar novamente como despesa.'))

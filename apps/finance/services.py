@@ -72,15 +72,16 @@ def delete_account(*, actor, pk):
 
 
 @transaction.atomic
-def create_title(*, actor, key, data):
+def create_title(*, actor, key, data, source="manual"):
     require(actor,'core.create_financial_titles')
     require(actor,'core.operate_finance'); domain_lock()
+    if source not in {'manual','purchase_tax'}:raise ValidationError('Origem de título inválida.')
     allowed = {'direction','description','counterparty','date','due_date','amount','account','category','opening','notes'}
     if set(data)-allowed: raise ValidationError('Campo de título inválido.')
     data={**data,'amount':number(data['amount'],CENT)}
     key, fingerprint, existing = repeat(Title,key,[actor.pk,{k:str(v.pk if hasattr(v,'pk') else v) for k,v in data.items()}])
     if existing: return existing
-    title = Title(key=key,fingerprint=fingerprint,actor=actor,**data)
+    title = Title(key=key,fingerprint=fingerprint,actor=actor,source=source,**data)
     number(title.amount,CENT)
     cutoff = Company.objects.get(pk=1).cutover_date
     if title.opening:

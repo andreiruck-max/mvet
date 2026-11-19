@@ -201,10 +201,9 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
         freight=freight, external_freight=external_freight or Decimal(0), other_costs=other_costs, notes='Importada do Bling; conferir parcelas e recebimento.'), items=items, installments=installments)
     # Bonus invoices retain a fiscal document but create no supplier obligation.
     # Normal purchases include IPI in the supplier NF, and exclude separately paid entry ST/DIFAL.
-    if acquisition_kind != 'BONUS':
-        fiscal_composition=purchase.total
-        if fiscal_composition != Decimal(invoice.source['total']):
-            raise ValidationError(purchases.reconciliation_message(Decimal(invoice.source['total']),fiscal_composition,'Total dos itens com descontos e custos'))
+    fiscal_composition=purchase.products_total-purchase.item_discounts-discount+freight+other_costs+sum((i.ipi+i.invoice_st+i.invoice_other_tax for i in purchase.items.all()),Decimal(0))
+    if fiscal_composition != Decimal(invoice.source['total']):
+        raise ValidationError(purchases.reconciliation_message(Decimal(invoice.source['total']),fiscal_composition,'Total dos itens com descontos e custos'))
     purchase.source='bling';purchase.external_id=invoice.external_id;purchase.save(update_fields=['source','external_id'])
     invoice.purchase = purchase; invoice.approved_source = invoice.source; invoice.revision += 1; invoice.save()
     audit(actor, invoice, 'bling_purchase_draft', after={'purchase': purchase.pk, 'reviewed': True,'acquisition_kind':acquisition_kind,'items':[{k:str(v) for k,v in i.items()} for i in items]})

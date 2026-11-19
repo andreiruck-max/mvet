@@ -211,3 +211,26 @@ class PurchaseEntryTaxTests(Fixture, TestCase):
         p=purchases.save_draft(actor=self.actor,key=uuid4(),data=data,items=lines,installments=[])
         self.assertEqual(p.total,D('240'))
         self.assertEqual(list(p.items.values_list('allocated_total',flat=True)),[D('140'),D('100')])
+
+    def test_bonus_keeps_fiscal_ipi_but_zero_inventory_value_and_no_payables(self):
+        from uuid import uuid4
+        data=dict(supplier=self.supplier,document='BONUS-IPI',series='',date=timezone.localdate(),location=self.location,
+            discount=D(0),freight=D(0),other_costs=D(0),notes='',acquisition_kind='BONUS',taxes_reviewed=True)
+        p=purchases.save_draft(actor=self.actor,key=uuid4(),data=data,
+            items=[dict(product_id=self.product.pk,quantity=D(1),unit_cost=D(100),ipi=D(10))],installments=[])
+        self.assertEqual(p.total,0)
+        self.assertEqual(p.items.get().ipi,10)
+        self.assertEqual(p.items.get().allocated_total,0)
+        p=purchases.confirm(actor=self.actor,purchase_id=p.pk,revision=p.revision)
+        purchases.receive(actor=self.actor,purchase_id=p.pk,revision=p.revision,date=timezone.localdate())
+        self.assertFalse(FinancialTitle.objects.exists())
+
+    def test_received_cost_does_not_rewrite_existing_sale_cmv(self):
+        sale=self.confirmed()
+        original=sale.cmv
+        self.products[0]=self.product
+        p=self.import_note(self.stage_invoice())
+        p=purchases.confirm(actor=self.actor,purchase_id=p.pk,revision=p.revision)
+        purchases.receive(actor=self.actor,purchase_id=p.pk,revision=p.revision,date=timezone.localdate())
+        sale.refresh_from_db()
+        self.assertEqual(sale.cmv,original)
