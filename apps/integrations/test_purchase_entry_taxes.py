@@ -164,7 +164,7 @@ class PurchaseEntryTaxTests(Fixture, TestCase):
         data['valorNota']='3783.98'
         data['_xml_discounts']=extract(raw.replace(b'<vNF>3760.24',b'<vNF>3783.98'),data)
         row=service.stage(actor=self.actor,connection=self.connection,payload=data)
-        with self.assertRaisesMessage(ValidationError,'-23.74'):self.import_note(row)
+        with self.assertRaisesMessage(ValidationError,'23,74'):self.import_note(row)
         self.assertFalse(self.supplier.purchases.exists())
 
     def test_imported_draft_cannot_change_supplier_fiscal_total(self):

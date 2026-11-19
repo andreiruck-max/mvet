@@ -162,7 +162,7 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
     if len(treatments)!=len(source_rows):raise ValidationError('Confira o tratamento de todos os itens.')
     fiscal=invoice.source.get('fiscal')
     if fiscal and (Decimal(fiscal['difference']) or fiscal['issues']):
-        raise ValidationError('Composição fiscal não conciliada: NF R$ '+fiscal['vNF']+'; reconstruído R$ '+fiscal['reconstructed']+'; diferença R$ '+fiscal['difference']+'. '+' '.join(fiscal['issues']))
+        raise ValidationError('Composição fiscal não conciliada. '+purchases.reconciliation_message(Decimal(fiscal['vNF']),Decimal(fiscal['reconstructed']),'Total reconstruído do XML')+' '+' '.join(fiscal['issues']))
     items = []
     st_groups=parse_ncm_taxes(st_by_ncm,'ICMS-ST')
     difal_groups=parse_ncm_taxes(difal_by_ncm,'DIFAL')
