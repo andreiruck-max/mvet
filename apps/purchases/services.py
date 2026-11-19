@@ -33,7 +33,7 @@ def allocation(subtotals,total):
     return [value*CENT for value in whole]
 
 def snapshot(purchase):
-    return {**{field:str(getattr(purchase,field)) for field in FIELDS},'status':purchase.status,'total':str(purchase.total),'revision':purchase.revision,'items':list(purchase.items.values('product_id','sku_snapshot','name_snapshot','moves_stock','category_snapshot')),'quantities_costs':[(str(i.quantity),str(i.unit_cost),str(i.allocated_total),str(i.nonstock_total),str(i.discount)) for i in purchase.items.all()],'installments':[(i.number,str(i.due_date),str(i.amount),i.notes) for i in purchase.installments.all()]}
+    return {**{field:str(getattr(purchase,field)) for field in FIELDS},'status':purchase.status,'total':str(purchase.total),'revision':purchase.revision,'items':list(purchase.items.values('product_id','sku_snapshot','name_snapshot','moves_stock','category_snapshot')),'quantities_costs':[(str(i.quantity),str(i.unit_cost),str(i.allocated_total),str(i.nonstock_total),str(i.discount),i.ncm,str(i.ipi),str(i.st),str(i.difal)) for i in purchase.items.all()],'installments':[(i.number,str(i.due_date),str(i.amount),i.notes) for i in purchase.installments.all()]}
 
 def validate_active(purchase):
     if not Supplier.objects.filter(pk=purchase.supplier_id,active=True).exists():raise ValidationError('Fornecedor inativo.')
@@ -115,18 +115,27 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
         if (stock or pid is not None) and pid not in products:raise ValidationError('Compra exige produtos simples ativos. Kits virtuais não são recebidos.')
         subtotal=(qty*cost).quantize(CENT,rounding=ROUND_HALF_UP)
         item['discount']=number(item.get('discount',Decimal('0')),CENT,zero=True)
+        item['ncm']=str(item.get('ncm') or '').strip()
+        if item['ncm'] and (len(item['ncm'])!=8 or not item['ncm'].isascii() or not item['ncm'].isdecimal()):
+            raise ValidationError('NCM do item deve ter 8 dígitos.')
+        for tax in ('ipi','st','difal'):
+            item[tax]=number(item.get(tax,Decimal('0')),CENT,zero=True)
         if item['discount']>subtotal:raise ValidationError('Desconto do item não pode exceder seu subtotal.')
         subtotals.append(subtotal)
         net_subtotals.append(subtotal-item['discount'])
     purchase.products_total=sum(subtotals,Decimal('0'))
     net_total=sum(net_subtotals,Decimal('0'))
     if purchase.discount>net_total:raise ValidationError('Desconto geral não pode exceder o total após os descontos dos itens.')
-    purchase.total=net_total-purchase.discount+purchase.freight+purchase.other_costs
+    ipi_total=sum((item['ipi'] for item in items),Decimal('0.00'))
+    purchase.total=net_total-purchase.discount+purchase.freight+purchase.other_costs+ipi_total
     if purchase.acquisition_kind=='BONUS':
-        if purchase.discount or purchase.freight or purchase.external_freight or purchase.other_costs or installments:raise ValidationError('Bonificação não gera parcelas nem custos pagos. Registre custos cobrados separadamente.')
+        if purchase.discount or purchase.freight or purchase.external_freight or purchase.other_costs or installments or any(i[tax] for i in items for tax in ('ipi','st','difal')):raise ValidationError('Bonificação não gera parcelas nem custos pagos. Registre custos cobrados separadamente.')
         if any(not i['moves_stock'] for i in items):raise ValidationError('Bonificação exige itens destinados ao estoque.')
         purchase.total=Decimal('0.00')
-    allocated=allocation(net_subtotals,purchase.total)
+    # The supplier invoice includes IPI; ST/DIFAL assessed on entry are separate obligations.
+    # Allocate only general invoice charges; keep each line's IPI/ST/DIFAL on that same SKU.
+    allocated=allocation(net_subtotals,purchase.total-ipi_total)
+    allocated=[value+item['ipi']+item['st']+item['difal'] for value,item in zip(allocated,items)]
     if purchase.external_freight:
         # Carrier freight increases the inventory value only; never the supplier debt.
         stock_basis=[value if item['moves_stock'] else Decimal('0') for item,value in zip(items,net_subtotals)]
@@ -144,6 +153,7 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
     for item,subtotal,value in zip(items,subtotals,allocated):
         p=products.get(item.get('product_id'));stock=item['moves_stock'];qty=item['quantity']
         obj=PurchaseItem(purchase=purchase,product=p,quantity=qty,unit_cost=item['unit_cost'],subtotal=subtotal,discount=item['discount'],
+            ncm=item['ncm'],ipi=item['ipi'],st=item['st'],difal=item['difal'],
             moves_stock=stock,allocated_total=value if stock else Decimal('0'),nonstock_total=Decimal('0') if stock else value,
             category_id=item.get('category_id'),category_snapshot=item['category_snapshot'],
             landed_unit_cost=quant(value/qty) if stock else Decimal('0'),sku_snapshot=p.sku if p else '',name_snapshot=p.name if p else item['name'])
