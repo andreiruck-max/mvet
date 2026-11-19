@@ -66,8 +66,12 @@ class Purchase(models.Model):
         indexes=[models.Index(fields=['supplier','date'])]
 
     @property
+    def external_tax_total(self):
+        return sum((item.st + item.difal for item in self.items.all()), Decimal('0.00'))
+
+    @property
     def acquisition_total(self):
-        return self.total + self.external_freight
+        return self.total + self.external_freight + self.external_tax_total
 
     @property
     def item_discounts(self):
@@ -84,6 +88,10 @@ class PurchaseItem(models.Model):
     unit_cost=models.DecimalField('Preço unitário (R$)',max_digits=24,decimal_places=6,validators=[MinValueValidator(0)])
     subtotal=money('Subtotal')
     discount=money('Desconto deste item (R$)')
+    ncm=models.CharField('NCM fiscal',max_length=8,blank=True)
+    ipi=money('IPI na NF (R$)')
+    st=money('ICMS-ST de entrada, fora da NF (R$)')
+    difal=money('DIFAL de entrada, fora da NF (R$)')
     allocated_total=money('Valor incorporado ao estoque')
     landed_unit_cost=models.DecimalField(max_digits=24,decimal_places=6,default=0)
     sku_snapshot=models.CharField(max_length=60,blank=True)
