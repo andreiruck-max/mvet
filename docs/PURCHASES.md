@@ -1,3 +1,9 @@
+## 19/11/2026 — impostos fiscais por item e ICMS-ST/DIFAL de entrada por NCM (ADR 0062)
+
+No MVet 3.0, cada item comprado preserva NCM, IPI incluído na nota, ST e DIFAL de entrada fora da NF. A importação do Bling tenta preencher NCM/IPI por XML validado; sem XML, esses dados podem ser informados na revisão. O operador lança o total de ST/DIFAL **por NCM** usando linhas `85437092=510,82`, sem repetir por SKU. O sistema rateia proporcionalmente entre produtos do mesmo NCM conforme valor líquido (quantidade × preço menos desconto individual), conservando a soma por centavo. IPI continua no valor a pagar ao fornecedor; ST/DIFAL fora da nota só aumentam custo de aquisição do item e **não** modificam as parcelas do fornecedor. O pagamento da guia fiscal deve ser controlado separadamente, sem duplicação.
+
+O total fiscal das parcelas deve conciliar com a NF antes de confirmação; o total de aquisição, incluídos frete externo e impostos adicionais, aparece separado e compõe a valorização dos itens estocáveis. Compras confirmadas permanecem imutáveis. Teste de regressão com NF 163303 em `apps/integrations/test_purchase_entry_taxes.py`.
+
 04/11/2026 — Compras manuais e Bling: frete pago à transportadora fora da nota é rateado nos itens de estoque sem modificar a NF ou as parcelas do fornecedor. O pagamento da transportadora é registrado separadamente no financeiro. ADR 0052.
 
 ## Compras — pesquisa e grupos de categorias (16/10/2026)
