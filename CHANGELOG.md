@@ -1,3 +1,5 @@
+19/11/2026 — MVet 3.0, PR #96 (em desenvolvimento): notas de compra com NCM e IPI por item, ICMS-ST e DIFAL de entrada por NCM rateados pelo valor líquido, custo de aquisição separado da obrigação com fornecedor, campos de conferência Bling, histórico imutável e regressão NF 163303. Não aplicar ao MVet 2.0/main. ADR 0062.
+
 18/11/2026 — PR 0 MVet 3.0: laboratório Docker/PostgreSQL independente, porta 8001, Bling bloqueado, auditoria e ensaio sintético de restauração. Sem schema multiempresa ou implantação. Ver docs/MVET_3_0_DEVELOPMENT.md e ADR 0061.
 
 16/11/2026 — Bancos e saldos do fluxo abrem detalhes em pop-up, preservando a tela de origem. Cartão Saldo bancário atual dos indicadores abre o filtro padrão do fluxo.
