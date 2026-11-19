@@ -38,6 +38,7 @@ class Purchase(models.Model):
     location=models.ForeignKey(StockLocation,on_delete=models.PROTECT,verbose_name='Estoque de destino')
     account=models.ForeignKey('finance.FinancialAccount', null=True, blank=True, on_delete=models.PROTECT, verbose_name='Conta bancária prevista')
     acquisition_kind=models.CharField('Tipo de entrada', max_length=10, choices=[('NORMAL','Compra com financeiro'),('BONUS','Bonificação sem financeiro')], default='NORMAL')
+    taxes_reviewed=models.BooleanField('Conferi com a contabilidade os tributos e créditos recuperáveis',default=False)
     discount=money('Desconto (R$)')
     freight=money('Frete de aquisição (R$)')
     external_freight=money('Frete pago à transportadora fora da nota (R$)')
@@ -66,8 +67,12 @@ class Purchase(models.Model):
         indexes=[models.Index(fields=['supplier','date'])]
 
     @property
+    def external_tax_total(self):
+        return sum((item.st + item.difal for item in self.items.all()), Decimal('0.00'))
+
+    @property
     def acquisition_total(self):
-        return self.total + self.external_freight
+        return sum((item.allocated_total + item.nonstock_total for item in self.items.all()), Decimal('0.00'))
 
     @property
     def item_discounts(self):
@@ -84,6 +89,14 @@ class PurchaseItem(models.Model):
     unit_cost=models.DecimalField('Preço unitário (R$)',max_digits=24,decimal_places=6,validators=[MinValueValidator(0)])
     subtotal=money('Subtotal')
     discount=money('Desconto deste item (R$)')
+    ncm=models.CharField('NCM fiscal',max_length=8,blank=True)
+    ipi=money('IPI na NF (R$)')
+    st=money('ICMS-ST de entrada, fora da NF (R$)')
+    difal=money('DIFAL de entrada, fora da NF (R$)')
+    invoice_other_tax=money('II / IPI devolvido incluídos na NF (R$)')
+    invoice_st=money('ICMS-ST/FCP-ST incluído na NF (R$)')
+    recoverable_tax=money('Créditos tributários recuperáveis (R$)')
+    fiscal_components=models.JSONField(default=dict,blank=True,editable=False)
     allocated_total=money('Valor incorporado ao estoque')
     landed_unit_cost=models.DecimalField(max_digits=24,decimal_places=6,default=0)
     sku_snapshot=models.CharField(max_length=60,blank=True)
@@ -91,7 +104,7 @@ class PurchaseItem(models.Model):
     movement=models.OneToOneField(StockMovement,null=True,on_delete=models.PROTECT,editable=False)
     class Meta:
         ordering=['pk']
-        constraints=[models.CheckConstraint(condition=models.Q(discount__gte=0,discount__lte=models.F('subtotal')),name='purchase_item_discount_limit'),models.CheckConstraint(condition=models.Q(quantity__gt=0,unit_cost__gte=0,subtotal__gte=0,allocated_total__gte=0),name='purchase_item_nonnegative'),models.CheckConstraint(condition=models.Q(moves_stock=False,allocated_total=0)|models.Q(moves_stock=True,product__isnull=False,nonstock_total=0,category__isnull=True),name='purchase_item_stock_consistent'),models.CheckConstraint(condition=models.Q(nonstock_total__gte=0),name='purchase_item_nonstock_nonnegative')]
+        constraints=[models.CheckConstraint(condition=models.Q(ipi__gte=0,st__gte=0,difal__gte=0,invoice_st__gte=0,invoice_other_tax__gte=0,recoverable_tax__gte=0),name='purchase_item_taxes_nonnegative'),models.CheckConstraint(condition=models.Q(discount__gte=0,discount__lte=models.F('subtotal')),name='purchase_item_discount_limit'),models.CheckConstraint(condition=models.Q(quantity__gt=0,unit_cost__gte=0,subtotal__gte=0,allocated_total__gte=0),name='purchase_item_nonnegative'),models.CheckConstraint(condition=models.Q(moves_stock=False,allocated_total=0)|models.Q(moves_stock=True,product__isnull=False,nonstock_total=0,category__isnull=True),name='purchase_item_stock_consistent'),models.CheckConstraint(condition=models.Q(nonstock_total__gte=0),name='purchase_item_nonstock_nonnegative')]
 
 class PurchaseInstallment(models.Model):
     purchase=models.ForeignKey(Purchase,on_delete=models.PROTECT,related_name='installments')
@@ -119,3 +132,11 @@ class PurchaseInstallment(models.Model):
     @property
     def remaining(self):
         return self.financial_title.remaining if hasattr(self,'financial_title') else self.amount
+
+
+class PurchaseTaxObligation(models.Model):
+    purchase=models.ForeignKey(Purchase,on_delete=models.PROTECT,related_name='tax_obligations')
+    kind=models.CharField(max_length=5,choices=[('ST','ICMS-ST externo'),('DIFAL','DIFAL externo')])
+    title=models.OneToOneField('finance.FinancialTitle',on_delete=models.PROTECT,related_name='purchase_tax_obligation')
+    class Meta:
+        constraints=[models.UniqueConstraint(fields=['purchase','kind'],name='purchase_tax_obligation_unique')]

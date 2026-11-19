@@ -229,8 +229,13 @@ def cancel_title(*, actor, pk, reason):
     require(actor,'core.cancel_financial_titles')
     require(actor,'core.operate_finance'); domain_lock()
     title=Title.objects.select_for_update().get(pk=pk)
-    if title.purchase_installment_id or title.sale_id or hasattr(title,'expense'): raise ValidationError('Cancele pela compra, venda ou despesa de origem, após estornar liquidações.')
+    if title.sale_id or hasattr(title,'expense'): raise ValidationError('Cancele pela compra, venda ou despesa de origem, após estornar liquidações.')
     _cancel_titles(actor,Title.objects.filter(pk=pk),reason)
+    if title.purchase_installment_id:
+        installment=title.purchase_installment
+        if installment.status!='CANCELLED':
+            installment.status='CANCELLED';installment.save(update_fields=['status'])
+            audit(actor,installment,'cancel_purchase_installment',{'status':'PENDING'},{'status':'CANCELLED','reason':reason,'title':pk})
 
 
 def _cancel_titles(actor, rows, reason):

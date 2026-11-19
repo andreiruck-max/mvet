@@ -29,12 +29,14 @@ def extract(raw, payload):
             return Decimal(decimal_text(node.findtext('n:'+name, namespaces=NS), 2))
         if money(total, 'vNF') != Decimal(decimal_text(payload.get('valorNota'), 2)):
             raise ValueError
-        products = info.findall('n:det/n:prod', NS)
+        details = info.findall('n:det', NS)
+        products = [detail.find('n:prod', NS) for detail in details]
         items = payload.get('itens', [])
-        if not products or len(products) != len(items):
+        if not products or any(product is None for product in products) or len(products) != len(items):
             raise ValueError
         discounts = []
-        for product, item in zip(products, items):
+        tax_items = []
+        for detail, product, item in zip(details, products, items):
             if product.findtext('n:cProd', namespaces=NS) != str(item.get('codigo')):
                 raise ValueError
             quantity = Decimal(decimal_text(product.findtext('n:qCom', namespaces=NS), 4))
@@ -48,10 +50,46 @@ def extract(raw, payload):
             if discount > gross:
                 raise ValueError
             discounts.append(discount)
+            ncm = product.findtext('n:NCM', default='', namespaces=NS).strip()
+            if ncm and (len(ncm) != 8 or not ncm.isascii() or not ncm.isdecimal()):
+                raise ValueError
+            ipi = Decimal(decimal_text(detail.findtext('n:imposto/n:IPI/n:IPITrib/n:vIPI', default='0', namespaces=NS), 2))
+            def amount(path):
+                return Decimal(decimal_text(detail.findtext(path, default='0', namespaces=NS), 2))
+            fields={'gross':gross,'ipi':ipi,
+                'invoice_st':amount('n:imposto/n:ICMS/*/n:vICMSST')+amount('n:imposto/n:ICMS/*/n:vFCPST'),
+                'freight':money(product,'vFrete') if product.find('n:vFrete',NS) is not None else Decimal(0),
+                'insurance':amount('n:prod/n:vSeg'), 'other':amount('n:prod/n:vOutro'),
+                'import_duty':amount('n:imposto/n:II/n:vII'),
+                'returned_ipi':amount('n:impostoDevol/n:IPI/n:vIPIDevol'),
+                'icms':amount('n:imposto/n:ICMS/*/n:vICMS'),
+                'pis':amount('n:imposto/n:PIS/*/n:vPIS'),
+                'cofins':amount('n:imposto/n:COFINS/*/n:vCOFINS'),
+                'desoneration':amount('n:imposto/n:ICMS/*/n:vICMSDeson')}
+            fields['invoice_other_tax']=fields['import_duty']+fields['returned_ipi']
+            tax_items.append({'ncm':ncm,'cfop':product.findtext('n:CFOP',default='',namespaces=NS),
+                **{k:str(v) for k,v in fields.items()}})
         discount = money(total, 'vDesc')
         if sum(discounts) != discount:
             raise ValueError
-        return {'total': str(discount), 'items': [str(value) for value in discounts]}
+        total_ipi = Decimal(decimal_text(total.findtext('n:vIPI', default='0', namespaces=NS), 2))
+        if sum((Decimal(tax['ipi']) for tax in tax_items), Decimal('0')) != total_ipi:
+            raise ValueError
+        fiscal={name:str(Decimal(decimal_text(total.findtext('n:'+name,default='0',namespaces=NS),2)))
+            for name in ('vProd','vDesc','vIPI','vST','vFCPST','vFrete','vSeg','vOutro','vII','vIPIDevol','vICMSDeson','vNF')}
+        expected={'gross':'vProd','ipi':'vIPI','freight':'vFrete','insurance':'vSeg','other':'vOutro',
+            'import_duty':'vII','returned_ipi':'vIPIDevol'}
+        issues=[]
+        for field,tag in expected.items():
+            if sum((Decimal(x[field]) for x in tax_items),Decimal(0))!=Decimal(fiscal[tag]):
+                issues.append('Total '+tag+' diverge da soma das linhas.')
+        if sum((Decimal(x['invoice_st']) for x in tax_items),Decimal(0))!=Decimal(fiscal['vST'])+Decimal(fiscal['vFCPST']):
+            issues.append('ST/FCP-ST diverge da soma das linhas.')
+        if Decimal(fiscal['vICMSDeson']):
+            issues.append('ICMS desonerado exige classificação da dedução fiscal; não incorporado automaticamente.')
+        reconstructed=Decimal(fiscal['vProd'])-Decimal(fiscal['vDesc'])+sum((Decimal(fiscal[k]) for k in ('vIPI','vST','vFCPST','vFrete','vSeg','vOutro','vII','vIPIDevol')),Decimal(0))
+        fiscal.update(reconstructed=str(reconstructed),difference=str(reconstructed-Decimal(fiscal['vNF'])),issues=issues)
+        return {'total': str(discount), 'items': [str(value) for value in discounts], 'tax_items': tax_items,'fiscal':fiscal}
     except (ET.ParseError, ValueError, TypeError, AttributeError, KeyError):
         raise ValidationError('XML não corresponde aos valores ou itens da nota. Reconsulte antes de confirmar.') from None
 
