@@ -22,6 +22,12 @@ class PurchaseReviewForm(forms.Form):
     freight = forms.DecimalField(label='Frete incluído na nota (R$)', max_digits=18, decimal_places=2, min_value=0, initial=Decimal('0'), localize=True, widget=MoneyInput)
     external_freight = forms.DecimalField(label='Frete pago à transportadora fora da nota (R$)', required=False, max_digits=18, decimal_places=2, min_value=0, localize=True, widget=MoneyInput, help_text='Rateado nos produtos de estoque. Não altera as parcelas nem registra pagamento à transportadora.')
     other_costs = forms.DecimalField(label='Outros custos de aquisição (R$)', max_digits=18, decimal_places=2, min_value=0, initial=Decimal('0'), localize=True, widget=MoneyInput)
+    st_by_ncm = forms.CharField(label='ICMS-ST na entrada por NCM (fora da NF)', required=False,
+        widget=forms.Textarea(attrs={'rows':3, 'placeholder':'85437092=510,82\\n85354010=23,52'}),
+        help_text='Uma linha por NCM: 8 dígitos = valor total do ST. O MVet rateia proporcionalmente ao valor líquido de cada item do mesmo NCM.')
+    difal_by_ncm = forms.CharField(label='DIFAL na entrada por NCM (fora da NF)', required=False,
+        widget=forms.Textarea(attrs={'rows':2, 'placeholder':'73121090=11,20'}),
+        help_text='Uma linha por NCM. O valor é incorporado ao custo, mas não às parcelas do fornecedor.')
     acquisition_kind=forms.ChoiceField(label='Tipo de entrada',choices=Purchase._meta.get_field('acquisition_kind').choices,initial='NORMAL',required=False)
     reviewed = forms.BooleanField(label='Conferi o documento: a Mercadovet é a destinatária, a finalidade fiscal é normal (não devolução, ajuste ou complemento) e o tipo de entrada, produtos e quantidades estão corretos.')
 
@@ -50,6 +56,10 @@ class LocalProductChoice(forms.ModelChoiceField):
 
 class PurchaseProductForm(forms.Form):
     discount=forms.DecimalField(label='Desconto total deste item (R$)',max_digits=18,decimal_places=2,min_value=0,initial=Decimal('0.00'),required=False,localize=True,widget=MoneyInput)
+    ncm=forms.CharField(label='NCM fiscal',max_length=8,required=False,
+        help_text='Preenchido pelo XML quando disponível; sem XML, informe o NCM para permitir rateio de ST e DIFAL.')
+    ipi=forms.DecimalField(label='IPI deste item incluído na NF (R$)',max_digits=18,decimal_places=2,min_value=0,
+        initial=Decimal('0'),required=False,localize=True,widget=MoneyInput)
     mode=forms.ChoiceField(label='Destino do item',choices=[('STOCK','Movimentar estoque'),('NEW','Cadastrar produto e movimentar estoque'),('NONSTOCK','Somente financeiro — sem estoque')],initial='STOCK',required=False)
     product = LocalProductChoice(label='Produto MVet', required=False, queryset=Product.objects.filter(active=True, kind='SIMPLE').order_by('name'))
     category=NonstockCategoryField()
@@ -60,6 +70,7 @@ class PurchaseProductForm(forms.Form):
     def clean(self):
         data=super().clean();mode=data.get('mode') or 'STOCK';data['mode']=mode
         data['discount']=data.get('discount') or Decimal('0')
+        data['ipi']=data.get('ipi') or Decimal('0')
         if mode=='STOCK' and not data.get('product'):self.add_error('product','Selecione o produto ou escolha cadastrar um novo.')
         if mode=='NEW':
             for field in ('new_sku','new_name','new_unit'):
