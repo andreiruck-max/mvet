@@ -90,3 +90,6 @@ ADR 0061 descreve limites e garantias. Compras confirmadas/recebidas permanecem 
 
 ## Recebimento direto do rascunho
 Após importar e revisar o rascunho, **Confirmar compra e recebimento** registra o compromisso e o recebimento integral na data informada, em uma transação. Exige operar, confirmar e receber compras. Qualquer erro desfaz ambas as etapas. Não gera pagamento; confirmação sem recebimento continua disponível.
+
+## Conferência sem caixas obrigatórias — 20/11/2026
+As declarações de destinatário e conferência contábil foram removidas por decisão do usuário (ADR 0062). Importar e confirmar são ações explícitas; não exigem marcar checkboxes em cada nota. Campos históricos de revisão são preservados, sem simular conferência da contabilidade. As validações fiscais e financeiras existentes continuam ativas. A tela de importação adapta seus campos e itens à largura do popup.

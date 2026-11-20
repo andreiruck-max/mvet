@@ -422,3 +422,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 ## 20/11/2026 — DRE mensal e recebimento
 - DRE com colunas mensais, total e detalhamento por mês.
 - Ação atômica de confirmar compra e recebimento integral no rascunho; sem pagamento automático.
+
+- Conferência de compras reorganizada para popup e celular; retiradas declarações obrigatórias de destinatário e conferência contábil, preservando validações (ADR 0062).

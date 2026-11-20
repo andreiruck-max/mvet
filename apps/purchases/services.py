@@ -2,7 +2,7 @@
 from decimal import Decimal, ROUND_HALF_UP, ROUND_FLOOR
 from uuid import UUID
 from django.core.exceptions import ValidationError
-from django.db import transaction, models
+from django.db import transaction
 from django.utils import timezone
 from apps.core.models import Company
 from apps.core.services import require, audit
@@ -180,8 +180,6 @@ def confirm(*,actor,purchase_id,revision):
     if p.status!='DRAFT':raise ValidationError('Compra cancelada não pode ser confirmada.')
     if p.revision!=revision:raise ValidationError('A compra mudou. Revise antes de confirmar.')
     validate_active(p);validate_schedule(p)
-    if not p.taxes_reviewed and p.items.filter(models.Q(ipi__gt=0)|models.Q(st__gt=0)|models.Q(difal__gt=0)|models.Q(invoice_st__gt=0)|models.Q(invoice_other_tax__gt=0)|models.Q(recoverable_tax__gt=0)).exists():
-        raise ValidationError('Revise os tributos e créditos recuperáveis com a contabilidade na edição do rascunho.')
     if not p.items.exists():raise ValidationError('Compra sem itens.')
     if p.items.filter(moves_stock=True,product__active=False).exists():raise ValidationError('Produto inativo.')
     if p.items.filter(moves_stock=False).exists():require(actor,'core.operate_expenses')

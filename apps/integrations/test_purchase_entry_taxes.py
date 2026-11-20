@@ -107,17 +107,16 @@ class PurchaseEntryTaxTests(Fixture, TestCase):
         purchase=self.import_note(invoice,treatments=treatments)
         self.assertEqual(purchase.items.count(),7)
 
-    def test_credit_preserved_on_edit_and_requires_review_before_confirmation(self):
+    def test_credit_preserved_on_edit_without_required_attestation(self):
         from uuid import uuid4
         invoice=self.stage_invoice()
         treatments=[dict(mode='STOCK',discount=D(r[3]),ncm=r[5],ipi=D(r[4]),recoverable_tax=D('10') if i==0 else D(0)) for i,r in enumerate(ROWS)]
         p=self.import_note(invoice,treatments=treatments,taxes_reviewed=False)
         self.assertEqual(p.total,D('3760.24'))
         self.assertEqual(p.acquisition_total,D('4295.78'))
-        with self.assertRaises(ValidationError):purchases.confirm(actor=self.actor,purchase_id=p.pk,revision=p.revision)
         lines=[{k:getattr(i,k) for k in ('product_id','quantity','unit_cost','discount','ncm','ipi','st','difal','invoice_st','invoice_other_tax','recoverable_tax','fiscal_components')} for i in p.items.all()]
         p=purchases.save_draft(actor=self.actor,key=uuid4(),purchase_id=p.pk,revision=p.revision,
-            data={k:(True if k=='taxes_reviewed' else getattr(p,k)) for k in purchases.FIELDS},items=lines,
+            data={k:getattr(p,k) for k in purchases.FIELDS},items=lines,
             installments=[(i.due_date,i.amount,i.notes) for i in p.installments.all()])
         self.assertEqual(p.items.first().recoverable_tax,D('10'))
         self.assertEqual(p.acquisition_total,D('4295.78'))
@@ -190,8 +189,8 @@ class PurchaseEntryTaxTests(Fixture, TestCase):
         invoice=self.stage_invoice()
         self.client.force_login(self.actor)
         data=dict(revision=invoice.revision,supplier=self.supplier.pk,location=self.location.pk,
-            discount='0',freight='0',other_costs='0',acquisition_kind='NORMAL',reviewed='on',
-            taxes_reviewed='on',action='preview',st_by_ncm='85437092=510,82\n85354010=23,52',difal_by_ncm='73121090=11,20')
+            discount='0',freight='0',other_costs='0',acquisition_kind='NORMAL',
+            action='preview',st_by_ncm='85437092=510,82\n85354010=23,52',difal_by_ncm='73121090=11,20')
         data.update({'products-TOTAL_FORMS':7,'products-INITIAL_FORMS':7,'installments-TOTAL_FORMS':0,'installments-INITIAL_FORMS':0})
         for idx,(product,row) in enumerate(zip(self.products,ROWS)):
             data.update({f'products-{idx}-product':product.pk,f'products-{idx}-mode':'STOCK',f'products-{idx}-discount':row[3].replace('.',','),f'products-{idx}-ncm':row[5],f'products-{idx}-ipi':row[4].replace('.',',')})

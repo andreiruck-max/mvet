@@ -283,3 +283,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 19/11/2026 — Em revisão: MVet 2.0 custo de aquisição por item/NCM, créditos revisados, prévia, títulos fiscais externos e cancelamento individual de parcela. Validação PostgreSQL/navegador pendente de CI; sem integração à main. XML real da referência Zebu não disponível no ambiente: confirmar SKUs e causa da diferença histórica de R$ 23,74 antes de homologar o documento real. Componentes XML não classificados bloqueiam a conferência; sem determinação automática de recuperabilidade tributária.
 
 - Em validação: DRE mensal em colunas e confirmação com recebimento integral a partir do rascunho de compra (MVet 2.0).
+
+- Na mesma PR: layout responsivo da conferência de compras e remoção das declarações obrigatórias, com validações mantidas.

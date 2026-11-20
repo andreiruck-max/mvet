@@ -171,3 +171,35 @@ body.action-modal-open { overflow: hidden; }
 .modal-mode .compact-page > nav.account-actions { display:flex; }
 .bank-match { color:#16723b; font-weight:700; }
 .bank-mismatch { color:var(--danger,#b42318); font-weight:700; }
+
+/* Purchase review uses the iframe width, not the outer desktop width. */
+.purchase-review-page .purchase-review-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px 20px; }
+.purchase-review-page .purchase-review-field { display:flex; flex-direction:column; min-width:0; }
+.purchase-review-page .purchase-review-field label { margin:0 0 5px; }
+.purchase-review-page .purchase-review-field input,
+.purchase-review-page .purchase-review-field select,
+.purchase-review-page .purchase-review-field textarea { box-sizing:border-box; width:100%; max-width:100%; }
+.purchase-review-page .purchase-review-field small { display:block; margin-top:5px; color:var(--muted); font-size:.8rem; line-height:1.4; }
+.purchase-review-page .purchase-review-check { display:flex; align-items:center; gap:8px; margin-top:14px; }
+.purchase-review-page .purchase-review-check label { margin:0; }
+.purchase-review-page .panel { margin-bottom:16px; }
+.purchase-review-page .panel h2 { margin:0 0 14px; font-size:1rem; }
+.purchase-review-page .purchase-import-items td { vertical-align:top; }
+.purchase-review-page .purchase-import-items label { display:block; margin:8px 0 4px; }
+.purchase-review-page .purchase-import-items .helptext { font-size:.8rem; line-height:1.4; margin:4px 0; }
+@media(max-width:1100px) {
+ .purchase-review-page table.purchase-import-items { display:block; width:100%; min-width:0; }
+ .purchase-review-page .purchase-import-items thead { display:none; }
+ .purchase-review-page .purchase-import-items tbody { display:block; }
+ .purchase-review-page .purchase-import-items tr { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 20px; border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:16px; }
+ .purchase-review-page .purchase-import-items td { display:block; min-width:0; max-width:none; width:auto; border:0; padding:0; white-space:normal; overflow-wrap:anywhere; }
+ .purchase-review-page .purchase-import-items td:first-child { grid-column:1/-1; font-weight:600; }
+ .purchase-review-page .purchase-import-items td[data-label]::before { content:attr(data-label) ': '; font-weight:600; }
+ .purchase-review-page .purchase-import-items input,
+ .purchase-review-page .purchase-import-items select { box-sizing:border-box; min-width:0; max-width:100%; width:100%; }
+ .purchase-review-page .purchase-import-items .import-treatment small { max-width:none; }
+}
+@media(max-width:600px) {
+ .purchase-review-page .purchase-review-grid,
+ .purchase-review-page .purchase-import-items tr { grid-template-columns:1fr; }
+}

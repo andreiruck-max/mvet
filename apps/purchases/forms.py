@@ -20,7 +20,7 @@ class PurchaseForm(forms.ModelForm):
     revision=forms.IntegerField(widget=forms.HiddenInput,initial=0)
     class Meta:
         model=Purchase
-        fields=FIELDS
+        fields=[field for field in FIELDS if field != 'taxes_reviewed']
         widgets={'date':forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d'),'notes':forms.Textarea(attrs={'rows':2})}
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
