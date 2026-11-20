@@ -74,7 +74,7 @@ def purchase_edit(request,pk=None):
                     for line,index in zip(lines,kept):
                         if index<len(originals):line['fiscal_components']=originals[index].fiscal_components
                 dates=[(f.cleaned_data['due_date'],f.cleaned_data['amount'],f.cleaned_data['notes']) for f in installments if f.cleaned_data and not f.cleaned_data.get('DELETE')]
-                p=save_draft(actor=request.user,key=form.cleaned_data['key'],data={k:form.cleaned_data[k] for k in FIELDS},items=lines,installments=dates,purchase_id=pk,revision=form.cleaned_data['revision'])
+                p=save_draft(actor=request.user,key=form.cleaned_data['key'],data={k:form.cleaned_data[k] for k in FIELDS if k in form.cleaned_data},items=lines,installments=dates,purchase_id=pk,revision=form.cleaned_data['revision'])
                 messages.success(request,'Rascunho salvo. Confira o total, o rateio e as parcelas.');return redirect('purchase_detail',pk=p.pk)
             except ValidationError as exc:form.add_error(None,'; '.join(exc.messages))
             except IntegrityError:form.add_error(None,'Documento e série já utilizados para este fornecedor.')
