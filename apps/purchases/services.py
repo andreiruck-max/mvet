@@ -263,3 +263,19 @@ def create_tax_obligation(*,actor,purchase_id,kind,counterparty,due_date,account
     PurchaseTaxObligation.objects.create(purchase=purchase,kind=kind,title=title)
     audit(actor,purchase,'create_purchase_tax_obligation',{},dict(kind=kind,title=title.pk,amount=str(amount)))
     return title
+
+
+@transaction.atomic
+def confirm_and_receive(*, actor, purchase_id, date, revision):
+    """Explicit full receipt: commitment and stock succeed or roll back together."""
+    require(actor, 'core.operate_purchases')
+    require(actor, 'core.confirm_purchases')
+    require(actor, 'core.receive_purchases')
+    domain_lock()
+    purchase = Purchase.objects.select_for_update().get(pk=purchase_id)
+    if purchase.status == 'RECEIVED':
+        return purchase
+    if purchase.revision != revision:
+        raise ValidationError('A compra mudou. Revise antes de confirmar o recebimento.')
+    purchase = confirm(actor=actor, purchase_id=purchase_id, revision=revision)
+    return receive(actor=actor, purchase_id=purchase_id, date=date, revision=purchase.revision)

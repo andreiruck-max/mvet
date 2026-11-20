@@ -418,3 +418,7 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - Compras: IPI/ST fiscal por linha, ST/DIFAL externos por NCM com maiores restos, crédito recuperável revisado, prévia de custo e composição XML sem ajuste residual.
 - Obrigações fiscais externas com credor/vencimento próprios, sem aumentar parcelas do fornecedor ou criar pagamentos na importação.
 - Cancelamento individual de parcela de compra sem liquidação, auditado e independente das demais parcelas e estoque.
+
+## 20/11/2026 — DRE mensal e recebimento
+- DRE com colunas mensais, total e detalhamento por mês.
+- Ação atômica de confirmar compra e recebimento integral no rascunho; sem pagamento automático.

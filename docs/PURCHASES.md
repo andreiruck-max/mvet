@@ -87,3 +87,6 @@ O rascunho manual permite revisar esses componentes. XML validado preenche tamb�
 Referência sintética dos sete itens informados: produtos 3.736,50 − descontos 186,82 + IPI 210,56 = fornecedor 3.760,24; + ST externo 534,34 + DIFAL 11,20 = aquisição 4.305,78. Custos por linha: 834,00; 2.377,20; 266,83; 145,83; 157,16; 455,12; 69,64. Identificadores de teste não são SKUs validados em produção. XML original e causa documental da diferença histórica de 23,74 ainda precisam ser conferidos; não existe ajuste automático.
 
 ADR 0061 descreve limites e garantias. Compras confirmadas/recebidas permanecem imutáveis. Histórico, médias por depósito e CMV das vendas anteriores não são recalculados.
+
+## Recebimento direto do rascunho
+Após importar e revisar o rascunho, **Confirmar compra e recebimento** registra o compromisso e o recebimento integral na data informada, em uma transação. Exige operar, confirmar e receber compras. Qualquer erro desfaz ambas as etapas. Não gera pagamento; confirmação sem recebimento continua disponível.
