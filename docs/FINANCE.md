@@ -111,3 +111,9 @@ O cartão **Saldo realizado das contas ativas hoje** usa a data local de hoje, m
 17/11/2026: ações da conta permanecem disponíveis no modal. Após lançar, o extrato retorna no mesmo modal; fechar atualiza a origem. Conferência Bling permite trocar de conta e solicita atualização em segundo plano a cada abertura, preservando histórico. Indicador ao lado do banco compara saldos de hoje: verde exige última consulta concluída hoje, cobertura completa e diferença zero; não certifica cada lançamento.
 
 Retiradas de sócios: classificação financeira específica, fora da DRE, relatório por data da baixa com filtro de conta/período, saídas, devoluções/estornos e líquido, detalhado por mês e favorecido. Baixas parciais contam somente o efetivamente movimentado; estorno entra na sua data. Movimentos antigos genéricos precisam de reclassificação auditada do título, sem repetir pagamentos. Não identifica retiradas pelo texto da descrição.
+
+## Parcelas e tributos de compra — 19/11/2026
+
+**Cancelar somente este título / parcela** permite cancelar parcela de compra em aberto e sem baixa ativa, com motivo e permissão financeira. As demais parcelas permanecem intactas. Valor contratual e compra/estoque não são recalculados; cancelamento não é desconto da aquisição nem devolução física. Para parcela com baixa, estorne primeiro. Cancelamento integral posterior preserva parcelas que já estavam canceladas.
+
+ST/DIFAL recolhidos fora da NF podem ser registrados pela compra como obrigações fiscais próprias, sem ligação com parcelas do fornecedor. Informe credor fiscal, vencimento e conta prevista. Não cria saída bancária; liquide no financeiro. Classificação patrimonial evita duplicar os custos já incorporados. Não relance como despesa operacional.

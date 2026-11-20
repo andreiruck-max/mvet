@@ -77,3 +77,13 @@ Filtros compactos em Compras e Compras a pagar. Relatório por parcela com data 
 
 ## Compras Bling — unidade local e rejeição (29/09/2026)
 Unidade cadastrada no MVet prevalece; quantidade e preço da nota mantidos sem conversão. Rejeitar nota retira documentos sem compra vinculada das pendências; filtro Rejeitadas permite reabrir. Reconsulta preserva rejeição. Compras existentes seguem cancelamento próprio. Ver ADR 0024.
+
+## Custo fiscal por produto — MVet 2.0, 19/11/2026
+
+Na conferência do Bling, revise NCM, IPI e ST da NF por item. Informe ST/DIFAL **adicionais, fora da NF**, uma linha `NCM=valor`, por exemplo `85437092=510,82`. Não repita imposto já incluído no documento. Use **Calcular prévia dos custos** para ver fornecedor, tributos externos, custo total e unitário por SKU antes de salvar. Créditos tributários recuperáveis ficam separados e reduzem o custo; confira com a contabilidade e marque a revisão antes de confirmar.
+
+O rascunho manual permite revisar esses componentes. XML validado preenche também componentes fiscais e acessórios; divergência fiscal não é absorvida automaticamente. Para componente não classificado, regularize a conferência documental. Valor devido ao fornecedor permanece o da NF. Títulos fiscais externos são registrados separadamente pela compra confirmada, com credor e vencimento, sem pagamento bancário. O frete externo mantém seu comportamento anterior.
+
+Referência sintética dos sete itens informados: produtos 3.736,50 − descontos 186,82 + IPI 210,56 = fornecedor 3.760,24; + ST externo 534,34 + DIFAL 11,20 = aquisição 4.305,78. Custos por linha: 834,00; 2.377,20; 266,83; 145,83; 157,16; 455,12; 69,64. Identificadores de teste não são SKUs validados em produção. XML original e causa documental da diferença histórica de 23,74 ainda precisam ser conferidos; não existe ajuste automático.
+
+ADR 0061 descreve limites e garantias. Compras confirmadas/recebidas permanecem imutáveis. Histórico, médias por depósito e CMV das vendas anteriores não são recalculados.

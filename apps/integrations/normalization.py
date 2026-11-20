@@ -57,6 +57,10 @@ def normalize(payload, issuer):
     if discounts:
         for row, discount in zip(rows, discounts['items']):
             row['discount'] = decimal_text(discount, 2)
+        # Read-only, validated XML enrichment; never infer tax from gross/net differences.
+        for row, tax in zip(rows, discounts.get('tax_items', []) if str(payload.get('tipo'))=='0' else []):
+            row['ncm'] = text(tax.get('ncm', ''), 8)
+            row['ipi'] = decimal_text(tax.get('ipi', '0'), 2)
     store = payload.get('loja') or {}
     if not isinstance(store, dict): raise ValidationError('Loja externa inválida.')
     contact = payload.get('contato') or {}

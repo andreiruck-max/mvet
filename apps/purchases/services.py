@@ -2,7 +2,7 @@
 from decimal import Decimal, ROUND_HALF_UP, ROUND_FLOOR
 from uuid import UUID
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import transaction, models
 from django.utils import timezone
 from apps.core.models import Company
 from apps.core.services import require, audit
@@ -12,7 +12,7 @@ from apps.inventory.services import domain_lock, number, QTY, MONEY, quant, _fin
 from .models import Supplier, Purchase, PurchaseItem, PurchaseInstallment
 
 CENT=Decimal('0.01')
-FIELDS=['account','acquisition_kind','supplier','document','series','date','location','discount','freight','external_freight','other_costs','notes']
+FIELDS=['taxes_reviewed','account','acquisition_kind','supplier','document','series','date','location','discount','freight','external_freight','other_costs','notes']
 
 def normalized_document(value):
     value=value.strip().upper()
@@ -33,7 +33,7 @@ def allocation(subtotals,total):
     return [value*CENT for value in whole]
 
 def snapshot(purchase):
-    return {**{field:str(getattr(purchase,field)) for field in FIELDS},'status':purchase.status,'total':str(purchase.total),'revision':purchase.revision,'items':list(purchase.items.values('product_id','sku_snapshot','name_snapshot','moves_stock','category_snapshot')),'quantities_costs':[(str(i.quantity),str(i.unit_cost),str(i.allocated_total),str(i.nonstock_total),str(i.discount)) for i in purchase.items.all()],'installments':[(i.number,str(i.due_date),str(i.amount),i.notes) for i in purchase.installments.all()]}
+    return {**{field:str(getattr(purchase,field)) for field in FIELDS},'status':purchase.status,'total':str(purchase.total),'revision':purchase.revision,'items':list(purchase.items.values('product_id','sku_snapshot','name_snapshot','moves_stock','category_snapshot')),'quantities_costs':[(str(i.quantity),str(i.unit_cost),str(i.allocated_total),str(i.nonstock_total),str(i.discount),i.ncm,str(i.ipi),str(i.st),str(i.difal),str(i.invoice_st),str(i.invoice_other_tax),str(i.recoverable_tax),i.fiscal_components) for i in purchase.items.all()],'installments':[(i.number,str(i.due_date),str(i.amount),i.notes) for i in purchase.installments.all()]}
 
 def validate_active(purchase):
     if not Supplier.objects.filter(pk=purchase.supplier_id,active=True).exists():raise ValidationError('Fornecedor inativo.')
@@ -84,7 +84,7 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
         if purchase.revision!=revision:raise ValidationError('A compra mudou em outra sessão. Reabra a edição.')
         before=snapshot(purchase)
     if not items or len(items)>100 or len(installments)>120:raise ValidationError('Informe de 1 a 100 itens e no máximo 120 parcelas.')
-    data = {'account':purchase.account,'acquisition_kind':'NORMAL','external_freight':Decimal(purchase.external_freight),**data}
+    data = {'taxes_reviewed':purchase.taxes_reviewed,'account':purchase.account,'acquisition_kind':'NORMAL','external_freight':Decimal(purchase.external_freight),**data}
     for field in FIELDS:setattr(purchase,field,data[field])
     if purchase.acquisition_kind not in ('NORMAL','BONUS'):raise ValidationError('Tipo de entrada inválido.')
     purchase.document=normalized_document(purchase.document);purchase.series=normalized_document(purchase.series)
@@ -115,18 +115,34 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
         if (stock or pid is not None) and pid not in products:raise ValidationError('Compra exige produtos simples ativos. Kits virtuais não são recebidos.')
         subtotal=(qty*cost).quantize(CENT,rounding=ROUND_HALF_UP)
         item['discount']=number(item.get('discount',Decimal('0')),CENT,zero=True)
+        item['ncm']=str(item.get('ncm') or '').strip()
+        if item['ncm'] and (len(item['ncm'])!=8 or not item['ncm'].isascii() or not item['ncm'].isdecimal()):
+            raise ValidationError('NCM do item deve ter 8 dígitos.')
+        for tax in ('ipi','st','difal','invoice_st','invoice_other_tax','recoverable_tax'):
+            item[tax]=number(item.get(tax,Decimal('0')),CENT,zero=True)
         if item['discount']>subtotal:raise ValidationError('Desconto do item não pode exceder seu subtotal.')
         subtotals.append(subtotal)
         net_subtotals.append(subtotal-item['discount'])
     purchase.products_total=sum(subtotals,Decimal('0'))
     net_total=sum(net_subtotals,Decimal('0'))
     if purchase.discount>net_total:raise ValidationError('Desconto geral não pode exceder o total após os descontos dos itens.')
-    purchase.total=net_total-purchase.discount+purchase.freight+purchase.other_costs
+    ipi_total=sum((item['ipi']+item['invoice_st']+item['invoice_other_tax'] for item in items),Decimal('0.00'))
+    purchase.total=net_total-purchase.discount+purchase.freight+purchase.other_costs+ipi_total
     if purchase.acquisition_kind=='BONUS':
-        if purchase.discount or purchase.freight or purchase.external_freight or purchase.other_costs or installments:raise ValidationError('Bonificação não gera parcelas nem custos pagos. Registre custos cobrados separadamente.')
+        if purchase.discount or purchase.freight or purchase.external_freight or purchase.other_costs or installments or any(i[tax] for i in items for tax in ('st','difal','recoverable_tax')):raise ValidationError('Bonificação não gera parcelas nem custos pagos. Registre custos cobrados separadamente.')
         if any(not i['moves_stock'] for i in items):raise ValidationError('Bonificação exige itens destinados ao estoque.')
         purchase.total=Decimal('0.00')
-    allocated=allocation(net_subtotals,purchase.total)
+    # The supplier invoice includes IPI; ST/DIFAL assessed on entry are separate obligations.
+    # Allocate only general invoice charges; keep each line's IPI/ST/DIFAL on that same SKU.
+    direct=[sum((Decimal(i.get('fiscal_components',{}).get(k,'0')) for k in ('freight','insurance','other')),Decimal(0)) for i in items]
+    direct_total=sum(direct,Decimal(0))
+    if direct_total>purchase.freight+purchase.other_costs:
+        raise ValidationError('Frete/seguro/despesas da NF não podem ser menores que os componentes por item do XML.')
+    allocated=allocation(net_subtotals,net_total-purchase.discount+purchase.freight+purchase.other_costs-direct_total)
+    allocated=[value+charge for value,charge in zip(allocated,direct)]
+    allocated=[value+item['ipi']+item['invoice_st']+item['invoice_other_tax']+item['st']+item['difal']-item['recoverable_tax'] for value,item in zip(allocated,items)]
+    if purchase.acquisition_kind=='BONUS':allocated=[Decimal('0.00') for _ in items]
+    if any(value<0 for value in allocated):raise ValidationError('Crédito tributário não pode exceder o custo da linha.')
     if purchase.external_freight:
         # Carrier freight increases the inventory value only; never the supplier debt.
         stock_basis=[value if item['moves_stock'] else Decimal('0') for item,value in zip(items,net_subtotals)]
@@ -138,12 +154,16 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
         if len(notes)>500:raise ValidationError('Observação da parcela excede 500 caracteres.')
     # Optional in draft; confirmation requires full and exact schedule.
     if installments and sum((i[1] for i in installments),Decimal('0'))!=purchase.total:raise ValidationError(reconciliation_message(purchase.total,sum((i[1] for i in installments),Decimal('0'))))
+    if purchase_id and hasattr(purchase,'bling_import') and purchase.acquisition_kind=='NORMAL':
+        fiscal_total=Decimal(purchase.bling_import.approved_source['total'])
+        if purchase.total!=fiscal_total:raise ValidationError(reconciliation_message(fiscal_total,purchase.total,'Composição fiscal do rascunho'))
     purchase.revision+=1
     purchase.full_clean(exclude=['received_date','receipt','reversal','confirmed_by','received_by','cancelled_by','confirmed_at','received_at','cancelled_at'])
     purchase.save();purchase.items.all().delete();purchase.installments.all().delete()
     for item,subtotal,value in zip(items,subtotals,allocated):
         p=products.get(item.get('product_id'));stock=item['moves_stock'];qty=item['quantity']
         obj=PurchaseItem(purchase=purchase,product=p,quantity=qty,unit_cost=item['unit_cost'],subtotal=subtotal,discount=item['discount'],
+            ncm=item['ncm'],ipi=item['ipi'],st=item['st'],difal=item['difal'],invoice_st=item['invoice_st'],invoice_other_tax=item['invoice_other_tax'],recoverable_tax=item['recoverable_tax'],fiscal_components=item.get('fiscal_components',{}),
             moves_stock=stock,allocated_total=value if stock else Decimal('0'),nonstock_total=Decimal('0') if stock else value,
             category_id=item.get('category_id'),category_snapshot=item['category_snapshot'],
             landed_unit_cost=quant(value/qty) if stock else Decimal('0'),sku_snapshot=p.sku if p else '',name_snapshot=p.name if p else item['name'])
@@ -160,6 +180,8 @@ def confirm(*,actor,purchase_id,revision):
     if p.status!='DRAFT':raise ValidationError('Compra cancelada não pode ser confirmada.')
     if p.revision!=revision:raise ValidationError('A compra mudou. Revise antes de confirmar.')
     validate_active(p);validate_schedule(p)
+    if not p.taxes_reviewed and p.items.filter(models.Q(ipi__gt=0)|models.Q(st__gt=0)|models.Q(difal__gt=0)|models.Q(invoice_st__gt=0)|models.Q(invoice_other_tax__gt=0)|models.Q(recoverable_tax__gt=0)).exists():
+        raise ValidationError('Revise os tributos e créditos recuperáveis com a contabilidade na edição do rascunho.')
     if not p.items.exists():raise ValidationError('Compra sem itens.')
     if p.items.filter(moves_stock=True,product__active=False).exists():raise ValidationError('Produto inativo.')
     if p.items.filter(moves_stock=False).exists():require(actor,'core.operate_expenses')
@@ -199,6 +221,8 @@ def cancel(*,actor,purchase_id,reason):
     if p.status=='CANCELLED':return p
     from apps.finance.services import cancel_origin
     cancel_origin(actor,reason,purchase_installment__purchase=p)
+    if p.tax_obligations.filter(title__status='OPEN').exists():
+        raise ValidationError('Revise e cancele separadamente as obrigações fiscais externas antes de cancelar a compra.')
     previous=p.status
     if previous=='RECEIVED' and p.receipt_id:
         moves=list(p.receipt.movements.select_related('location').order_by('-pk'))
@@ -211,6 +235,31 @@ def cancel(*,actor,purchase_id,reason):
         for move in moves:_apply(op,products[move.product_id],move.location,-move.quantity,-(move.value+move.cost_variance),variance_override=-move.cost_variance,average_override=move.before_average,unit_cost=move.unit_cost,local_average_override=prior_local_average(move))
         p.reversal=op
     # Payment services in Phase 5 must block/reverse settled installments first.
-    p.installments.update(status='CANCELLED')
+    p.installments.exclude(status='CANCELLED').update(status='CANCELLED')
     p.status='CANCELLED';p.cancelled_by=actor;p.cancelled_at=timezone.now();p.cancellation_reason=reason;p.revision+=1;p.save()
     audit(actor,p,'cancel_purchase',{'status':previous},{'status':p.status,'reason':reason,'reversal':p.reversal_id});return p
+
+@transaction.atomic
+def create_tax_obligation(*,actor,purchase_id,kind,counterparty,due_date,account=None):
+    """Explicit fiscal payable; never a supplier installment or bank payment."""
+    from uuid import uuid4
+    from .models import PurchaseTaxObligation
+    from apps.finance.services import create_title
+    require(actor,'core.operate_purchases');require(actor,'core.operate_finance')
+    require(actor,'core.create_financial_titles');domain_lock()
+    purchase=Purchase.objects.select_for_update().get(pk=purchase_id)
+    if purchase.status not in ('ORDERED','RECEIVED'):
+        raise ValidationError('Confirme a compra antes de registrar a obrigação fiscal.')
+    if kind not in ('ST','DIFAL'):raise ValidationError('Tributo inválido.')
+    existing=purchase.tax_obligations.filter(kind=kind).first()
+    if existing:return existing.title
+    if not counterparty.strip():raise ValidationError('Informe o credor fiscal.')
+    amount=sum((getattr(i,kind.lower()) for i in purchase.items.all()),Decimal(0))
+    if amount<=0:raise ValidationError('Esta compra não possui esse tributo externo.')
+    title=create_title(actor=actor,key=uuid4(),source='purchase_tax',data=dict(direction='PAY',
+        description=f'{kind} externo · compra {purchase.document}/{purchase.series}',
+        counterparty=counterparty,date=purchase.date,due_date=due_date,amount=amount,account=account,
+        category='PRINCIPAL',notes='Encargo de aquisição / crédito tributário. Não lançar novamente como despesa.'))
+    PurchaseTaxObligation.objects.create(purchase=purchase,kind=kind,title=title)
+    audit(actor,purchase,'create_purchase_tax_obligation',{},dict(kind=kind,title=title.pk,amount=str(amount)))
+    return title

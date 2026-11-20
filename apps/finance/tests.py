@@ -226,9 +226,11 @@ class FinanceTests(Fixture,TestCase):
         s.reverse(actor=self.operator,pk=Operation.objects.get(kind='SETTLEMENT').pk,date=self.today,reason='Estorno')
         purchases.cancel(actor=self.admin,purchase_id=p.pk,reason='Cancelar');t.refresh_from_db();self.assertEqual(t.status,'CANCELLED')
 
-    def test_linked_title_cannot_cancel_directly(self):
+    def test_purchase_title_can_cancel_individually(self):
         self.purchase();t=Title.objects.get()
-        with self.assertRaises(ValidationError):s.cancel_title(actor=self.operator,pk=t.pk,reason='Cancelar')
+        s.cancel_title(actor=self.operator,pk=t.pk,reason='Cancelar')
+        t.refresh_from_db();self.assertEqual(t.status,'CANCELLED')
+        self.assertEqual(t.purchase_installment.status,'CANCELLED')
 
     def test_sale_without_receivable_preserves_legacy_receipt_cancel_guard(self):
         from apps.sales import services as sales

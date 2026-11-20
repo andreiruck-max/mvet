@@ -10,14 +10,15 @@
  function total(){
   if(form.elements.namedItem('acquisition_kind')?.value==='BONUS')return 0n;
   let sum=0n;const count=Number(form.elements.namedItem('form-TOTAL_FORMS').value);
-  for(let i=0;i<count;i++){if(form.elements.namedItem(`form-${i}-DELETE`)?.checked)continue;const gross=(value(`form-${i}-quantity`,4)*value(`form-${i}-unit_cost`,6)+50000000n)/100000000n;const discount=value(`form-${i}-discount`,2);if(discount>gross)throw new Error();sum+=gross-discount;}
+  for(let i=0;i<count;i++){if(form.elements.namedItem(`form-${i}-DELETE`)?.checked)continue;const gross=(value(`form-${i}-quantity`,4)*value(`form-${i}-unit_cost`,6)+50000000n)/100000000n;const discount=value(`form-${i}-discount`,2);if(discount>gross)throw new Error();sum+=gross-discount+value(`form-${i}-ipi`,2)+value(`form-${i}-invoice_st`,2)+value(`form-${i}-invoice_other_tax`,2);}
   return sum-value('discount',2)+value('freight',2)+value('other_costs',2);
  }
  function update(){try{
   const t=total();let installments=0n;const count=Number(form.elements.namedItem('installments-TOTAL_FORMS')?.value||0);
   for(let i=0;i<count;i++)if(!form.elements.namedItem(`installments-${i}-DELETE`)?.checked)installments+=value(`installments-${i}-amount`,2);
   const diff=installments-t;const carrier=value('external_freight',2);
-  document.getElementById('purchase-total').textContent=t<0n?'Confira o desconto: total negativo.':`Total previsto: R$ ${format(t)} · Parcelas: R$ ${format(installments)} · `+(diff===0n?'Valores conciliados.':`Divergência: R$ ${format(diff<0n?-diff:diff)} ${diff>0n?'a mais':'a menos'} nas parcelas.`)+(carrier?` Custo de aquisição com frete fora da nota: R$ ${format(t+carrier)}.`:'');
+  let taxes=0n;for(let i=0;i<Number(form.elements.namedItem('form-TOTAL_FORMS').value);i++)if(!form.elements.namedItem(`form-${i}-DELETE`)?.checked)taxes+=value(`form-${i}-st`,2)+value(`form-${i}-difal`,2)-value(`form-${i}-recoverable_tax`,2);
+  document.getElementById('purchase-total').textContent=t<0n?'Confira o desconto: total negativo.':`Total previsto: R$ ${format(t)} · Parcelas: R$ ${format(installments)} · `+(diff===0n?'Valores conciliados.':`Divergência: R$ ${format(diff<0n?-diff:diff)} ${diff>0n?'a mais':'a menos'} nas parcelas.`)+(carrier||taxes?` Custo de aquisição com frete e impostos fora da nota: R$ ${format(t+carrier+taxes)}.`:'');
  }catch{document.getElementById('purchase-total').textContent='Confira os valores e casas decimais para calcular o total.';}}
 
  form.addEventListener('input',update);form.addEventListener('change',update);

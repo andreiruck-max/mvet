@@ -53,10 +53,19 @@ class ItemForm(forms.Form):
     quantity=forms.DecimalField(label='Quantidade',max_digits=18,decimal_places=4,min_value=Decimal('0.0001'),initial=1)
     unit_cost=forms.DecimalField(label='Preço unitário (R$)',max_digits=24,decimal_places=6,min_value=0)
     discount=forms.DecimalField(label='Desconto total deste item (R$)',max_digits=18,decimal_places=2,min_value=0,initial=Decimal('0.00'),required=False)
+    ncm=forms.CharField(label='NCM (8 dígitos)',max_length=8,required=False)
+    ipi=forms.DecimalField(label='IPI deste item, incluído na NF (R$)',max_digits=18,decimal_places=2,min_value=0,required=False,initial=Decimal('0.00'))
+    st=forms.DecimalField(label='ICMS-ST de entrada, fora da NF (R$)',max_digits=18,decimal_places=2,min_value=0,required=False,initial=Decimal('0.00'))
+    difal=forms.DecimalField(label='DIFAL de entrada, fora da NF (R$)',max_digits=18,decimal_places=2,min_value=0,required=False,initial=Decimal('0.00'))
+
+    invoice_other_tax=forms.DecimalField(label='II / IPI devolvido na NF (R$)',max_digits=18,decimal_places=2,min_value=0,required=False,initial=Decimal('0'))
+    invoice_st=forms.DecimalField(label='ST/FCP-ST incluído na NF (R$)',max_digits=18,decimal_places=2,min_value=0,required=False,initial=Decimal('0'))
+    recoverable_tax=forms.DecimalField(label='Crédito tributário recuperável da linha (R$)',max_digits=18,decimal_places=2,min_value=0,required=False,initial=Decimal('0'),help_text='Conferir com a contabilidade. Excluído do custo, sem reduzir a obrigação fiscal/fornecedor.')
 
     def clean(self):
         data=super().clean();data['mode']=data.get('mode') or 'STOCK'
-        data['discount']=data.get('discount') or Decimal('0')
+        for field in ('discount','ipi','st','difal','invoice_st','invoice_other_tax','recoverable_tax'):
+            data[field]=data.get(field) or Decimal('0')
         if data['mode']=='STOCK':
             if not data.get('product'):self.add_error('product','Selecione um produto.')
             data['category']=None
@@ -91,3 +100,12 @@ class FilterForm(forms.Form):
     pending=forms.ChoiceField(label='Parcelas',required=False,choices=[('','Todas'),('pending','Pendentes'),('overdue','Vencidas'),('paid','Pagas')])
     period=forms.ChoiceField(label='Período da compra',required=False,choices=[('','Personalizado'),('today','Hoje'),('yesterday','Ontem'),('week','Semana'),('month','Mês'),('previous_month','Mês anterior'),('year','Ano')])
     sort=forms.ChoiceField(label='Ordenação',required=False,choices=[('-date','Mais recentes'),('date','Mais antigas'),('document','Documento')])
+
+class TaxObligationForm(forms.Form):
+    kind=forms.ChoiceField(label='Tributo externo',choices=[('ST','ICMS-ST'),('DIFAL','DIFAL')])
+    counterparty=forms.CharField(label='Credor fiscal / favorecido',max_length=240)
+    due_date=forms.DateField(label='Vencimento',widget=forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d'))
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        from apps.finance.models import FinancialAccount
+        self.fields['account']=forms.ModelChoiceField(label='Conta prevista',queryset=FinancialAccount.objects.filter(active=True),required=False)

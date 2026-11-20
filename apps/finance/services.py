@@ -72,15 +72,16 @@ def delete_account(*, actor, pk):
 
 
 @transaction.atomic
-def create_title(*, actor, key, data):
+def create_title(*, actor, key, data, source="manual"):
     require(actor,'core.create_financial_titles')
     require(actor,'core.operate_finance'); domain_lock()
+    if source not in {'manual','purchase_tax'}:raise ValidationError('Origem de título inválida.')
     allowed = {'direction','description','counterparty','date','due_date','amount','account','category','opening','notes'}
     if set(data)-allowed: raise ValidationError('Campo de título inválido.')
     data={**data,'amount':number(data['amount'],CENT)}
     key, fingerprint, existing = repeat(Title,key,[actor.pk,{k:str(v.pk if hasattr(v,'pk') else v) for k,v in data.items()}])
     if existing: return existing
-    title = Title(key=key,fingerprint=fingerprint,actor=actor,**data)
+    title = Title(key=key,fingerprint=fingerprint,actor=actor,source=source,**data)
     number(title.amount,CENT)
     cutoff = Company.objects.get(pk=1).cutover_date
     if title.opening:
@@ -229,8 +230,13 @@ def cancel_title(*, actor, pk, reason):
     require(actor,'core.cancel_financial_titles')
     require(actor,'core.operate_finance'); domain_lock()
     title=Title.objects.select_for_update().get(pk=pk)
-    if title.purchase_installment_id or title.sale_id or hasattr(title,'expense'): raise ValidationError('Cancele pela compra, venda ou despesa de origem, após estornar liquidações.')
+    if title.sale_id or hasattr(title,'expense'): raise ValidationError('Cancele pela compra, venda ou despesa de origem, após estornar liquidações.')
     _cancel_titles(actor,Title.objects.filter(pk=pk),reason)
+    if title.purchase_installment_id:
+        installment=title.purchase_installment
+        if installment.status!='CANCELLED':
+            installment.status='CANCELLED';installment.save(update_fields=['status'])
+            audit(actor,installment,'cancel_purchase_installment',{'status':'PENDING'},{'status':'CANCELLED','reason':reason,'title':pk})
 
 
 def _cancel_titles(actor, rows, reason):

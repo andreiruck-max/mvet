@@ -413,3 +413,8 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - Bling: diagnóstico por campo/página e normalização de sinais/datas ISO/resíduos float, mantendo publicação atômica e validações.
 
 13/11/2026 — PR 90: parceiro comercial com percentual sobre lucro da venda, divisão por parcelas e compensações auditadas em mudanças tributárias/cancelamentos. Correções na baixa programada e soma de compromissos. ADR 0059.
+
+## Em revisão — 19/11/2026 — MVet 2.0
+- Compras: IPI/ST fiscal por linha, ST/DIFAL externos por NCM com maiores restos, crédito recuperável revisado, prévia de custo e composição XML sem ajuste residual.
+- Obrigações fiscais externas com credor/vencimento próprios, sem aumentar parcelas do fornecedor ou criar pagamentos na importação.
+- Cancelamento individual de parcela de compra sem liquidação, auditado e independente das demais parcelas e estoque.
