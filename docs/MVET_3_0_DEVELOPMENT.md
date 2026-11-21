@@ -78,3 +78,10 @@ egress e login Chromium com cookie próprio. Testes de transporte em
 `apps.integrations.test_lab_isolation` verificam bloqueio antes de rede/credenciais.
 Resultados efetivos devem ser consultados na PR; configuração de CI não significa
 que os testes passaram. Não há teste do Docker Desktop na máquina operacional.
+
+## Fundação cadastral (PR 1a)
+
+No laboratório, master acessa Empresas · preparação 3.0 e os vínculos na tela do
+funcionário. MVet Agro permanece inativa. Cadastro não libera operação multiempresa.
+A migration de carga preserva registros existentes e não possui reversão destrutiva;
+antes de atualizar laboratório com dados próprios, guardar checkpoint. ADR 0062.

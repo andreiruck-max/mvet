@@ -1,0 +1,7 @@
+{% extends 'base.html' %}{% block content %}
+<h1>Vínculo de {{ target.username }} · {{ company.trade_name|default:company.name }}</h1>
+<p class="notice">Preparação do MVet 3.0. Estes vínculos serão aplicados ao contexto empresarial na próxima etapa. As telas atuais ainda usam as permissões legadas. Empresas inativas não recebem operações; a visão Grupo ainda não está disponível.</p>
+<nav>{% for row in companies %}<a class="button" href="{% url 'company_user_access' target.pk row.pk %}">{{ row.trade_name|default:row.name }}</a>{% endfor %}</nav>
+<form method="post" class="panel">{% csrf_token %}{{ form.as_p }}<button class="primary">Salvar vínculo empresarial</button></form>
+<a href="{% url 'user_access' target.pk %}">Permissões atuais do funcionário</a>
+{% endblock %}

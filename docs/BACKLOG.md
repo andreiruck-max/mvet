@@ -1,3 +1,5 @@
+19/11/2026 — MVet 3.0 PR 1a: cadastro de empresas e vínculos empresariais auditados, Mercadovet pk=1 preservada e MVet Agro inativa. Restrição de banco impede ativação secundária. As telas atuais ainda usam permissões legadas; seletor e aplicação de escopo ficam na PR 1b. ADR 0062.
+
 18/11/2026 — PR 0 MVet 3.0: laboratório Docker/PostgreSQL independente, porta 8001, Bling bloqueado, auditoria e ensaio sintético de restauração. Sem schema multiempresa ou implantação. Ver docs/MVET_3_0_DEVELOPMENT.md e ADR 0061.
 
 16/11/2026 — Bancos e saldos do fluxo abrem detalhes em pop-up, preservando a tela de origem. Cartão Saldo bancário atual dos indicadores abre o filtro padrão do fluxo.

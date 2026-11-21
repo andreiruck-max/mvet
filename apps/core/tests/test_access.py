@@ -82,15 +82,15 @@ class FoundationTests(TestCase):
         with self.assertRaises(ValidationError):
             update_company(actor=self.configurator, name="Changed", minimum_margin=10.1)
 
-    def test_company_singleton_constraint(self):
+    def test_secondary_company_cannot_be_active_yet(self):
         with self.assertRaises(IntegrityError), transaction.atomic():
-            Company.objects.create(pk=2)
+            Company.objects.create(pk=999, active=True)
 
     def test_setup_is_idempotent_and_preserves_custom_roles(self):
         group = Group.objects.get(name="VENDAS_OPERACIONAL")
         group.permissions.clear()
         call_command("setup_mvet", verbosity=0)
-        self.assertEqual(Company.objects.count(), 1)
+        self.assertEqual(Company.objects.filter(active=True).count(), 1)
         self.assertEqual(Group.objects.filter(name="VENDAS_OPERACIONAL").count(), 1)
         self.assertEqual(group.permissions.count(), 0)
 

@@ -28,8 +28,9 @@ def update_company(*, actor, name, minimum_margin, default_stock_location=None):
     company.name = name
     company.minimum_margin = minimum_margin
     company.default_stock_location = default_stock_location
+    company.revision += 1
     company.full_clean()
-    company.save(update_fields=["name", "minimum_margin", "default_stock_location", "updated_at"])
+    company.save(update_fields=["name", "minimum_margin", "default_stock_location", "updated_at", "revision"])
     audit(actor, company, "update_configuration", before,
           {"name": company.name, "minimum_margin": str(company.minimum_margin), "default_stock_location": company.default_stock_location_id})
     return company

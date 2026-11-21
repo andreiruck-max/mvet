@@ -1,11 +1,21 @@
 from datetime import date
 from decimal import Decimal
 from django.conf import settings
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from apps.accounts.permissions import CAPABILITIES
 
 class Company(models.Model):
+    trade_name = models.CharField("Nome fantasia", max_length=180, blank=True)
+    cnpj = models.CharField("CNPJ", max_length=14, null=True, blank=True, unique=True,
+        validators=[RegexValidator(r"^[0-9]{14}$", "Informe 14 dígitos para o CNPJ.")])
+    active = models.BooleanField("Ativa", default=True)
+    revision = models.PositiveIntegerField(default=0)
+
+    @property
+    def is_primary(self):
+        return self.pk == 1
+
     name = models.CharField("Nome", max_length=180, default="Mercadovet Produtos Agroveterinários")
     cutover_date = models.DateField("Data de corte", default=date(2026, 9, 15), editable=False)
     minimum_margin = models.DecimalField("Alerta de margem (%)", max_digits=6, decimal_places=2,
@@ -34,7 +44,9 @@ class Company(models.Model):
         ]
         constraints = [
             models.CheckConstraint(condition=models.Q(default_markup__gte=0), name="company_markup_nonnegative"),
-            models.CheckConstraint(condition=models.Q(id=1), name="single_company"),
+            # Temporary PR 1 guard: no operations in secondary companies before scoping.
+            models.CheckConstraint(condition=models.Q(id=1) | models.Q(active=False), name="company_secondary_inactive"),
+            models.CheckConstraint(condition=models.Q(cnpj__isnull=True) | models.Q(cnpj__regex=r"^[0-9]{14}$"), name="company_cnpj_format"),
             models.CheckConstraint(condition=models.Q(minimum_margin__gte=0, minimum_margin__lte=100),
                                    name="valid_minimum_margin"),
         ]
