@@ -10,6 +10,8 @@ def money(label, default=0):
 
 
 class FinancialAccount(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT,
+        default=1, editable=False, related_name='financial_accounts')
     name = models.CharField('Nome', max_length=120, unique=True)
     institution = models.CharField('Instituição', max_length=120, blank=True)
     kind = models.CharField('Tipo', max_length=20, choices=[('BANK','Banco'),('WALLET','Carteira digital'),('CASH','Caixa'),('INVESTMENT','Investimento')])
@@ -20,6 +22,8 @@ class FinancialAccount(models.Model):
 
     class Meta:
         ordering = ['name','pk']
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1),
+            name='finance_account_primary_during_transition')]
 
     def __str__(self):
         return self.name
