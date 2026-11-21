@@ -1,5 +1,6 @@
 """Read-only fingerprints for the staged company attribution migrations."""
 import hashlib
+from datetime import datetime, time
 import json
 from pathlib import Path
 
@@ -16,6 +17,15 @@ DOMAINS = {
 }
 
 
+class HistoryEncoder(DjangoJSONEncoder):
+    def default(self, value):
+        # Django's default JSON encoder truncates timestamps to milliseconds.
+        # Preserve full database precision when proving history unchanged.
+        if isinstance(value, (datetime, time)):
+            return value.isoformat()
+        return super().default(value)
+
+
 def inventory():
     return {model._meta.label_lower: model for model in apps.get_models(include_auto_created=True)
             if model._meta.app_label in DOMAINS and model._meta.managed
@@ -26,7 +36,7 @@ def fingerprint(model, fields):
     digest = hashlib.sha256()
     count = 0
     for row in model._base_manager.order_by(model._meta.pk.attname).values_list(*fields).iterator(chunk_size=2000):
-        encoded = json.dumps(row, cls=DjangoJSONEncoder, sort_keys=True,
+        encoded = json.dumps(row, cls=HistoryEncoder, sort_keys=True,
                              ensure_ascii=True, separators=(',', ':')).encode()
         digest.update(len(encoded).to_bytes(8, 'big'))
         digest.update(encoded)
@@ -58,7 +68,7 @@ class Command(BaseCommand):
                     available = {f.attname for f in models[label]._meta.concrete_fields}
                     if not record['fields'] or not set(record['fields']) <= available:
                         raise ValueError()
-            except (OSError, ValueError, KeyError, TypeError):
+            except (OSError, ValueError, KeyError, TypeError, AttributeError):
                 raise CommandError('Baseline inválido ou schema histórico incompatível.')
         snapshot = {'version': 1, 'models': {}}
         differences = []

@@ -35,3 +35,16 @@ class CompanyHistoryTests(TransactionTestCase):
             product.delete()
             with self.assertRaisesMessage(CommandError, 'products.product'):
                 call_command('check_company_history', compare=path, stdout=StringIO())
+
+
+    def test_timestamp_microseconds_are_not_discarded(self):
+        from django.contrib.auth.models import User
+        from django.utils import timezone
+        instant = timezone.now().replace(microsecond=100)
+        user = User.objects.create(username='timestamp-test', date_joined=instant)
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / 'baseline.json'
+            call_command('check_company_history', baseline=path, stdout=StringIO())
+            User.objects.filter(pk=user.pk).update(date_joined=instant.replace(microsecond=101))
+            with self.assertRaisesMessage(CommandError, 'auth.user'):
+                call_command('check_company_history', compare=path, stdout=StringIO())
