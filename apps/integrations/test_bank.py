@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError, PermissionDenied
 from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from apps.core.models import Company
 from apps.finance.models import FinancialAccount, FinancialEntry, FinancialOperation, FinancialTitle
 from apps.inventory.models import StockMovement
 from .models import BlingConnection, BlingBankAccount, BlingBankLink, BlingBankRun, BlingBankEntry, BlingBankDay
@@ -15,6 +16,7 @@ from . import bank_services as svc
 @override_settings(STORAGES={'default':{'BACKEND':'django.core.files.storage.FileSystemStorage'},'staticfiles':{'BACKEND':'django.contrib.staticfiles.storage.StaticFilesStorage'}})
 class BankTests(TestCase):
     def setUp(self):
+        Company.objects.get_or_create(pk=1)
         self.actor=User.objects.create_superuser('bank-owner')
         self.today=timezone.localdate(); self.start=self.today-timedelta(days=2)
         self.conn=BlingConnection.objects.create(pk=1,issuer='12345678000195',tokens='synthetic')
