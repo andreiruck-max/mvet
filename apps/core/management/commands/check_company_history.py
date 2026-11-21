@@ -12,11 +12,12 @@ from django.db import connection, transaction
 DOMAINS = {
     'core', 'accounts', 'products', 'inventory', 'sales', 'purchases',
     'finance', 'expenses', 'commissions', 'crm', 'integrations', 'notifications',
+    'reporting', 'auth',
 }
 
 
 def inventory():
-    return {model._meta.label_lower: model for model in apps.get_models()
+    return {model._meta.label_lower: model for model in apps.get_models(include_auto_created=True)
             if model._meta.app_label in DOMAINS and model._meta.managed
             and not model._meta.proxy}
 
