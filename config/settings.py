@@ -43,6 +43,7 @@ TEMPLATES = [{"BACKEND": "django.template.backends.django.DjangoTemplates",
         "django.template.context_processors.request",
         "apps.core.navigation.navigation",
         "apps.core.modals.context",
+        "apps.accounts.company_context.template_context",
         "django.contrib.auth.context_processors.auth",
         "django.contrib.messages.context_processors.messages",
     ]}}]

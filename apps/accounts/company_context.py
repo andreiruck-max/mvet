@@ -90,3 +90,9 @@ def context_view(request):
         group_allowed = False
     return render(request, 'accounts/company_context.html', {'scope_companies':companies,
         'group_allowed':group_allowed,'selection':request.session.get('company_selection','1')})
+
+
+def template_context(request):
+    from django.conf import settings
+    return {'company_context_enabled': getattr(settings, 'COMPANY_CONTEXT_ENABLED', False),
+            'company_context_selection': request.session.get('company_selection', '1')}

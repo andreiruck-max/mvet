@@ -56,6 +56,7 @@ class CompanyRegistryBrowser(StaticLiveServerTestCase):
             context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
             page=context.new_page()
             page.goto(self.live_server_url+reverse('company_context'))
+            self.assertTrue(page.get_by_role('link',name='Contexto: Mercadovet · Trocar empresa',exact=True).is_visible())
             page.locator('#company-scope').select_option('group')
             page.get_by_role('button',name='Selecionar contexto',exact=True).click()
             page.wait_for_load_state()
