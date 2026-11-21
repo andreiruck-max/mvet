@@ -74,7 +74,7 @@ def purchase_edit(request,pk=None):
                     for line,index in zip(lines,kept):
                         if index<len(originals):line['fiscal_components']=originals[index].fiscal_components
                 dates=[(f.cleaned_data['due_date'],f.cleaned_data['amount'],f.cleaned_data['notes']) for f in installments if f.cleaned_data and not f.cleaned_data.get('DELETE')]
-                p=save_draft(actor=request.user,key=form.cleaned_data['key'],data={k:form.cleaned_data[k] for k in FIELDS},items=lines,installments=dates,purchase_id=pk,revision=form.cleaned_data['revision'])
+                p=save_draft(actor=request.user,key=form.cleaned_data['key'],data={k:form.cleaned_data[k] for k in FIELDS if k in form.cleaned_data},items=lines,installments=dates,purchase_id=pk,revision=form.cleaned_data['revision'])
                 messages.success(request,'Rascunho salvo. Confira o total, o rateio e as parcelas.');return redirect('purchase_detail',pk=p.pk)
             except ValidationError as exc:form.add_error(None,'; '.join(exc.messages))
             except IntegrityError:form.add_error(None,'Documento e série já utilizados para este fornecedor.')
@@ -135,3 +135,21 @@ def purchase_tax_obligation(request,pk):
         except ValidationError as exc:form.add_error(None,'; '.join(exc.messages))
     return render(request,'finance/form.html',dict(form=form,title='Obrigação fiscal da compra '+purchase.document,
         button='Registrar obrigação fiscal',help='Não cria pagamento bancário. Valor do tributo externo da compra; obrigação independente das parcelas do fornecedor.'))
+
+
+@login_required
+@permission_required(('core.operate_purchases', 'core.confirm_purchases', 'core.receive_purchases'), raise_exception=True)
+@require_POST
+def purchase_confirm_receive(request, pk):
+    from .services import confirm_and_receive
+    get_object_or_404(Purchase, pk=pk)
+    form = ReceiveForm(request.POST)
+    if form.is_valid():
+        try:
+            confirm_and_receive(actor=request.user, purchase_id=pk, **form.cleaned_data)
+            messages.success(request, 'Compra confirmada e recebida. Estoque atualizado; pagamento permanece separado.')
+        except ValidationError as exc:
+            messages.error(request, '; '.join(exc.messages))
+    else:
+        messages.error(request, 'Informe data de recebimento e revisão válidas.')
+    return redirect('purchase_detail', pk=pk)

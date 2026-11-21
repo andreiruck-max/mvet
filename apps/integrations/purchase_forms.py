@@ -22,15 +22,13 @@ class PurchaseReviewForm(forms.Form):
     freight = forms.DecimalField(label='Frete incluído na nota (R$)', max_digits=18, decimal_places=2, min_value=0, initial=Decimal('0'), localize=True, widget=MoneyInput)
     external_freight = forms.DecimalField(label='Frete pago à transportadora fora da nota (R$)', required=False, max_digits=18, decimal_places=2, min_value=0, localize=True, widget=MoneyInput, help_text='Rateado nos produtos de estoque. Não altera as parcelas nem registra pagamento à transportadora.')
     other_costs = forms.DecimalField(label='Outros custos de aquisição (R$)', max_digits=18, decimal_places=2, min_value=0, initial=Decimal('0'), localize=True, widget=MoneyInput)
-    taxes_reviewed=forms.BooleanField(label='Conferi com a contabilidade os tributos e créditos recuperáveis',required=False)
     st_by_ncm = forms.CharField(label='ICMS-ST na entrada por NCM (fora da NF)', required=False,
-        widget=forms.Textarea(attrs={'rows':3, 'placeholder':'85437092=510,82\\n85354010=23,52'}),
+        widget=forms.Textarea(attrs={'rows':3, 'placeholder':'85437092=510,82\n85354010=23,52'}),
         help_text='Uma linha por NCM: 8 dígitos = valor total do ST. O MVet rateia proporcionalmente ao valor líquido de cada item do mesmo NCM.')
     difal_by_ncm = forms.CharField(label='DIFAL na entrada por NCM (fora da NF)', required=False,
         widget=forms.Textarea(attrs={'rows':2, 'placeholder':'73121090=11,20'}),
         help_text='Uma linha por NCM. O valor é incorporado ao custo, mas não às parcelas do fornecedor.')
     acquisition_kind=forms.ChoiceField(label='Tipo de entrada',choices=Purchase._meta.get_field('acquisition_kind').choices,initial='NORMAL',required=False)
-    reviewed = forms.BooleanField(label='Conferi o documento: a Mercadovet é a destinatária, a finalidade fiscal é normal (não devolução, ajuste ou complemento) e o tipo de entrada, produtos e quantidades estão corretos.')
 
     def clean_acquisition_kind(self):return self.cleaned_data['acquisition_kind'] or 'NORMAL'
 

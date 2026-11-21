@@ -83,3 +83,31 @@ class PurchasesBrowser(StaticLiveServerTestCase):
         purchase=Purchase.objects.get(document='DEMO-987');self.assertEqual(purchase.status,'RECEIVED');self.assertEqual(purchase.total,42);self.assertEqual(purchase.installments.count(),2)
         first.refresh_from_db();self.assertEqual(first.quantity,2);self.assertEqual(first.value,21);self.assertEqual(first.average_cost,Decimal('10.5'))
         self.assertEqual(first.balances.get(location=physical).quantity,1);self.assertEqual(first.balances.get(location=full).quantity,1)
+
+
+    def test_confirm_and_receive_draft(self):
+        from uuid import uuid4
+        from django.utils import timezone
+        from playwright.sync_api import sync_playwright
+        from .services import save_draft
+        location = StockLocation.objects.create(name='Destino recebido')
+        Company.objects.create(pk=1, default_stock_location=location)
+        actor = User.objects.create_superuser('combined-receipt')
+        supplier = Supplier.objects.create(legal_name='Fornecedor recebido')
+        product = Product.objects.create(sku='RECEIPT-01', name='Produto recebido')
+        today = timezone.localdate()
+        purchase = save_draft(actor=actor, key=uuid4(), data=dict(supplier=supplier, document='RECEIPT-TEST', series='', date=today, location=location, discount=Decimal(0), freight=Decimal(0), other_costs=Decimal(0), notes=''), items=[(product.pk,Decimal(2),Decimal(5))], installments=[(today,Decimal(10),'')])
+        client = Client(); client.force_login(actor)
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            context = browser.new_context()
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page = context.new_page()
+            page.goto(self.live_server_url+f'/compras/{purchase.pk}/')
+            page.get_by_role('button', name='Confirmar compra e recebimento', exact=True).click()
+            page.get_by_text('Compra confirmada e recebida. Estoque atualizado; pagamento permanece separado.', exact=True).wait_for()
+            self.assertEqual(page.get_by_role('button', name='Confirmar compra e recebimento', exact=True).count(), 0)
+            browser.close()
+        purchase.refresh_from_db(); product.refresh_from_db()
+        self.assertEqual(purchase.status, 'RECEIVED')
+        self.assertEqual(product.quantity, 2)

@@ -95,8 +95,6 @@ def eligible(source, *, reviewed=False, acquisition_kind='NORMAL'):
         raise ValidationError('A compra exige nota de entrada autorizada ou registrada no Bling.')
     if source['purpose'] not in ('', '1'):
         raise ValidationError('Nota complementar, ajuste ou devolução não pode gerar nova compra.')
-    if reviewed is not True:
-        raise ValidationError('Confira destinatário, finalidade de compra e produtos no documento.')
     if acquisition_kind not in ('NORMAL','BONUS'):raise ValidationError('Tipo de entrada inválido.')
     # Original supplier CFOP may be outgoing; do not convert it to incoming silently.
     for row in source['items']:
@@ -140,7 +138,7 @@ def stage(*, actor, connection, payload):
 
 
 @transaction.atomic
-def create_draft(*, actor, invoice_id, revision, supplier, location, products, discount, freight, other_costs, installments, reviewed, acquisition_kind='NORMAL', treatments=None, supplier_data=None, external_freight=None, account=None, st_by_ncm='', difal_by_ncm='', taxes_reviewed=False):
+def create_draft(*, actor, invoice_id, revision, supplier, location, products, discount, freight, other_costs, installments, reviewed=False, acquisition_kind='NORMAL', treatments=None, supplier_data=None, external_freight=None, account=None, st_by_ncm='', difal_by_ncm='', taxes_reviewed=False):
     require(actor, 'core.operate_purchases'); domain_lock()
     invoice = PurchaseInvoiceImport.objects.select_for_update().get(pk=invoice_id)
     if invoice.purchase_id: return invoice.purchase
@@ -206,7 +204,7 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
         raise ValidationError(purchases.reconciliation_message(Decimal(invoice.source['total']),fiscal_composition,'Total dos itens com descontos e custos'))
     purchase.source='bling';purchase.external_id=invoice.external_id;purchase.save(update_fields=['source','external_id'])
     invoice.purchase = purchase; invoice.approved_source = invoice.source; invoice.revision += 1; invoice.save()
-    audit(actor, invoice, 'bling_purchase_draft', after={'purchase': purchase.pk, 'reviewed': True,'acquisition_kind':acquisition_kind,'items':[{k:str(v) for k,v in i.items()} for i in items]})
+    audit(actor, invoice, 'bling_purchase_draft', after={'purchase': purchase.pk, 'review_method': 'explicit_draft_import','acquisition_kind':acquisition_kind,'items':[{k:str(v) for k,v in i.items()} for i in items]})
     return purchase
 
 

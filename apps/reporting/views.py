@@ -93,9 +93,9 @@ def sales_sheet(request):
 @transaction.atomic
 def dre(request):
     domain_lock();form,d=bind(request,forms.PeriodForm)
-    from .drilldown import lines
-    report=selectors.dre(d) if d else None
-    return render(request,'reporting/dre.html',{'form':form,'report':report,'range':d,'lines':lines(report,d,request.user.is_superuser) if d else []},status=200 if d else 400)
+    from .drilldown import monthly_lines
+    report, months, rows = monthly_lines(d, request.user.is_superuser) if d else (None, [], [])
+    return render(request,'reporting/dre.html',{'form':form,'report':report,'range':d,'lines':rows,'months':months},status=200 if d else 400)
 
 @login_required
 @require_GET

@@ -30,8 +30,8 @@ class PurchaseTaxesBrowser(Fixture,StaticLiveServerTestCase):
             page.locator('[name="supplier"]').select_option(str(supplier.pk))
             page.locator('[name="location"]').select_option(str(self.location.pk))
             page.locator('[name="st_by_ncm"]').fill('85437092=20,00')
-            page.locator('[name="reviewed"]').check()
-            page.locator('[name="taxes_reviewed"]').check()
+            self.assertEqual(page.locator('[name="reviewed"]').count(), 0)
+            self.assertEqual(page.locator('[name="taxes_reviewed"]').count(), 0)
             # Source parcel is a synthetic R$100; reconcile with the explicit IPI.
             page.locator('[name="installments-0-amount"]').fill('110,00')
             page.get_by_role('button',name='Calcular prévia dos custos',exact=True).click()

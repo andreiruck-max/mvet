@@ -75,3 +75,27 @@ def sources(token,data):
     else:raise Http404('Origem inválida.')
     rows.sort(key=lambda row:(row['date'],row['origin']))
     return spec,rows,sum((row['amount'] for row in rows),Decimal(0))
+
+
+def monthly_lines(data, master=False):
+    """Calendar columns clipped to the selected period; same historical DRE rules."""
+    import calendar
+    from datetime import timedelta
+    columns, rows = [], []
+    start = data['start']
+    while start <= data['end']:
+        end = min(start.replace(day=calendar.monthrange(start.year, start.month)[1]), data['end'])
+        period = {**data, 'start': start, 'end': end}
+        report = selectors.dre(period)
+        columns.append({'label': start.strftime('%m/%Y'), 'start': start, 'end': end,
+                        'provisional': report['provisional']})
+        current = lines(report, period, master)
+        if not rows:
+            rows = [{**line, 'months': []} for line in current]
+        for row, cell in zip(rows, current):
+            row['months'].append(cell)
+        start = end + timedelta(days=1)
+    total = selectors.dre(data)
+    for row, cell in zip(rows, lines(total, data, master)):
+        row.update(value=cell['value'], url=cell['url'])
+    return total, columns, rows
