@@ -62,3 +62,15 @@ class CompanySessionTests(CompanyContextTests):
         self.assertEqual(self.client.get(reverse('dashboard')).status_code,403)
         secure=Client(enforce_csrf_checks=True);secure.force_login(self.master)
         self.assertEqual(secure.post(url,{'company':'group'}).status_code,403)
+
+
+    def test_company_grant_does_not_authorize_object_permissions(self):
+        from .backends import AccessBackend
+        UserCompanyAccess.objects.create(
+            user=self.user, company_id=1, active=True,
+            rules={'core.view_dashboard': True},
+        )
+        self.user._mvet_company_scope = resolve_scope(self.user, '1')
+        backend = AccessBackend()
+        self.assertTrue(backend.has_perm(self.user, 'core.view_dashboard'))
+        self.assertFalse(backend.has_perm(self.user, 'core.view_dashboard', obj=Company.objects.get(pk=1)))
