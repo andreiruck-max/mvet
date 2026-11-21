@@ -415,3 +415,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 13/11/2026 — PR 90: parceiro comercial com percentual sobre lucro da venda, divisão por parcelas e compensações auditadas em mudanças tributárias/cancelamentos. Correções na baixa programada e soma de compromissos. ADR 0059.
 
 - MVet 3.0 PR 1b em validação: contexto empresarial na sessão, bloqueios das rotas legadas e permissões por vínculo no laboratório. Grupo sem operações/relatórios nesta fase; empresas secundárias inativas.
+
+- MVet 3.0 preparação da PR 2: comando de baseline/comparação read-only do histórico por hashes. Não atribui empresas nem habilita a MVet Agro.
