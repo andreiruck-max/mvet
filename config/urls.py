@@ -18,7 +18,10 @@ from apps.expenses.views import report_api as expense_report_api
 from apps.core.companies import registry as company_registry
 from apps.accounts.company_access import access as company_user_access
 
+from apps.accounts.company_context import context_view
+
 urlpatterns = [
+    path('contexto-empresa/', context_view, name='company_context'),
     path('empresas/', company_registry, name='company_registry'),
     path('empresas/<int:pk>/', company_registry, name='company_registry_edit'),
     path('usuarios/<int:user_id>/empresas/<int:company_id>/', company_user_access, name='company_user_access'),

@@ -33,6 +33,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "apps.core.modals.ActionModalMiddleware",
+    "apps.accounts.company_context.CompanyContextMiddleware",
 ]
 ROOT_URLCONF = "config.urls"
 AUTHENTICATION_BACKENDS = ['apps.accounts.backends.AccessBackend']
@@ -42,6 +43,7 @@ TEMPLATES = [{"BACKEND": "django.template.backends.django.DjangoTemplates",
         "django.template.context_processors.request",
         "apps.core.navigation.navigation",
         "apps.core.modals.context",
+        "apps.accounts.company_context.template_context",
         "django.contrib.auth.context_processors.auth",
         "django.contrib.messages.context_processors.messages",
     ]}}]

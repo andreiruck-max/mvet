@@ -77,6 +77,7 @@
     </div>
   </header>{% endif %}
   <main id="content" class="workspace">
+    {% if company_context_enabled and user.is_authenticated %}<p class="notice"><a href="{% url 'company_context' %}">Contexto: {% if company_context_selection == 'group' %}Grupo · somente leitura{% else %}Mercadovet{% endif %} · Trocar empresa</a></p>{% endif %}
     {% if user.is_authenticated and show_back and not modal_mode %}<a class="button page-back" href="{{ back_url }}">← Voltar</a>{% endif %}
     {% for message in messages %}<div class="notice" role="status">{{ message }}</div>{% endfor %}
     {% block content %}{% endblock %}
