@@ -1,5 +1,5 @@
 {% extends 'base.html' %}{% block content %}
-<h1>Empresas · preparação MVet 3.0</h1>
+<p><a href="{% url 'company_context' %}">Selecionar contexto empresarial (laboratório)</a></p><h1>Empresas · preparação MVet 3.0</h1>
 <p class="notice">O cadastro não habilita operações multiempresa. A Mercadovet mantém os módulos atuais; empresas secundárias permanecem inativas até a separação dos registros. Nenhum saldo ou histórico é transferido aqui.</p>
 <table><thead><tr><th>Empresa</th><th>Nome fantasia</th><th>CNPJ</th><th>Situação</th><th>Ação</th></tr></thead><tbody>
 {% for row in companies %}<tr><td>{{ row.name }}{% if row.is_primary %} · Principal{% endif %}</td><td>{{ row.trade_name }}</td><td>{{ row.cnpj|default:'Não informado' }}</td><td>{{ row.active|yesno:'Ativa,Inativa' }}</td><td><a href="{% url 'company_registry_edit' row.pk %}">Editar cadastro</a></td></tr>{% endfor %}</tbody></table>
