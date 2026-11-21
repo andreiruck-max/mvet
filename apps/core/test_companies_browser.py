@@ -27,7 +27,8 @@ class CompanyRegistryBrowser(StaticLiveServerTestCase):
             page.get_by_role('button', name='Salvar cadastro', exact=True).click()
             page.get_by_text('Cadastro salvo.', exact=False).wait_for()
             page.goto(self.live_server_url + f'/usuarios/{employee.pk}/empresas/2/')
-            page.get_by_label('Vínculo ativo', exact=True).check()
+            page.locator('#id_active').check()
+            self.assertTrue(page.locator('#id_active').is_checked())
             page.get_by_role('button', name='Salvar vínculo empresarial').click()
             page.get_by_text('Vínculo empresarial salvo', exact=False).wait_for()
             from pathlib import Path
