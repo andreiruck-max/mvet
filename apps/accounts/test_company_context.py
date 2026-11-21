@@ -32,3 +32,33 @@ class CompanyContextTests(TestCase):
         with self.assertRaises(PermissionDenied): resolve_scope(self.user,'group')
         self.user.is_active=False;self.user.save()
         with self.assertRaises(PermissionDenied): resolve_scope(self.user,1)
+
+
+from django.test import override_settings, Client
+from django.urls import reverse
+
+
+@override_settings(COMPANY_CONTEXT_ENABLED=True)
+class CompanySessionTests(CompanyContextTests):
+    def test_session_switch_blocks_legacy_group_routes_and_can_return(self):
+        self.client.force_login(self.master)
+        url=reverse('company_context')
+        self.assertContains(self.client.get(url),'Selecionar contexto')
+        self.assertEqual(self.client.post(url,{'company':'group'}).status_code,302)
+        self.assertEqual(self.client.get(reverse('dashboard')).status_code,403)
+        self.assertEqual(self.client.get(reverse('dashboard_api')).status_code,403)
+        self.assertEqual(self.client.post(url,{'company':'1'}).status_code,302)
+        self.assertEqual(self.client.get(reverse('dashboard')).status_code,200)
+
+    def test_revoked_grant_invalid_selection_and_csrf(self):
+        grant=UserCompanyAccess.objects.create(user=self.user,company_id=1,active=True,rules={'core.view_dashboard':True})
+        self.client.force_login(self.user)
+        self.assertEqual(self.client.get(reverse('dashboard')).status_code,200)
+        self.assertEqual(self.client.get(reverse('dre')).status_code,403)
+        url=reverse('company_context')
+        self.assertEqual(self.client.post(url,{'company':'2'}).status_code,403)
+        self.assertNotIn('company_selection',self.client.session)
+        grant.active=False;grant.save()
+        self.assertEqual(self.client.get(reverse('dashboard')).status_code,403)
+        secure=Client(enforce_csrf_checks=True);secure.force_login(self.master)
+        self.assertEqual(secure.post(url,{'company':'group'}).status_code,403)

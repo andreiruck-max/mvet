@@ -5,3 +5,10 @@ Primeira parte da PR 1b: serviço resolve_scope valida usuário ativo, empresa a
 Este serviço não substitui permissões funcionais: os chamadores continuam obrigados a verificá-las. Ainda não conectado às rotas, sessões, jobs ou seletor visual. Não representa isolamento operacional completo. Próxima alteração deve integrar middleware, backend e UI conjuntamente, com regressão das rotas e proteção contra acesso cruzado.
 
 Sem migrations, alteração de saldos, chamadas Bling ou modificações no ambiente 2.0. Testes cobrem vínculo ausente/revogado, empresa inativa, usuário inativo, seleção inválida e escrita no modo Grupo.
+
+
+## Sessão e rotas no laboratório
+
+COMPANY_CONTEXT_ENABLED é ativado exclusivamente em settings_mvet3. O middleware valida cada requisição autenticada e não permite acessar rotas legadas em Grupo ou empresa secundária. Cadastro master e tela de contexto permanecem acessíveis para administração/retorno. O backend aplica permissões explícitas do vínculo ou herança legada na empresa 1. GET não troca o contexto; POST usa CSRF e valida vínculo antes de salvar na sessão.
+
+A página de Grupo nesta fase é apenas preparação, sem totais nem operações. Jobs e chamadas diretas aos serviços ainda não são contextualizados: essa implementação NÃO habilita operações secundárias ou isolamento completo. A suíte legada usa settings padrão; testes específicos habilitam a configuração de contexto.

@@ -42,3 +42,27 @@ class CompanyRegistryBrowser(StaticLiveServerTestCase):
         grant = UserCompanyAccess.objects.get(user=employee, company=agro)
         self.assertTrue(grant.active)
         self.assertEqual(grant.rules, {})
+
+    @override_settings(COMPANY_CONTEXT_ENABLED=True)
+    def test_group_context_blocks_legacy_dashboard(self):
+        from playwright.sync_api import sync_playwright
+        from django.urls import reverse
+        Company.objects.get_or_create(pk=1)
+        actor=User.objects.create_superuser('scope-browser')
+        client=Client();client.force_login(actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch()
+            context=browser.new_context()
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page()
+            page.goto(self.live_server_url+reverse('company_context'))
+            page.locator('#company-scope').select_option('group')
+            page.get_by_role('button',name='Selecionar contexto',exact=True).click()
+            page.wait_for_load_state()
+            response=page.goto(self.live_server_url+reverse('dashboard'))
+            self.assertEqual(response.status,403)
+            page.goto(self.live_server_url+reverse('company_context'))
+            page.locator('#company-scope').select_option('1')
+            page.get_by_role('button',name='Selecionar contexto',exact=True).click()
+            page.get_by_role('link',name='Abrir Mercadovet',exact=True).wait_for()
+            browser.close()
