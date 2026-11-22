@@ -291,3 +291,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - MVet 3.0 PR 2d em desenvolvimento: identidade empresarial dos documentos, itens e parcelas de compra; restrição temporária à Mercadovet.
 
 - MVet 3.0 PR 2e em desenvolvimento: identidade empresarial das vendas, itens, consumos e taxas extras; CMV histórico preservado; ADR 0067.
+
+- MVet 3.0 PR 2f em desenvolvimento: identificação empresarial de despesas e revisões, preservando obrigações e baixas; ADR 0068.

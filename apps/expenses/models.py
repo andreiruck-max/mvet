@@ -30,6 +30,7 @@ class ClassificationRule(models.Model):
 
 
 class Expense(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     key = models.UUIDField(default=uuid.uuid4,unique=True,editable=False)
     fingerprint = models.CharField(max_length=64,editable=False)
     document_date = models.DateField('Data do documento / contrato')
@@ -56,11 +57,12 @@ class Expense(models.Model):
     cancellation_reason = models.CharField(max_length=500,blank=True)
     class Meta:
         ordering=['-competence','-pk']
-        constraints=[models.CheckConstraint(condition=models.Q(title__isnull=False) | (models.Q(category_snapshot__has_key='nature') & models.Q(category_snapshot__nature='DEPRECIATION')), name='expense_noncash_category'),models.CheckConstraint(condition=models.Q(amount__gt=0),name='expense_positive'),models.UniqueConstraint(fields=['recurrence_of','recurrence_index'],condition=models.Q(recurrence_of__isnull=False),name='expense_unique_occurrence')]
+        constraints=[models.CheckConstraint(condition=models.Q(company_id=1),name='expense_document_primary_transition'),models.CheckConstraint(condition=models.Q(title__isnull=False) | (models.Q(category_snapshot__has_key='nature') & models.Q(category_snapshot__nature='DEPRECIATION')), name='expense_noncash_category'),models.CheckConstraint(condition=models.Q(amount__gt=0),name='expense_positive'),models.UniqueConstraint(fields=['recurrence_of','recurrence_index'],condition=models.Q(recurrence_of__isnull=False),name='expense_unique_occurrence')]
         indexes=[models.Index(fields=['status','competence']),models.Index(fields=['category','competence'])]
 
 
 class ExpenseRevision(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     expense = models.ForeignKey(Expense,on_delete=models.PROTECT,related_name='revisions')
     number = models.PositiveIntegerField()
     actor = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT)
@@ -69,4 +71,4 @@ class ExpenseRevision(models.Model):
     after = models.JSONField()
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
-        constraints=[models.UniqueConstraint(fields=['expense','number'],name='expense_revision_unique')]
+        constraints=[models.CheckConstraint(condition=models.Q(company_id=1),name='expense_revision_primary_transition'),models.UniqueConstraint(fields=['expense','number'],name='expense_revision_unique')]
