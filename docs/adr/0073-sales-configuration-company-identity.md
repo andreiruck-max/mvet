@@ -13,3 +13,9 @@ entre empresas precederão a remoção dos bloqueios. Não é ativação multiem
 Teste PostgreSQL cria venda confirmada e recálculo tributário auditado, migra de/para
 o schema anterior e compara todos os campos históricos e a venda integralmente.
 Verifica bloqueio secundário nos cadastros e imutabilidade das revisões tributárias.
+
+Cálculo e validação rejeitam regra de outra empresa, inclusive com imposto manual.
+Sugestão e seleção para recálculo filtram pela empresa, sem fallback para outra regra.
+Alterações e revisões recebem explicitamente a empresa de origem. O serviço de
+alteração valida o contexto/autorização e rejeita Grupo. O default company_id=1
+é somente compatibilidade transitória; a operação secundária permanece bloqueada.

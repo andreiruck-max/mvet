@@ -10,16 +10,18 @@ from .models import TaxRule, TaxRateChange, Sale, SaleTaxRevision
 
 CENT=Decimal('0.01')
 
-def suggested_rule(date):
-    return TaxRule.objects.filter(active=True,starts_on__lte=date).filter(
+def suggested_rule(date, *, company_id=1):
+    return TaxRule.objects.filter(company_id=company_id,active=True,starts_on__lte=date).filter(
         Q(ends_on__isnull=True)|Q(ends_on__gte=date)).order_by('-starts_on','-pk').first()
 
 def effective_terms(rule,date):
-    change=rule.changes.filter(effective_from__lte=date).first()
+    change=rule.changes.filter(company_id=rule.company_id,effective_from__lte=date).first()
     return (change.rate,change.base,change.pk) if change else (rule.rate,rule.base,None)
 
 def calculate_tax(sale):
     rule=TaxRule.objects.get(pk=sale.tax_rule_id) if sale.tax_rule_id else None
+    if rule and rule.company_id != sale.company_id:
+        raise ValidationError('A regra tributária pertence a outra empresa.')
     rate,base_type,version=effective_terms(rule,sale.date) if rule else (None,None,None)
     base=sale.revenue if base_type=='REVENUE' else sale.products_amount-sale.discount
     snapshot={'rule_id':rule.pk if rule else None,'name':rule.name if rule else 'Manual','rate':str(rate) if rule else None,'base_type':base_type,'base_amount':str(base),'version_id':version,'override':sale.tax_override is not None,'reason':sale.tax_reason}
@@ -29,22 +31,26 @@ def calculate_tax(sale):
 def affected_sales(rule,effective_from):
     if effective_from>timezone.localdate():return Sale.objects.none()
     following=rule.changes.filter(effective_from__gt=effective_from).order_by('effective_from').first()
-    rows=Sale.objects.filter(tax_rule=rule,status='CONFIRMED',tax_override__isnull=True,date__gte=effective_from).exclude(tax_snapshot__override=True)
+    rows=Sale.objects.filter(company_id=rule.company_id,tax_rule=rule,status='CONFIRMED',tax_override__isnull=True,date__gte=effective_from).exclude(tax_snapshot__override=True)
     if following:rows=rows.filter(date__lt=following.effective_from)
     return rows
 
 @transaction.atomic
-def change_rate(*,actor,rule_id,rate,effective_from,base,reason,revision):
+def change_rate(*,actor,rule_id,rate,effective_from,base,reason,revision,company_id=1):
     if effective_from < timezone.localdate(): require(actor,'core.retroactive_taxes')
     require(actor,'core.manage_taxes');domain_lock()
-    rule=TaxRule.objects.select_for_update().get(pk=rule_id)
+    from apps.accounts.company_context import resolve_scope
+    scope = getattr(actor, '_mvet_company_scope', None) or resolve_scope(actor, str(company_id))
+    if scope.require_operation() != company_id:
+        raise ValidationError('Empresa divergente do contexto selecionado.')
+    rule=TaxRule.objects.select_for_update().get(pk=rule_id, company_id=company_id)
     latest=rule.changes.order_by('-pk').first()
     if revision!=(latest.pk if latest else 0):raise ValidationError('A regra mudou em outra sessão. Reabra a edição.')
     number(rate,Decimal('0.0001'),zero=True)
     if rate>100:raise ValidationError('Alíquota deve estar entre 0 e 100%.')
     if effective_from<rule.starts_on or (rule.ends_on and effective_from>rule.ends_on):raise ValidationError('A data deve estar dentro da vigência da regra.')
     if not reason.strip():raise ValidationError('Informe o motivo da alteração.')
-    change=TaxRateChange(rule=rule,rate=rate,effective_from=effective_from,base=base,reason=reason,actor=actor)
+    change=TaxRateChange(company_id=rule.company_id,rule=rule,rate=rate,effective_from=effective_from,base=base,reason=reason,actor=actor)
     change.full_clean();change.save()
     count=0
     if connection.vendor=='postgresql':
@@ -52,7 +58,7 @@ def change_rate(*,actor,rule_id,rate,effective_from,base,reason,revision):
     try:
         for sale in affected_sales(rule,effective_from).select_for_update().order_by('pk').iterator():
             amount,new_snapshot=calculate_tax(sale)
-            revision_row=SaleTaxRevision.objects.create(sale=sale,change=change,before_amount=sale.tax_amount,after_amount=amount,before_snapshot=sale.tax_snapshot,after_snapshot=new_snapshot)
+            revision_row=SaleTaxRevision.objects.create(company_id=sale.company_id,sale=sale,change=change,before_amount=sale.tax_amount,after_amount=amount,before_snapshot=sale.tax_snapshot,after_snapshot=new_snapshot)
             before={'tax_amount':str(sale.tax_amount),'tax_snapshot':sale.tax_snapshot}
             sale.tax_amount=amount;sale.tax_snapshot=new_snapshot;sale.save(update_fields=['tax_amount','tax_snapshot'])
             audit(actor,sale,'recalculate_sale_tax',before,{'tax_amount':str(amount),'tax_snapshot':new_snapshot,'revision_id':revision_row.pk,'reason':reason})

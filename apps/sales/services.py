@@ -24,10 +24,10 @@ def snapshot(sale):
     return result
 
 def validate(sale, *, partial=False):
-    company = Company.objects.get(pk=1)
+    company = Company.objects.get(pk=sale.company_id)
     if not company.cutover_date <= sale.date <= timezone.localdate():
         raise ValidationError('Data comercial deve estar entre o corte e hoje.')
-    if (sale.channel_id or not partial) and not SalesChannel.objects.filter(pk=sale.channel_id,active=True).exists(): raise ValidationError('Selecione um canal ativo antes de confirmar.')
+    if (sale.channel_id or not partial) and not SalesChannel.objects.filter(pk=sale.channel_id,company_id=sale.company_id,active=True).exists(): raise ValidationError('Selecione um canal ativo antes de confirmar.')
     if (sale.location_id or not partial) and not StockLocation.objects.filter(pk=sale.location_id,active=True).exists(): raise ValidationError('Selecione um estoque ativo antes de confirmar.')
     for field in FINANCIAL_FIELDS: number(getattr(sale,field),CENT,zero=True)
     if sale.discount > sale.products_amount: raise ValidationError('Desconto não pode exceder o valor dos produtos.')
@@ -39,6 +39,8 @@ def validate(sale, *, partial=False):
     elif not sale.tax_rule_id: raise ValidationError('Selecione uma regra tributária ou informe imposto manual e motivo.')
     if sale.tax_rule_id:
         rule=TaxRule.objects.get(pk=sale.tax_rule_id)
+        if rule.company_id != sale.company_id:
+            raise ValidationError('A regra tributária pertence a outra empresa.')
         if not rule.active or sale.date < rule.starts_on or (rule.ends_on and sale.date > rule.ends_on):
             raise ValidationError('Regra tributária inativa ou fora da vigência na data comercial.')
     from .installments import normalize_terms

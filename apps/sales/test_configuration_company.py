@@ -44,3 +44,35 @@ class ConfigurationCompanyMigrationTests(Fixture, TransactionTestCase):
                 SaleTaxRevision.objects.update(after_amount=999)
         finally:
             MigrationExecutor(connection).migrate(latest)
+
+
+from django.test import TestCase
+from django.core.exceptions import ValidationError, PermissionDenied
+from apps.accounts.company_context import CompanyScope
+from .taxes import calculate_tax, suggested_rule, affected_sales
+
+
+class TaxCompanyBoundaryTests(Fixture, TestCase):
+    def test_suggestion_does_not_fall_back_to_other_company(self):
+        self.assertEqual(suggested_rule(timezone.localdate(), company_id=1), self.rule)
+        self.assertIsNone(suggested_rule(timezone.localdate(), company_id=2))
+
+    def test_calculation_rejects_mismatched_owner_even_with_manual_tax(self):
+        sale = self.draft()
+        sale.company_id = 2
+        for manual in [None, Decimal('0')]:
+            sale.tax_override = manual
+            with self.assertRaisesMessage(ValidationError, 'outra empresa'):
+                calculate_tax(sale)
+
+    def test_recalculation_selection_is_company_scoped(self):
+        self.confirmed()
+        self.rule.company_id = 2
+        self.assertFalse(affected_sales(self.rule, self.company.cutover_date).exists())
+
+    def test_group_cannot_change_tax_rate_through_service(self):
+        self.actor._mvet_company_scope = CompanyScope((1,), group=True)
+        with self.assertRaises(PermissionDenied):
+            change_rate(actor=self.actor, rule_id=self.rule.pk, rate=Decimal('8'),
+                        effective_from=timezone.localdate(), base='REVENUE', reason='Teste', revision=0)
+        self.assertFalse(TaxRateChange.objects.exists())
