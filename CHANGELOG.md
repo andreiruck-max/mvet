@@ -427,3 +427,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - MVet 3.0 PR 2e em desenvolvimento: identidade empresarial das vendas, itens, consumos e taxas extras; CMV histórico preservado; ADR 0067.
 
 - MVet 3.0 PR 2f em desenvolvimento: identificação empresarial de despesas e revisões, preservando obrigações e baixas; ADR 0068.
+
+- MVet 3.0 PR 2g em desenvolvimento: identidade empresarial do livro de comissões e teste de preservação de comissão parcialmente paga; ADR 0069.
