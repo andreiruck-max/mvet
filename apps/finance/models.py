@@ -30,6 +30,7 @@ class FinancialAccount(models.Model):
 
 
 class FinancialTitle(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     DIRECTIONS = [('PAY','Pagar'),('RECEIVE','Receber')]
     CATEGORIES = [('OPERATING','Operacional'),('FINANCIAL','Financeiro / juros'),('PRINCIPAL','Patrimonial / principal'),('OPENING','Pendência de abertura'),('OTHER','A classificar')]
     @property
@@ -64,7 +65,7 @@ class FinancialTitle(models.Model):
 
     class Meta:
         ordering = ['due_date','pk']
-        constraints = [models.CheckConstraint(condition=models.Q(amount__gt=0, settled__gte=0, settled__lte=models.F('amount')), name='finance_title_amounts'), models.CheckConstraint(condition=models.Q(purchase_installment__isnull=True)|models.Q(sale__isnull=True), name='finance_single_origin')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='finance_title_primary_transition'), models.CheckConstraint(condition=models.Q(amount__gt=0, settled__gte=0, settled__lte=models.F('amount')), name='finance_title_amounts'), models.CheckConstraint(condition=models.Q(purchase_installment__isnull=True)|models.Q(sale__isnull=True), name='finance_single_origin')]
         indexes = [models.Index(fields=['status','due_date'])]
 
     @property
@@ -82,6 +83,7 @@ class FinancialTitle(models.Model):
 
 
 class FinancialOperation(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     key = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     fingerprint = models.CharField(max_length=64)
     kind = models.CharField(max_length=12, choices=[('SETTLEMENT','Liquidação'),('TRANSFER','Transferência'),('REVERSAL','Estorno')])
@@ -99,7 +101,7 @@ class FinancialOperation(models.Model):
 
     class Meta:
         ordering = ['-date','-pk']
-        constraints = [models.CheckConstraint(condition=models.Q(principal__gte=0,interest__gte=0,discount__gte=0,actual__gte=0), name='finance_operation_nonnegative')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='finance_operation_primary_transition'), models.CheckConstraint(condition=models.Q(principal__gte=0,interest__gte=0,discount__gte=0,actual__gte=0), name='finance_operation_nonnegative')]
 
 
     @property
@@ -110,15 +112,17 @@ class FinancialOperation(models.Model):
 
 
 class FinancialEntry(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     operation = models.ForeignKey(FinancialOperation, on_delete=models.PROTECT, related_name='entries')
     account = models.ForeignKey(FinancialAccount, on_delete=models.PROTECT, related_name='entries')
     amount = money('Valor com sinal')
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['operation','account'], name='finance_one_leg_per_account'),models.CheckConstraint(condition=~models.Q(amount=0), name='finance_entry_nonzero')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='finance_entry_primary_transition'), models.UniqueConstraint(fields=['operation','account'], name='finance_one_leg_per_account'),models.CheckConstraint(condition=~models.Q(amount=0), name='finance_entry_nonzero')]
 
 
 class FinancialTitleRevision(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     title = models.ForeignKey(FinancialTitle, on_delete=models.PROTECT, related_name='edits')
     number = models.PositiveIntegerField()
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
@@ -129,10 +133,11 @@ class FinancialTitleRevision(models.Model):
 
     class Meta:
         ordering = ['-number']
-        constraints = [models.UniqueConstraint(fields=['title','number'], name='finance_title_revision_unique')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='finance_revision_primary_transition'), models.UniqueConstraint(fields=['title','number'], name='finance_title_revision_unique')]
 
 
 class DuePayment(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     title = models.OneToOneField(FinancialTitle, on_delete=models.PROTECT, related_name='due_payment')
     account = models.ForeignKey(FinancialAccount, null=True, on_delete=models.PROTECT)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
@@ -140,3 +145,6 @@ class DuePayment(models.Model):
     message = models.CharField(max_length=500, blank=True)
     operation = models.ForeignKey(FinancialOperation, null=True, on_delete=models.PROTECT)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='finance_due_payment_primary_transition')]

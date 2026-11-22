@@ -35,14 +35,14 @@ class ActivityReportTests(Fixture, TestCase):
         past=self.activity(contact,when=yesterday,result='NO_REPLY')
         self.activity(contact,result='WAITING')
         Contact.objects.filter(pk=contact.pk).update(last_result='WAITING')
-        response=self.report(start=yesterday.date(),end=yesterday.date(),result='NO_REPLY')
+        response=self.report(start=timezone.localdate(yesterday),end=timezone.localdate(yesterday),result='NO_REPLY')
         self.assertEqual(list(response.context['page']),[past])
         self.assertEqual(response.context['metrics']['period'],1)
         self.assertEqual(response.context['metrics']['today'],0)
         self.assertContains(response,'Nenhuma atividade',count=0)
         response=self.report(period='yesterday',start=self.today,end=self.today)
         self.assertEqual(list(response.context['page']),[past])
-        self.assertEqual(response.context['form']['start'].value(),yesterday.date().isoformat())
+        self.assertEqual(response.context['form']['start'].value(),timezone.localdate(yesterday).isoformat())
 
     def test_pagination_totals_escaping_and_permissions(self):
         contact=self.contact()
