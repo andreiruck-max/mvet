@@ -417,3 +417,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - MVet 3.0 PR 1b em validação: contexto empresarial na sessão, bloqueios das rotas legadas e permissões por vínculo no laboratório. Grupo sem operações/relatórios nesta fase; empresas secundárias inativas.
 
 - MVet 3.0 preparação da PR 2: comando de baseline/comparação read-only do histórico por hashes. Não atribui empresas nem habilita a MVet Agro.
+
+- MVet 3.0 PR 2b em validação: identidade empresarial obrigatória nas contas bancárias históricas, restrita à Mercadovet durante a transição; DDL aditivo e teste de preservação do histórico/gatilho. ADR 0064.
