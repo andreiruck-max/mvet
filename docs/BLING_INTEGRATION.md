@@ -131,3 +131,8 @@ A fila de vendas transporta o endereço filtrado para a conferência e ações P
 Clique no número da nota de venda/compra para conferir em pop-up mantendo a lista e filtros. Informações principais aparecem primeiro. Compra importada permite escolher conta bancária prevista, aplicada aos títulos na confirmação; não movimenta caixa nem habilita baixa automática. Rascunho e confirmação continuam etapas explícitas.
 
 Extrato aceita débito com sinal negativo e datas ISO com horário sem inverter ou converter a data. Falha identifica campo e página; histórico anterior só é substituído após consulta completa válida. A causa específica de um retorno real deve ser conferida com o campo indicado, sem desativar as validações de conta/período.
+
+## Identidade empresarial no laboratório 3.0
+A conexão possui titularidade OneToOne com Company (ADR 0072). O singleton e o
+bloqueio à empresa secundária permanecem até contextualização completa do adaptador,
+OAuth e workers. A migration preserva tokens cifrados e não realiza comunicação externa.
