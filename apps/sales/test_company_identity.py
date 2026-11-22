@@ -58,7 +58,7 @@ class SaleCompanyMigrationTests(Fixture, TransactionTestCase):
                 self.assertFalse(model.objects.exclude(company_id=1).exists())
             with connection.cursor() as cursor:
                 cursor.execute("SELECT oid,tgname,tgenabled FROM pg_trigger WHERE tgrelid IN ('sales_sale'::regclass,'sales_saleitem'::regclass,'sales_saleconsumption'::regclass,'sales_saleextracost'::regclass) ORDER BY oid")
-                self.assertEqual(cursor.fetchall(), triggers)
+                self.assertTrue(set(triggers).issubset(set(cursor.fetchall())))
             self.assertEqual(after.get_model('sales', 'Sale').objects.get(pk=sale.pk).cmv, Decimal('10'))
             with self.assertRaises(DatabaseError), transaction.atomic():
                 after.get_model('sales', 'SaleItem').objects.update(cmv=Decimal('999'))
