@@ -29,6 +29,7 @@ class TaxRule(models.Model):
     def __str__(self): return self.name
 
 class Sale(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     commission_installments = models.JSONField(default=list, blank=True)
     key = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     creation_fingerprint = models.CharField(max_length=64, editable=False)
@@ -75,7 +76,7 @@ class Sale(models.Model):
     source = models.CharField(max_length=40, default='manual')
     class Meta:
         ordering = ['-date','-pk']
-        constraints = [models.UniqueConstraint(fields=['invoice_number','invoice_series'],condition=~models.Q(invoice_number=''),name='sales_unique_invoice'), models.CheckConstraint(condition=models.Q(discount__lte=models.F('products_amount')),name='sales_valid_discount'),
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='sale_document_primary_transition'), models.UniqueConstraint(fields=['invoice_number','invoice_series'],condition=~models.Q(invoice_number=''),name='sales_unique_invoice'), models.CheckConstraint(condition=models.Q(discount__lte=models.F('products_amount')),name='sales_valid_discount'),
             models.CheckConstraint(condition=models.Q(products_amount__gte=models.F('discount')-models.F('shipping_received')-models.F('revenue_adjustment')), name='sales_nonnegative_revenue'),
             models.CheckConstraint(condition=models.Q(status='DRAFT') | models.Q(status='CANCELLED') | models.Q(channel__isnull=False, location__isnull=False), name='sales_confirmed_context')]
         indexes = [models.Index(fields=['channel','date'])]
@@ -96,6 +97,7 @@ class Sale(models.Model):
         return 'ALERTA' if self.margin_percent < self.minimum_margin else 'POSITIVA'
 
 class SaleItem(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.PROTECT)
     quantity = models.DecimalField(max_digits=18, decimal_places=4, validators=[MinValueValidator(Decimal('0.0001'))])
@@ -105,20 +107,25 @@ class SaleItem(models.Model):
     cmv = models.DecimalField(max_digits=24, decimal_places=6, default=0)
     class Meta:
         ordering = ['pk']
-        constraints = [models.CheckConstraint(condition=models.Q(quantity__gt=0),name='sales_positive_quantity')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='sale_item_primary_transition'), models.CheckConstraint(condition=models.Q(quantity__gt=0),name='sales_positive_quantity')]
 
 class SaleConsumption(Immutable):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     item = models.ForeignKey(SaleItem, on_delete=models.PROTECT, related_name='consumptions')
     movement = models.OneToOneField(StockMovement, on_delete=models.PROTECT)
 
 
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='sale_consumption_primary_transition')]
+
 class SaleExtraCost(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name='extra_costs')
     name = models.CharField('Taxa / descrição', max_length=120)
     amount = money('Valor (R$)')
     class Meta:
         ordering = ['pk']
-        constraints = [models.CheckConstraint(condition=models.Q(amount__gte=0), name='sales_extra_nonnegative')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='sale_extra_primary_transition'), models.CheckConstraint(condition=models.Q(amount__gte=0), name='sales_extra_nonnegative')]
 
 class TaxRateChange(Immutable):
     rule = models.ForeignKey(TaxRule, on_delete=models.PROTECT, related_name='changes')
