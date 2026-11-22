@@ -421,3 +421,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - MVet 3.0 PR 2b em validação: identidade empresarial obrigatória nas contas bancárias históricas, restrita à Mercadovet durante a transição; DDL aditivo e teste de preservação do histórico/gatilho. ADR 0064.
 
 - MVet 3.0 PR 2c em desenvolvimento: identidade empresarial no livro financeiro, revisões e baixas programadas; secundárias continuam bloqueadas (ADR 0065).
+
+- MVet 3.0 PR 2d em desenvolvimento: identidade empresarial dos documentos, itens e parcelas de compra; restrição temporária à Mercadovet.
