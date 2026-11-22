@@ -297,3 +297,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - MVet 3.0 PR 2g em desenvolvimento: identidade empresarial do livro de comissões e teste de preservação de comissão parcialmente paga; ADR 0069.
 
 - MVet 3.0 PR 2h em desenvolvimento: owning_company no CRM, preservando o campo empresa/fazenda do cliente; ADR 0070.
+
+- PR 2i: identidade empresarial das notificações preparada; validação PostgreSQL/CI pendente. Geração, configuração e consultas por empresa ainda pendentes antes da ativação secundária; backup continua evidência global.

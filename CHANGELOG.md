@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 11392)
+Total output lines: 435
+
 19/11/2026 — MVet 3.0 PR 1a: cadastro de empresas e vínculos empresariais auditados, Mercadovet pk=1 preservada e MVet Agro inativa. Restrição de banco impede ativação secundária. As telas atuais ainda usam permissões legadas; seletor e aplicação de escopo ficam na PR 1b. ADR 0062.
 
 18/11/2026 — PR 0 MVet 3.0: laboratório Docker/PostgreSQL independente, porta 8001, Bling bloqueado, auditoria e ensaio sintético de restauração. Sem schema multiempresa ou implantação. Ver docs/MVET_3_0_DEVELOPMENT.md e ADR 0061.
@@ -156,57 +159,7 @@ Carteiras por funcionário, contatos simplificados, histórico separado de mensa
 Submenus por domínio; imposto na Dashboard; cartões de canais ativos clicáveis; ordem padrão data/NF crescente. Compras e parcelas com abas, resumos legíveis por mês/fornecedor (saldo, quantidade e média), fornecedores por maior saldo, ação Pagar / antecipar e divergências exatas. Sem migration ou alteração automática dos lançamentos existentes.
 
 # Correção de canal e depósito da venda — 09/10/2026
-Master pode usar Corrigir venda para alterar canal e depósito junto aos valores. Troca de depósito registra estorno e nova saída auditados; CMV histórico preservado e diferenças de estoque no resultado da data atual. Migration 0012; ADR 0034. Sem alteração automática de vendas existentes ou instalação local.
-
-# Correção Bling — Emitida DANFE (09/10/2026)
-Busca padrão por Autorizada + Emitida DANFE; confirmação e recuperação aceitam status 6. Impressão não gera divergência comercial nem duplicação. ADR 0033. Busca direta vazia na API ainda em diagnóstico; sem instalação local automática.
-
-# Novo pacote — aguardando OK para instalação
-- Vendas em tabela: filtros aplicados automaticamente e NF numericamente crescente dentro da data, mantendo datas recentes/antigas.
-- Compras: desconto total por item, sem repassar a promoção aos demais produtos; base líquida para rateios gerais e conferência de total/parcelas. ADR 0032.
-- Fornecedor pode ser cadastrado junto com o rascunho importado, com dados disponíveis na nota e permissões preservadas.
-- Conta bancária: botões Novo crédito e Novo débito com direção previamente selecionada, utilizando o livro financeiro existente.
-- Correção auditada dos valores de venda confirmada pelo master, sem nova baixa de estoque; recuperação de canceladas destacada e orientação para NF já cadastrada. ADR 0031.
-- Consulta Bling por número/série, inclusive sem loja externa, sem restringir data/situação quando o número é informado.
-- Digitação monetária por centavos, cartões de indicadores com links e navegação de conferência no topo.
-- Vendas com colunas alinhadas, produtos/quantidades, imposto e deduções visíveis quando utilizadas no filtro completo; totais e cabeçalhos fixos, canais recolhíveis e negativos em vermelho.
-- Master pode abrir lançamentos da DRE por linha/categoria histórica e acessar a origem ou iniciar uma despesa extra. Preserva permissões, snapshots e correções auditadas. ADR 0030.
-- Calendário ao clicar no campo; notas de venda por série e número crescente, com valor fiscal e nome do cliente sem cadastro adicional.
-- Regra tributária vigente na data comercial sugerida e editável.
-- Venda permite estoque negativo usando último custo local conhecido. Reposição e estornos conciliam diferenças de custo sem alterar CMV histórico; diferenças aparecem na DRE e indicadores de resultado. ADR 0029.
-
-# Recuperação de venda cancelada por engano (07/10/2026)
-- Master pode recuperar venda e corrigir Taxas com histórico imutável, nova saída vinculada ao estorno, preservação de CMV/imposto/data e manutenção do vínculo Bling.
-- Resultados passam a considerar a mesma venda confirmada; nenhuma reimportação ou recebível duplicado. Saldo inconsistente, divergência Bling e financeiro histórico bloqueiam integralmente. ADR 0028.
-
-# Correção do atualizador Windows (07/10/2026)
-- Verificação de inicialização tolera stderr transitório no PowerShell 5.1, repete a tentativa pelo código de saída e conserva o diagnóstico final. Teste com stderr nativo também executado em Windows.
-
-# Plano de contas e nova despesa (07/10/2026)
-- Código sugerido automaticamente por grupo, editável e sem renumerar cadastros existentes.
-- Formulário compacto, favorecido livre e opcional, fornecedor cadastrado em seção adicional.
-- Pesquisa de categoria por código/nome com caminho hierárquico e exclusão de ancestrais inativos.
-- Atualizador Windows com preservação dos scripts locais, backup/restauração isolada antes de migrations e verificação de inicialização. Sem alterações de schema nesta etapa.
-
-# Saldos bancários e fluxo de caixa (07/10/2026)
-- Período inicial de 15 dias a partir de ontem; intervalo inteiro na mesma tabela, sem paginação de dias.
-- Cabeçalho Banco / conta fixo sem sobreposição com Entradas; bordas de células e separação de dias reforçadas.
-- Entradas azuis, saídas/negativos vermelhos e saldos pretos em negrito sobre fundo claro inclusive no modo escuro.
-- Conta clicável abre extrato com saldo acumulado, compromissos e ações de lançamento, previsão, transferência e edição.
-- Adicionar conta no fluxo; inativas saem do quadro e seus totais sem apagar histórico nem alterar indicadores consolidados. ADR 0027.
-
-# Vínculo de vendas e planejamento de compra (07/10/2026)
-- Vínculo por código independente da unidade externa; seleção do item da nota, unidade local e quantidade preservada.
-- Confirmação única de venda, sem checkbox adicional de finalidade; aviso, auditoria e bloqueios de documentos incompatíveis mantidos.
-- Estoque inicia em Com saldo, com opção de desmarcar e exportação consistente.
-- Planejar compra por depósito, histórico/cobertura configuráveis, estoque mínimo, compras a receber e prazo de fora de linha para zerados sem movimento; não altera cadastro nem gera pedidos.
-- Sem alteração de schema nesta etapa; pacote permanece separado da instalação local. ADR 0026.
-
-# Bling — seleção em massa e compras flexíveis (06/10/2026)
-- Seleção de notas por página ou filtro, com prévia, ignorar/reabrir e modificar preenchimento em lote; revisões assinadas e aplicação atômica. Não confirma vendas/compras em massa.
-- Cadastro de produto na importação com SKU, unidade e nome local editável; código externo vazio não bloqueia identificação manual.
-- Item somente financeiro sem cadastro de produto, com categoria e parcela de rateio próprias. Total integral a pagar preservado; somente itens estocáveis afetam estoque/custo.
-- Bonificação x910 explicitamente selecionada: quantidade recebida a custo zero, sem parcelas; fiscal e CMV histórico preservados.
+Master pode usar Corrigir venda para alterar canal e depósito junto aos valores. Troca de depósito registra estorno e nova saída aud…1392 tokens truncated…sem parcelas; fiscal e CMV histórico preservados.
 - Reconhecimento dos itens sem estoque na DRE por categoria histórica, sem duplicar obrigações. Categorias patrimoniais não são despesas da empresa.
 - Migrações aditivas; implantação local adiada para o pacote de alterações solicitado pelo usuário. ADR 0025.
 
@@ -431,3 +384,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - MVet 3.0 PR 2g em desenvolvimento: identidade empresarial do livro de comissões e teste de preservação de comissão parcialmente paga; ADR 0069.
 
 - MVet 3.0 PR 2h em desenvolvimento: owning_company no CRM, preservando o campo empresa/fazenda do cliente; ADR 0070.
+
+- MVet 3.0: identidade empresarial aditiva em alertas, leituras e preferências; preservação do histórico e bloqueio transitório de empresa secundária (ADR 0071).

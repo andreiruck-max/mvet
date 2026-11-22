@@ -7,6 +7,7 @@ KINDS = [('STOCK', 'Estoque mínimo'), ('MARGIN', 'Margem de venda'),
 
 
 class Notification(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     kind = models.CharField(max_length=10, choices=KINDS)
     entity_id = models.PositiveBigIntegerField()
     title = models.CharField(max_length=260)
@@ -21,27 +22,29 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ['-updated_at', '-pk']
-        constraints = [models.UniqueConstraint(fields=['kind', 'entity_id'], name='notification_condition_unique')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='notify_alert_primary_transition'), models.UniqueConstraint(fields=['kind', 'entity_id'], name='notification_condition_unique')]
         indexes = [models.Index(fields=['kind', 'active', '-updated_at'])]
 
 
 class NotificationRead(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     notification = models.ForeignKey(Notification, on_delete=models.CASCADE)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     revision = models.PositiveIntegerField()
     read_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['notification', 'user'], name='notification_read_unique')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='notify_read_primary_transition'), models.UniqueConstraint(fields=['notification', 'user'], name='notification_read_unique')]
 
 
 class NotificationPreference(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     kind = models.CharField(max_length=10, choices=KINDS)
     enabled = models.BooleanField(default=True)
 
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['user', 'kind'], name='notification_preference_unique')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='notify_preference_primary_transition'), models.UniqueConstraint(fields=['user', 'kind'], name='notification_preference_unique')]
 
 
 class AlertConfiguration(models.Model):
