@@ -301,3 +301,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 2i: identidade empresarial das notificações preparada; validação PostgreSQL/CI pendente. Geração, configuração e consultas por empresa ainda pendentes antes da ativação secundária; backup continua evidência global.
 
 - PR 2j: titularidade empresarial da conexão Bling preparada; CI pendente. OAuth, workers e validação de issuer por CNPJ continuam na fase 5, antes da ativação de segunda conexão.
+
+- PR 2k: identidade dos canais e histórico tributário preparada; CI pendente. Consulta/configuração por empresa e demais revisões comerciais ainda pendentes.
