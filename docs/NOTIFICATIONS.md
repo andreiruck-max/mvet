@@ -25,3 +25,8 @@ Comando roda em transação própria e usa lock PostgreSQL exclusivo das notific
 `scripts/backup.sh` registra sucesso após dump não vazio e catálogo validado por `pg_restore --list`, com bytes e SHA-256. Falha tenta registrar evidência e preserva código de saída. Se banco/app estiver indisponível, não há como gravar evidência naquele momento: log do agendador é necessário; ao voltar, ausência de sucesso recente gera alerta. `record_backup` é comando administrativo, não endpoint público, e confia no script/operador do servidor. Não aceita sucesso sem tamanho positivo e hash válido. Não demonstra cópia externa ou restauração: consultar `BACKUP_RESTORE.md`.
 
 Importações externas e detector de inconsistências integrados à central ficam para integrações; `check_inventory` permanece separado. Não há dados fictícios nem avisos de integrações inexistentes.
+
+## Transição MVet 3.0
+Alertas, leituras e preferências possuem identidade empresarial, inicialmente restrita
+à Mercadovet. Processamento e configuração continuam globais até sua contextualização.
+Evidências de backup pertencem à instalação. Ver ADR 0071.

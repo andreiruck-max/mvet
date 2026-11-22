@@ -11,7 +11,7 @@ from django.test import TestCase, TransactionTestCase, Client
 from django.urls import reverse
 from django.utils import timezone
 from apps.reporting.tests import ReportingFixture
-from apps.core.models import AuditLog
+from apps.core.models import AuditLog, Company
 from apps.sales import services as sales
 from . import services, selectors
 from .models import AlertConfiguration, BackupEvidence, Notification, NotificationRead
@@ -162,6 +162,7 @@ class NotificationTests(ReportingFixture, TestCase):
 class NotificationConcurrencyTests(TransactionTestCase):
     def test_concurrent_refresh_does_not_duplicate(self):
         from apps.products.models import Product
+        Company.objects.get_or_create(pk=1)
         Product.objects.create(sku='CONCURRENT', name='Teste', minimum=D('1'))
         def run():
             close_old_connections()
