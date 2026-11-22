@@ -299,3 +299,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - MVet 3.0 PR 2h em desenvolvimento: owning_company no CRM, preservando o campo empresa/fazenda do cliente; ADR 0070.
 
 - PR 2i: identidade empresarial das notificações preparada; validação PostgreSQL/CI pendente. Geração, configuração e consultas por empresa ainda pendentes antes da ativação secundária; backup continua evidência global.
+
+- PR 2j: titularidade empresarial da conexão Bling preparada; CI pendente. OAuth, workers e validação de issuer por CNPJ continuam na fase 5, antes da ativação de segunda conexão.

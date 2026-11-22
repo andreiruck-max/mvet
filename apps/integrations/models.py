@@ -19,14 +19,15 @@ class BlingStockCorrection(models.Model):
 
 
 class BlingConnection(models.Model):
-    """One local company. Secrets encrypted with a separate environment key."""
+    """Company-owned connection; secrets remain encrypted."""
+    company = models.OneToOneField('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     issuer = models.CharField(max_length=14, unique=True)
     tokens = models.TextField(blank=True, editable=False)
     expires_at = models.DateTimeField(null=True, editable=False)
     last_request_at = models.DateTimeField(null=True, editable=False)
     last_sync_at = models.DateTimeField(null=True, editable=False)
     class Meta:
-        constraints = [models.CheckConstraint(condition=models.Q(id=1), name='single_bling_connection')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='bling_company_primary_transition'), models.CheckConstraint(condition=models.Q(id=1), name='single_bling_connection')]
 
 
 class InvoiceImport(models.Model):

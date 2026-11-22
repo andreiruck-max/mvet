@@ -7,6 +7,7 @@ from django.db import connection
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
+from apps.core.models import Company
 from apps.sales.models import Sale
 from apps.finance.models import FinancialTitle
 from apps.inventory.models import StockMovement
@@ -21,6 +22,7 @@ def result(**changes):
 
 class ScheduleTests(TestCase):
     def setUp(self):
+        Company.objects.get_or_create(pk=1)
         self.actor = User.objects.create_superuser('scheduler-owner')
         self.conn = BlingConnection.objects.create(pk=1, issuer=ISSUER, tokens='synthetic-not-a-real-token')
 
