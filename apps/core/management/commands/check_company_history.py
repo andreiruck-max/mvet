@@ -87,9 +87,10 @@ class Command(BaseCommand):
                     differences.append(label)
                 # Newly added ownership must attribute every historical row to Mercadovet.
                 available = {f.attname for f in model._meta.concrete_fields}
-                if baseline and 'company_id' in available and 'company_id' not in fields:
-                    if model._base_manager.exclude(company_id=1).exists():
-                        differences.append(label + ': empresa histórica diferente de Mercadovet')
+                for owner_field in ('company_id', 'owning_company_id'):
+                    if baseline and owner_field in available and owner_field not in fields:
+                        if model._base_manager.exclude(**{owner_field: 1}).exists():
+                            differences.append(label + ': empresa histórica diferente de Mercadovet')
         if options['baseline']:
             try:
                 with options['baseline'].open('x') as output:

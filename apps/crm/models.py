@@ -6,6 +6,7 @@ from . import choices as c
 
 
 class Contact(models.Model):
+    owning_company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     name = models.CharField('Nome',max_length=180)
     phone = models.CharField('Telefone / WhatsApp',max_length=20,blank=True,db_index=True)
     email = models.EmailField('E-mail',blank=True,db_index=True)
@@ -30,7 +31,7 @@ class Contact(models.Model):
 
     class Meta:
         ordering = ['name','pk']
-        constraints = [
+        constraints = [models.CheckConstraint(condition=models.Q(owning_company_id=1), name='crm_contact_primary_transition'),
             models.CheckConstraint(condition=~models.Q(phone='',email=''),name='crm_contact_reachable'),
             models.CheckConstraint(condition=~models.Q(state__in=['ACTIVE','WAITING','PAUSED'])|models.Q(next_date__isnull=False),name='crm_active_next_action'),
             models.CheckConstraint(condition=~models.Q(state__in=['DNC','INACTIVE','APPROVAL'])|models.Q(next_date__isnull=True),name='crm_stopped_no_action'),
@@ -50,6 +51,7 @@ class RecurrenceRule(models.Model):
 
 
 class Interaction(models.Model):
+    owning_company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     contact = models.ForeignKey(Contact,on_delete=models.PROTECT,related_name='interactions')
     actor = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT)
     key = models.UUIDField(default=uuid.uuid4,unique=True)
@@ -66,10 +68,13 @@ class Interaction(models.Model):
     next_reason = models.CharField(max_length=300,blank=True)
     rule_days = models.PositiveIntegerField(null=True)
     manual_date = models.BooleanField(default=False)
-    class Meta: ordering = ['-occurred_at','-pk']
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(owning_company_id=1), name='crm_interaction_primary_transition')]
+        ordering = ['-occurred_at','-pk']
 
 
 class InactivationRequest(models.Model):
+    owning_company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     contact = models.ForeignKey(Contact,on_delete=models.PROTECT,related_name='requests')
     actor = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name='+')
     reason = models.CharField('Motivo',max_length=20,choices=c.REASONS)
@@ -81,10 +86,11 @@ class InactivationRequest(models.Model):
     decision_note = models.TextField(blank=True,max_length=5000)
     class Meta:
         ordering = ['created_at','pk']
-        constraints = [models.UniqueConstraint(fields=['contact'],condition=models.Q(decision='PENDING'),name='crm_one_pending_request')]
+        constraints = [models.CheckConstraint(condition=models.Q(owning_company_id=1), name='crm_request_primary_transition'), models.UniqueConstraint(fields=['contact'],condition=models.Q(decision='PENDING'),name='crm_one_pending_request')]
 
 
 class ContactEvent(models.Model):
+    owning_company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     contact = models.ForeignKey(Contact,on_delete=models.PROTECT,related_name='events')
     actor = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -92,10 +98,13 @@ class ContactEvent(models.Model):
     note = models.TextField(blank=True)
     before = models.JSONField(default=dict)
     after = models.JSONField(default=dict)
-    class Meta: ordering = ['-created_at','-pk']
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(owning_company_id=1), name='crm_event_primary_transition')]
+        ordering = ['-created_at','-pk']
 
 
 class ImportBatch(models.Model):
+    owning_company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     id = models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name='+')
@@ -105,6 +114,9 @@ class ImportBatch(models.Model):
     committed_at = models.DateTimeField(null=True)
     report = models.JSONField(default=list)
 
+
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(owning_company_id=1), name='crm_import_primary_transition')]
 
 class IntakeSettings(models.Model):
     daily_limit = models.PositiveIntegerField('Novos contatos por dia (total da equipe)', default=0, validators=[MaxValueValidator(2000)])
@@ -117,10 +129,12 @@ class IntakeSettings(models.Model):
 
 
 class FirstContactRelease(models.Model):
+    owning_company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     contact = models.OneToOneField(Contact, on_delete=models.PROTECT, related_name='first_release')
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='+')
     triggered_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='+')
     day = models.DateField(db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(owning_company_id=1), name='crm_release_primary_transition')]
         ordering = ['-day','pk']
