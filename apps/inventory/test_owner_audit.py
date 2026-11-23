@@ -27,3 +27,24 @@ class OwnerAuditTests(StockFixtures, TestCase):
         StockMovement.objects.create(operation=operation,**fields)
         with self.assertRaisesMessage(CommandError,'histórico acumulado'):
             call_command('check_inventory')
+
+
+from unittest.mock import patch
+from django.db import connection
+from django.test import TransactionTestCase
+from .management.commands.check_inventory import Command
+
+
+class OwnerAuditTransactionTests(TransactionTestCase):
+    def test_cli_uses_read_only_repeatable_snapshot(self):
+        observed = []
+        def inspect(command):
+            with connection.cursor() as cursor:
+                cursor.execute('SHOW transaction_isolation')
+                observed.append(cursor.fetchone()[0])
+                cursor.execute('SHOW transaction_read_only')
+                observed.append(cursor.fetchone()[0])
+        with patch.object(Command, 'check_ledger', inspect):
+            call_command('check_inventory')
+        self.assertEqual(observed, ['repeatable read', 'on'])
+        self.assertFalse(connection.in_atomic_block)

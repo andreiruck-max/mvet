@@ -157,3 +157,7 @@ movimentos históricos; auditoria confere as diferenças nos novos (ADR 0084).
 quantidade/valor zero e confere a posição empresarial contra o histórico
 acumulado por empresa/SKU. Uma diferença antes/depois correta isoladamente
 não basta: o ponto inicial precisa corresponder ao livro anterior.
+
+Na execução CLI, a auditoria usa snapshot PostgreSQL REPEATABLE READ/READ ONLY,
+sem bloquear escritores. Chamadas embutidas em transação existente conservam
+as garantias dessa transação; o chamador deve controlar sua consistência.

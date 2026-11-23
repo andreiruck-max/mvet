@@ -1,6 +1,7 @@
 from decimal import Decimal
 from django.core.management.base import BaseCommand, CommandError
 from django.db.models import Sum, F, Exists, OuterRef
+from django.db import connection, transaction
 from apps.products.models import Product
 from apps.inventory.models import StockBalance, StockMovement
 from apps.inventory.services import quant
@@ -8,6 +9,16 @@ from apps.inventory.services import quant
 class Command(BaseCommand):
     help='Confere saldos e valores contra o livro de movimentos, sem alterar dados.'
     def handle(self,*args,**options):
+        # CLI auditing sees one consistent state without blocking stock writers.
+        # Embedded callers retain their existing transaction (e.g. regression tests).
+        if connection.vendor == 'postgresql' and not connection.in_atomic_block:
+            with transaction.atomic():
+                with connection.cursor() as cursor:
+                    cursor.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY')
+                return self.check_ledger()
+        return self.check_ledger()
+
+    def check_ledger(self):
         errors=[]
         if StockMovement.objects.exclude(company_id=F('operation__company_id')).exists():
             errors.append('Empresa do movimento diverge da operação.')
