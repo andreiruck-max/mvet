@@ -42,6 +42,10 @@ class StockOperation(Immutable):
         constraints = [models.CheckConstraint(condition=Q(company_id=1), name='stock_operation_primary_company')]
 
 class StockMovement(Immutable):
+    owner_before_quantity = models.DecimalField(max_digits=18, decimal_places=4, null=True, editable=False)
+    owner_after_quantity = models.DecimalField(max_digits=18, decimal_places=4, null=True, editable=False)
+    owner_before_value = models.DecimalField(max_digits=24, decimal_places=6, null=True, editable=False)
+    owner_after_value = models.DecimalField(max_digits=24, decimal_places=6, null=True, editable=False)
     company = models.ForeignKey("core.Company", on_delete=models.PROTECT, default=1, editable=False)
     cost_variance = models.DecimalField(max_digits=24, decimal_places=6, default=0, editable=False)
     before_local_average = models.DecimalField(max_digits=24, decimal_places=6, null=True, editable=False)
@@ -60,7 +64,10 @@ class StockMovement(Immutable):
     class Meta:
         ordering = ['pk']
         indexes = [models.Index(fields=['product','operation'])]
-        constraints = [models.CheckConstraint(condition=Q(company_id=1), name='stock_movement_primary_company')]
+        constraints = [models.CheckConstraint(condition=Q(company_id=1), name='stock_movement_primary_company'),
+            models.CheckConstraint(condition=(Q(owner_before_quantity__isnull=True,owner_after_quantity__isnull=True,owner_before_value__isnull=True,owner_after_value__isnull=True) |
+                Q(owner_before_quantity__isnull=False,owner_after_quantity__isnull=False,owner_before_value__isnull=False,owner_after_value__isnull=False)),name='stock_owner_snapshot_complete')]
+
 
 class OpeningImport(models.Model):
     company = models.ForeignKey("core.Company", on_delete=models.PROTECT, default=1, editable=False)

@@ -114,6 +114,9 @@ def _apply(operation, product, location, quantity, value, *, average_override=No
         raise ValidationError(f'{product.sku}: estoque insuficiente no depósito escolhido.')
     if (local_q>0 and local_v<0) or (local_q<0 and local_v>0) or (local_q == 0 and local_v != 0):
         raise ValidationError(f'{product.sku}: quantidade ou valor inconsistente no depósito.')
+    from django.db.models import Sum
+    owner = product.balances.filter(company_id=company_id).aggregate(q=Sum('quantity'),v=Sum('value'))
+    owner_q, owner_v = owner['q'] or ZERO, owner['v'] or ZERO
     before_q, before_v, before_avg = product.quantity, product.value, product.average_cost
     next_q, next_v = before_q + quantity, before_v + value
     product.quantity, product.value = next_q, next_v
@@ -134,6 +137,8 @@ def _apply(operation, product, location, quantity, value, *, average_override=No
     product.full_clean()
     product.save(update_fields=['quantity','value','average_cost'])
     movement = StockMovement.objects.create(company_id=company_id, operation=operation, product=product, location=location,
+        owner_before_quantity=owner_q, owner_after_quantity=owner_q+quantity,
+        owner_before_value=owner_v, owner_after_value=owner_v+value,
         cost_variance=variance, before_local_average=before_local_average, quantity=quantity, value=value, unit_cost=unit_cost if unit_cost is not None else (quant(abs(source_value/quantity)) if quantity else product.average_cost),
         before_quantity=before_q, after_quantity=next_q, before_value=before_v, after_value=next_v,
         before_average=before_avg, after_average=product.average_cost)
