@@ -313,3 +313,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 2o: identidade dos históricos de correção/CMV/recuperação preparada; CI pendente. Serviços por empresa ainda pendentes.
 
 - PR 3a: identidade empresarial dos saldos/livro/importações de estoque; regressão PostgreSQL e navegador a validar no CI. Serviços por proprietário e cenários A/B/C ainda pendentes; Agro permanece bloqueada.
+
+- PR 3b: fronteira empresarial nos serviços centrais e auditoria do estoque. CI pendente; importações, contagens, políticas comerciais e consultas por proprietário continuam pendentes.

@@ -3,7 +3,7 @@ import hashlib
 import json
 import uuid
 from decimal import Decimal, ROUND_HALF_UP
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied
 from django.db import connection, transaction
 from django.utils import timezone
 from apps.core.models import Company
@@ -16,6 +16,16 @@ MONEY = Decimal('0.000001')
 ZERO = Decimal('0')
 KINDS = {'OPENING','RECEIPT','ISSUE','ADJUST_IN','ADJUST_OUT','TRANSFER','SPLIT','KIT_ISSUE','REVALUE'}
 COST_KINDS = {'OPENING','RECEIPT','ADJUST_IN','REVALUE'}
+
+def _require_owner(company_id, actor=None):
+    """Fail closed while secondary operations are not yet enabled."""
+    if company_id != 1:
+        raise PermissionDenied('Operações de estoque desta empresa ainda não estão disponíveis.')
+    scope = getattr(actor, '_mvet_company_scope', None)
+    if scope is not None and scope.require_operation() != company_id:
+        raise PermissionDenied('Empresa da operação difere do contexto selecionado.')
+    return company_id
+
 
 def domain_lock():
     # Also taken by catalog/composition changes and opening imports. Short critical
@@ -38,38 +48,42 @@ def quant(value): return value.quantize(MONEY, rounding=ROUND_HALF_UP)
 def _fingerprint(payload):
     return hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode()).hexdigest()
 
-def _repeat(key, fingerprint):
+def _repeat(key, fingerprint, *, company_id=1):
+    _require_owner(company_id)
     previous = StockOperation.objects.filter(key=key).first()
-    if previous and previous.fingerprint != fingerprint:
+    if previous and (previous.company_id != company_id or previous.fingerprint != fingerprint):
         raise ValidationError('Este envio já foi utilizado com outros dados. Reabra o formulário.')
     return previous
 
-def _date(date, products, *, opening=False):
-    company = Company.objects.get(pk=1)
+def _date(date, products, *, opening=False, company_id=1):
+    _require_owner(company_id)
+    company = Company.objects.get(pk=company_id)
     if date < company.cutover_date or date > timezone.localdate():
         raise ValidationError('Data fora do período entre o corte e hoje.')
     if opening and date != company.cutover_date:
         raise ValidationError('A abertura deve usar a data de corte.')
     for p in products:
-        last = p.movements.order_by('-operation__date', '-pk').first()
+        last = p.movements.filter(company_id=company_id).order_by('-operation__date', '-pk').first()
         if opening and last:
             raise ValidationError(f'{p.sku}: abertura já realizada ou produto já movimentado.')
         if last and date < last.operation.date:
             raise ValidationError(f'{p.sku}: há movimento posterior. Registre um ajuste na data atual para preservar o histórico.')
 
-def _value_out(p, quantity, location, *, allow_negative=False):
-    balance = StockBalance.objects.filter(product=p, location=location).first()
+def _value_out(p, quantity, location, *, allow_negative=False, company_id=1):
+    _require_owner(company_id)
+    balance = StockBalance.objects.filter(company_id=company_id, product=p, location=location).first()
     if balance is None or quantity > balance.quantity:
         if not allow_negative:
             raise ValidationError(f'{p.sku}: estoque insuficiente no depósito escolhido.')
-        if balance is None or not StockMovement.objects.filter(product=p,location=location).exists():
+        if balance is None or not StockMovement.objects.filter(company_id=company_id,product=p,location=location).exists():
             raise ValidationError(f'{p.sku}: sem custo de referência neste depósito. Informe-o em Movimentar estoque → Correção de custo antes de confirmar a venda.')
         return (balance.value + quant((quantity-balance.quantity)*balance.average_cost)
                 if balance.quantity>0 else quant(quantity*balance.average_cost))
     return balance.value if quantity == balance.quantity else min(balance.value, quant(quantity * balance.average_cost))
 
 def _apply(operation, product, location, quantity, value, *, average_override=None, unit_cost=None, local_average_override=None, variance_override=None):
-    balance, _ = StockBalance.objects.get_or_create(product=product, location=location)
+    company_id = _require_owner(operation.company_id, operation.actor)
+    balance, _ = StockBalance.objects.get_or_create(company_id=company_id, product=product, location=location)
     balance = StockBalance.objects.select_for_update().get(pk=balance.pk)
     before_local_average = balance.average_cost
     source_value = value
@@ -81,7 +95,7 @@ def _apply(operation, product, location, quantity, value, *, average_override=No
         variance = variance_override
         value -= variance
     elif operation.kind == 'SALE_OUT' and quantity < 0:
-        value = -_value_out(product,-quantity,location,allow_negative=True)
+        value = -_value_out(product,-quantity,location,allow_negative=True,company_id=company_id)
         variance = source_value-value
     elif quantity > 0 and balance.quantity < 0 and operation.kind != 'RECONCILE':
         remaining = balance.quantity+quantity
@@ -112,7 +126,7 @@ def _apply(operation, product, location, quantity, value, *, average_override=No
     product.average_cost=quant(totals['v']/totals['q']) if totals['q'] else (average_override if average_override is not None else before_avg)
     product.full_clean()
     product.save(update_fields=['quantity','value','average_cost'])
-    movement = StockMovement.objects.create(operation=operation, product=product, location=location,
+    movement = StockMovement.objects.create(company_id=company_id, operation=operation, product=product, location=location,
         cost_variance=variance, before_local_average=before_local_average, quantity=quantity, value=value, unit_cost=unit_cost if unit_cost is not None else (quant(abs(source_value/quantity)) if quantity else product.average_cost),
         before_quantity=before_q, after_quantity=next_q, before_value=before_v, after_value=next_v,
         before_average=before_avg, after_average=product.average_cost)
@@ -123,7 +137,8 @@ def _apply(operation, product, location, quantity, value, *, average_override=No
 
 @transaction.atomic
 def execute(*, actor, key, kind, date, reason, product_id, location_id, quantity=ZERO,
-            cost=None, target_location_id=None, target_product_id=None, target_quantity=None):
+            cost=None, target_location_id=None, target_product_id=None, target_quantity=None, company_id=1):
+    _require_owner(company_id, actor)
     require(actor,'core.operate_stock')
     if kind not in KINDS: raise ValidationError('Operação inválida.')
     capability={'TRANSFER':'transfer_stock','SPLIT':'fraction_stock','REVALUE':'adjust_stock_cost','OPENING':'receive_stock','RECEIPT':'receive_stock'}.get(kind,'adjust_stock')
@@ -139,7 +154,7 @@ def execute(*, actor, key, kind, date, reason, product_id, location_id, quantity
     if kind == 'SPLIT': number(target_quantity,QTY)
     fingerprint = _fingerprint([actor.pk,kind,date,reason,product_id,location_id,quantity,cost,target_location_id,target_product_id,target_quantity])
     domain_lock()
-    previous = _repeat(key,fingerprint)
+    previous = _repeat(key,fingerprint,company_id=company_id)
     if previous: return previous
     p = Product.objects.get(pk=product_id)
     components = list(p.components.select_related('component').order_by('component_id')) if kind=='KIT_ISSUE' else []
@@ -158,28 +173,28 @@ def execute(*, actor, key, kind, date, reason, product_id, location_id, quantity
     loc = locations[int(location_id)]
     if (kind=='KIT_ISSUE') != (p.kind=='KIT'):
         raise ValidationError('Use saída de kit para kits virtuais; demais operações exigem produto simples.')
-    _date(date,products.values(),opening=kind=='OPENING')
-    operation = StockOperation.objects.create(key=key,fingerprint=fingerprint,kind=kind,date=date,reason=reason.strip(),actor=actor)
+    _date(date,products.values(),opening=kind=='OPENING',company_id=company_id)
+    operation = StockOperation.objects.create(company_id=company_id, key=key,fingerprint=fingerprint,kind=kind,date=date,reason=reason.strip(),actor=actor)
     if kind in {'OPENING','RECEIPT','ADJUST_IN'}:
         _apply(operation,p,loc,quantity,quant(quantity*cost),average_override=cost if quantity==0 else None,unit_cost=cost)
     elif kind in {'ISSUE','ADJUST_OUT'}:
-        _apply(operation,p,loc,-quantity,-_value_out(p,quantity,loc))
+        _apply(operation,p,loc,-quantity,-_value_out(p,quantity,loc,company_id=company_id))
     elif kind=='REVALUE':
-        balance = StockBalance.objects.filter(product=p, location=loc).first()
+        balance = StockBalance.objects.filter(company_id=company_id, product=p, location=loc).first()
         if balance is None or balance.quantity == 0:
             _apply(operation,p,loc,ZERO,ZERO,average_override=cost,unit_cost=cost)
         else:
             _apply(operation,p,loc,ZERO,quant(balance.quantity*cost)-balance.value,unit_cost=cost)
     elif kind=='TRANSFER':
         if not target_location_id or int(target_location_id)==loc.pk: raise ValidationError('Escolha outro local de destino.')
-        value = _value_out(p,quantity,loc)
+        value = _value_out(p,quantity,loc,company_id=company_id)
         _apply(operation,p,loc,-quantity,-value)
         _apply(operation,p,locations[int(target_location_id)],quantity,value)
     elif kind=='SPLIT':
         if not target_product_id or int(target_product_id)==p.pk: raise ValidationError('Escolha outro produto de destino.')
         target = products[int(target_product_id)]
         if target.kind!='SIMPLE': raise ValidationError('O destino deve ser produto simples.')
-        value = _value_out(p,quantity,loc)
+        value = _value_out(p,quantity,loc,company_id=company_id)
         _apply(operation,p,loc,-quantity,-value)
         _apply(operation,target,locations[int(target_location_id)] if target_location_id else loc,target_quantity,value)
     elif kind=='KIT_ISSUE':
@@ -188,20 +203,21 @@ def execute(*, actor, key, kind, date, reason, product_id, location_id, quantity
             component = products[item.component_id]
             if component.kind!='SIMPLE': raise ValidationError('Kits aninhados não são permitidos.')
             consumed = number(item.quantity*quantity,QTY)
-            _apply(operation,component,loc,-consumed,-_value_out(component,consumed,loc))
+            _apply(operation,component,loc,-consumed,-_value_out(component,consumed,loc,company_id=company_id))
     return operation
 
 @transaction.atomic
-def reverse(*,actor,operation_id,key,date,reason):
+def reverse(*,actor,operation_id,key,date,reason,company_id=1):
+    _require_owner(company_id, actor)
     require(actor,'core.reverse_stock')
     require(actor,'core.operate_stock')
     require(actor,'core.view_costs')
     if not reason.strip() or len(reason)>500: raise ValidationError('Informe o motivo do estorno.')
     domain_lock()
     fingerprint=_fingerprint([actor.pk,'REVERSAL',operation_id,date,reason])
-    previous=_repeat(key,fingerprint)
+    previous=_repeat(key,fingerprint,company_id=company_id)
     if previous:return previous
-    original=StockOperation.objects.get(pk=operation_id)
+    original=StockOperation.objects.get(pk=operation_id, company_id=company_id)
     if original.kind == 'RECONCILE':
         raise ValidationError('Conciliação preservada para auditoria. Corrija por contagem, ajuste de custo ou nova data-base.')
     if original.kind in {'SALE_OUT','SALE_RETURN','PUR_RECEIPT','PUR_RETURN'}:
@@ -211,21 +227,22 @@ def reverse(*,actor,operation_id,key,date,reason):
     moves=list(original.movements.order_by('-pk'))
     products={p.pk:p for p in Product.objects.select_for_update().filter(pk__in=[m.product_id for m in moves]).order_by('pk')}
     for p in products.values():
-        if p.movements.filter(operation__reversal__isnull=True).exclude(operation__kind='REVERSAL').order_by('-pk').first().operation_id!=original.pk:
+        if p.movements.filter(company_id=company_id, operation__reversal__isnull=True).exclude(operation__kind='REVERSAL').order_by('-pk').first().operation_id!=original.pk:
             raise ValidationError('Há movimentos posteriores. Estorne-os primeiro ou registre um ajuste atual.')
-    _date(date,products.values())
-    operation=StockOperation.objects.create(key=key,fingerprint=fingerprint,kind='REVERSAL',date=date,reason=reason,actor=actor,reversal_of=original)
+    _date(date,products.values(),company_id=company_id)
+    operation=StockOperation.objects.create(company_id=company_id, key=key,fingerprint=fingerprint,kind='REVERSAL',date=date,reason=reason,actor=actor,reversal_of=original)
     for m in moves:
         _apply(operation,products[m.product_id],m.location,-m.quantity,-(m.value+m.cost_variance),variance_override=-m.cost_variance,average_override=m.before_average,unit_cost=m.unit_cost,local_average_override=prior_local_average(m))
     return operation
 
 
 def prior_local_average(movement):
+    _require_owner(movement.company_id)
     if movement.before_local_average is not None:
         return movement.before_local_average
     # Pre-1.5 immutable movements have no local snapshot. Recover from their ledger.
     from django.db.models import Sum
-    previous = StockMovement.objects.filter(product_id=movement.product_id, location_id=movement.location_id, pk__lt=movement.pk)
+    previous = StockMovement.objects.filter(company_id=movement.company_id, product_id=movement.product_id, location_id=movement.location_id, pk__lt=movement.pk)
     totals = previous.aggregate(q=Sum('quantity'), v=Sum('value'))
     if totals['q']:
         return quant(totals['v'] / totals['q'])
@@ -234,8 +251,9 @@ def prior_local_average(movement):
 
 
 @transaction.atomic
-def transfer_batch(*, actor, key, date, reason, location_id, target_location_id, items):
+def transfer_batch(*, actor, key, date, reason, location_id, target_location_id, items, company_id=1):
     """One immutable operation for the entire shipment, with atomic replay protection."""
+    _require_owner(company_id, actor)
     require(actor, 'core.operate_stock')
     require(actor, 'core.transfer_stock')
     if not reason or not reason.strip() or len(reason) > 500:
@@ -260,7 +278,7 @@ def transfer_batch(*, actor, key, date, reason, location_id, target_location_id,
         raise ValidationError('Produto repetido. Informe a quantidade total em uma única linha por SKU.')
     fingerprint = _fingerprint([actor.pk, 'TRANSFER_BATCH', date, reason, location_id, target_location_id, normalized])
     domain_lock()
-    previous = _repeat(key, fingerprint)
+    previous = _repeat(key, fingerprint,company_id=company_id)
     if previous: return previous
     products = {p.pk:p for p in Product.objects.select_for_update().filter(pk__in=ids).order_by('pk')}
     if len(products) != len(ids) or any(not p.active or p.kind != 'SIMPLE' for p in products.values()):
@@ -268,9 +286,9 @@ def transfer_batch(*, actor, key, date, reason, location_id, target_location_id,
     locations = {loc.pk:loc for loc in StockLocation.objects.select_for_update().filter(pk__in=[location_id,target_location_id]).order_by('pk')}
     if len(locations) != 2 or any(not loc.active for loc in locations.values()):
         raise ValidationError('Selecione depósitos ativos.')
-    _date(date, products.values())
-    values = {pk:_value_out(products[pk], quantity, locations[location_id]) for pk,quantity in normalized}
-    operation = StockOperation.objects.create(key=key, fingerprint=fingerprint, kind='TRANSFER', date=date, reason=reason.strip(), actor=actor)
+    _date(date, products.values(),company_id=company_id)
+    values = {pk:_value_out(products[pk], quantity, locations[location_id],company_id=company_id) for pk,quantity in normalized}
+    operation = StockOperation.objects.create(company_id=company_id, key=key, fingerprint=fingerprint, kind='TRANSFER', date=date, reason=reason.strip(), actor=actor)
     for pk, quantity in normalized:
         _apply(operation, products[pk], locations[location_id], -quantity, -values[pk])
         _apply(operation, products[pk], locations[target_location_id], quantity, values[pk])
