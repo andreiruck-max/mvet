@@ -437,3 +437,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - MVet 3.0: titularidade empresarial da conexão Bling, migration aditiva e regressão de preservação de ciphertext/identidade (ADR 0072); singleton mantido.
 
 - MVet 3.0: identidade empresarial dos canais, regras e revisões tributárias, sem recalcular histórico (ADR 0073).
+
+- MVet 3.0: titularidade do plano de contas e regras de classificação, preservando hierarquia e histórico (ADR 0074).
