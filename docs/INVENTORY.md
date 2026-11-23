@@ -152,3 +152,8 @@ as demais empresas permanecem bloqueadas. Teste HTTP verifica consistência.
 Novos movimentos guardam posição de quantidade/valor do proprietário antes e
 depois, além dos snapshots globais legados. Campos novos ficam nulos nos
 movimentos históricos; auditoria confere as diferenças nos novos (ADR 0084).
+
+`check_inventory` também detecta movimento sem projeção local mesmo com
+quantidade/valor zero e confere a posição empresarial contra o histórico
+acumulado por empresa/SKU. Uma diferença antes/depois correta isoladamente
+não basta: o ponto inicial precisa corresponder ao livro anterior.

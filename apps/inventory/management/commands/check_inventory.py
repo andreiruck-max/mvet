@@ -1,6 +1,6 @@
 from decimal import Decimal
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models import Sum, F
+from django.db.models import Sum, F, Exists, OuterRef
 from apps.products.models import Product
 from apps.inventory.models import StockBalance, StockMovement
 from apps.inventory.services import quant
@@ -11,6 +11,18 @@ class Command(BaseCommand):
         errors=[]
         if StockMovement.objects.exclude(company_id=F('operation__company_id')).exists():
             errors.append('Empresa do movimento diverge da operação.')
+        balances = StockBalance.objects.filter(company_id=OuterRef('company_id'),
+            product_id=OuterRef('product_id'),location_id=OuterRef('location_id'))
+        if StockMovement.objects.annotate(has_balance=Exists(balances)).filter(has_balance=False).exists():
+            errors.append('Há movimento sem saldo local correspondente para empresa/produto/depósito.')
+        positions = {}
+        for move in StockMovement.objects.order_by('pk').values('company_id','product_id','quantity','value',
+                'owner_before_quantity','owner_before_value').iterator(chunk_size=2000):
+            key = (move['company_id'],move['product_id'])
+            before_q,before_v = positions.get(key,(Decimal(0),Decimal(0)))
+            if move['owner_before_quantity'] is not None and (move['owner_before_quantity'],move['owner_before_value']) != (before_q,before_v):
+                errors.append(f'Empresa {key[0]}, produto {key[1]}: posição empresarial diverge do histórico acumulado.')
+            positions[key] = (before_q+move['quantity'],before_v+move['value'])
         snapshots = StockMovement.objects.filter(owner_before_quantity__isnull=False)
         if snapshots.exclude(owner_after_quantity=F('owner_before_quantity')+F('quantity')).exists():
             errors.append('Snapshot empresarial de quantidade diverge do movimento.')
