@@ -327,3 +327,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 3g: formulários, detalhes, indicação de mínimo e alertas primários leem CompanyProductPolicy; CI pendente. Geração de alertas para múltiplas empresas continua pendente.
 
 - PR 3h: snapshots de posição empresarial nos novos movimentos, sem reescrever histórico; CI pendente. Cenários A/B/C e ativação secundária continuam pendentes.
+
+- PR 3i: auditoria detecta projeção local ausente e posição empresarial incoerente com o livro acumulado; CI pendente.

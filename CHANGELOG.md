@@ -461,3 +461,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 23/11/2026 — MVet 3.0: formulários, detalhes e alertas de estoque mínimo usam a mesma política comercial empresarial do catálogo.
 
 23/11/2026 — MVet 3.0: novos movimentos registram quantidade/valor antes e depois por proprietário; histórico preservado, auditoria ampliada. ADR 0084.
+
+23/11/2026 — MVet 3.0: auditoria de estoque detecta saldos locais ausentes mesmo zerados e snapshots empresariais com origem inconsistente.
