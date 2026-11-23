@@ -15,7 +15,7 @@ from apps.products.models import Product, Brand, ProductCategory
 from apps.products.services import save_product, remove_product, set_components, inactivate_product
 from .models import StockLocation, StockOperation, StockMovement, StockBalance
 from .forms import ProductForm, OperationForm, NamedForm, ReversalForm, Components
-from .selectors import catalog, kit_summary, selected_location, location_values, stock_totals, search_products
+from .selectors import owner_position, catalog, kit_summary, selected_location, location_values, stock_totals, search_products
 from .services import execute, reverse, domain_lock
 from apps.products.pricing import sale_price, retail_location
 from apps.products.policies import commercial_values
@@ -92,27 +92,28 @@ def lookup(request):
     retail = retail_location()
     results=[]
     for p in rows:
-        item={'id':p.pk,'label':str(p),'quantity':str(p.quantity),'kind':p.kind}
+        owner_quantity, _, owner_cost = owner_position(p)
+        item={'id':p.pk,'label':str(p),'quantity':str(owner_quantity),'kind':p.kind}
         if p.kind=='KIT':
             _,qty,cost=kit_summary(p);item['quantity']=str(qty)
-        else:cost=p.average_cost
+        else:cost=owner_cost
         if location:
             if p.kind=='KIT':
                 parts=list(p.components.select_related('component'))
-                balances={b.product_id:b.quantity for b in StockBalance.objects.filter(location_id=location,product_id__in=[part.component_id for part in parts])}
+                balances={b.product_id:b.quantity for b in StockBalance.objects.filter(company_id=1,location_id=location,product_id__in=[part.component_id for part in parts])}
                 item['quantity']=str(min((balances.get(part.component_id,Decimal('0'))//part.quantity for part in parts),default=0))
-                local_costs = {b.product_id: b.average_cost for b in StockBalance.objects.filter(location_id=location, product_id__in=[part.component_id for part in parts])}
+                local_costs = {b.product_id: b.average_cost for b in StockBalance.objects.filter(company_id=1,location_id=location, product_id__in=[part.component_id for part in parts])}
                 cost = sum((local_costs.get(part.component_id, Decimal(0)) * part.quantity for part in parts), Decimal(0))
             else:
-                balance = p.balances.filter(location_id=location).first()
+                balance = p.balances.filter(company_id=1,location_id=location).first()
                 item['quantity'] = str(balance.quantity if balance else 0)
                 cost = balance.average_cost if balance else Decimal(0)
         if retail and (not location or str(retail.pk) == location):
             if p.kind == 'KIT':
-                retail_costs = {b.product_id: b.average_cost for b in StockBalance.objects.filter(location=retail)}
+                retail_costs = {b.product_id: b.average_cost for b in StockBalance.objects.filter(company_id=1,location=retail)}
                 price_cost = sum((retail_costs.get(part.component_id, Decimal(0)) * part.quantity for part in p.components.all()), Decimal(0))
             else:
-                retail_balance = p.balances.filter(location=retail).first()
+                retail_balance = p.balances.filter(company_id=1,location=retail).first()
                 price_cost = retail_balance.average_cost if retail_balance else Decimal(0)
             item['sale_price'] = str(sale_price(p, price_cost, default_markup))
         if request.user.has_perm('core.view_costs'):item['cost']=str(cost)
@@ -124,8 +125,9 @@ def product_detail(request,pk):
     check_read(request.user);p=get_object_or_404(Product,pk=pk)
     p.commercial_minimum = commercial_values(p)["minimum"]
     parts,available,cost=kit_summary(p)
-    moves=Paginator(p.movements.select_related('operation','location').order_by('-pk'),25).get_page(request.GET.get('page'))
-    balances = list(p.balances.select_related('location'))
+    p.owner_quantity, p.owner_value, p.owner_average = owner_position(p)
+    moves=Paginator(p.movements.filter(company_id=1).select_related('operation','location').order_by('-pk'),25).get_page(request.GET.get('page'))
+    balances = list(p.balances.filter(company_id=1).select_related('location'))
     default_markup = Company.objects.get(pk=1).default_markup
     retail = retail_location()
     for balance in balances:
@@ -133,7 +135,7 @@ def product_detail(request,pk):
         balance.sale_price = sale_price(p, balance.average_cost, default_markup)
     p.sale_price = None
     if p.kind == 'KIT' and retail:
-        retail_costs = {b.product_id: b.average_cost for b in StockBalance.objects.filter(location=retail)}
+        retail_costs = {b.product_id: b.average_cost for b in StockBalance.objects.filter(company_id=1,location=retail)}
         p.sale_price = sale_price(p, sum((retail_costs.get(part.component_id, Decimal(0)) * part.quantity for part in parts), Decimal(0)), default_markup)
     return render(request,'inventory/product.html',{'product':p,'parts':parts,'available':available,'kit_cost':cost,'page':moves,'balances':balances})
 

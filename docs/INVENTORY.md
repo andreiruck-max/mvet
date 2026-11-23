@@ -168,3 +168,10 @@ posições assinadas e médias separadas; comandos públicos continuam restritos
 Mercadovet. Testes A/B/C de livro não equivalem ao fluxo fiscal/financeiro de
 fornecimento interempresa, ainda pendente. Product é agregado informativo, não
 fonte de CMV empresarial.
+
+Busca JSON, detalhe do produto e resumo de kits consultam apenas saldos e
+movimentos da empresa principal. A posição global de Product não determina
+quantidade disponível ou custo exibido. O resumo empresarial usa média dos
+saldos positivos, ou negativos quando não houver positivos; sem quantidade,
+usa a referência local da última movimentação da própria empresa. A saída
+continua valorizada pelo depósito escolhido, sem usar essa média informativa.

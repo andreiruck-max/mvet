@@ -75,11 +75,31 @@ def stock_totals(locations, *, company_id=1):
     return [{'location': loc, 'value': values.get(loc.pk,Decimal(0))} for loc in locations], total
 
 
+def owner_position(product, *, company_id=1):
+    """Informational owner totals; valuation of issues remains local to a depot."""
+    _require_owner(company_id)
+    from .services import quant
+    balances = list(product.balances.filter(company_id=company_id))
+    quantity = sum((b.quantity for b in balances), Decimal(0))
+    value = sum((b.value for b in balances), Decimal(0))
+    cost_rows = [b for b in balances if b.quantity > 0]
+    if not cost_rows:
+        cost_rows = [b for b in balances if b.quantity < 0]
+    cost_quantity = sum((b.quantity for b in cost_rows), Decimal(0))
+    if cost_quantity:
+        average = quant(sum((b.value for b in cost_rows), Decimal(0)) / cost_quantity)
+    else:
+        latest = product.movements.filter(company_id=company_id).order_by('-pk').first()
+        average = next((b.average_cost for b in balances if latest and b.location_id == latest.location_id), Decimal(0))
+    return quantity, value, average
+
+
 def kit_summary(product, *, company_id=1):
     _require_owner(company_id)
     parts=list(product.components.select_related('component'))
-    available=min((int(i.component.quantity//i.quantity) for i in parts),default=0)
-    cost=sum((i.component.average_cost*i.quantity for i in parts),Decimal('0'))
+    positions = {i.component_id: owner_position(i.component, company_id=company_id) for i in parts}
+    available=min((int(positions[i.component_id][0]//i.quantity) for i in parts),default=0)
+    cost=sum((positions[i.component_id][2]*i.quantity for i in parts),Decimal('0'))
     return parts,available,cost
 
 
