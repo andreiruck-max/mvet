@@ -311,3 +311,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 2n: configurações CRM e inicialização da empresa principal preparadas; CI pendente. Rotinas, unicidades e telas por empresa continuam pendentes.
 
 - PR 2o: identidade dos históricos de correção/CMV/recuperação preparada; CI pendente. Serviços por empresa ainda pendentes.
+
+- PR 3a: identidade empresarial dos saldos/livro/importações de estoque; regressão PostgreSQL e navegador a validar no CI. Serviços por proprietário e cenários A/B/C ainda pendentes; Agro permanece bloqueada.
