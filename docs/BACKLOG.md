@@ -303,3 +303,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 2j: titularidade empresarial da conexão Bling preparada; CI pendente. OAuth, workers e validação de issuer por CNPJ continuam na fase 5, antes da ativação de segunda conexão.
 
 - PR 2k: identidade dos canais e histórico tributário preparada; CI pendente. Consulta/configuração por empresa e demais revisões comerciais ainda pendentes.
+
+- PR 2l: titularidade do plano de contas/classificação preparada; CI pendente. Instalação, consultas e unicidades por empresa ainda pendentes.

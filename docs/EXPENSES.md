@@ -61,3 +61,7 @@ Na lista, marque as despesas pendentes ou **Selecionar pendentes desta página**
 ## Pagamento parcial e no vencimento
 
 A ficha da despesa abre diretamente o pagamento total/parcial do título. Informe o principal que está baixando; o restante continua pendente. No título, Pagar no vencimento autoriza o worker a baixar o saldo restante na conta escolhida. É registro interno: não envia pagamento ao banco. Veja ADR 0058.
+
+## Transição MVet 3.0
+Plano de contas e regras de classificação têm empresa proprietária (ADR 0074),
+ainda restrita à Mercadovet. Nenhuma despesa histórica é reclassificada.

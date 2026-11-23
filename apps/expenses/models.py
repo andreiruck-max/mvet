@@ -4,6 +4,7 @@ from django.db import models
 
 
 class ChartOfAccount(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     NATURES = [('OPERATING','Despesa operacional'),('FINANCIAL','Despesa financeira'),('ASSET','Ativo'),('LIABILITY','Passivo'),('EQUITY','Patrimônio'),('REVENUE','Receita'),('DEPRECIATION','Depreciação / amortização'),('UNCLASSIFIED','A classificar'),('GROUP','Grupo de naturezas diversas')]
     seed_key = models.CharField(max_length=80, null=True, blank=True, unique=True, editable=False)
     code = models.CharField('Código', max_length=47, unique=True)
@@ -14,10 +15,12 @@ class ChartOfAccount(models.Model):
     active = models.BooleanField('Ativa', default=True)
     class Meta:
         ordering=['code','pk']
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='expense_chart_primary_transition')]
     def __str__(self): return f'{self.code} · {self.name}'
 
 
 class ClassificationRule(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     name = models.CharField('Nome', max_length=180)
     priority = models.PositiveIntegerField('Prioridade (menor primeiro)', default=100)
     field = models.CharField('Campo', max_length=20, choices=[('description','Descrição'),('counterparty','Favorecido'),('supplier_document','CPF/CNPJ do fornecedor')])
@@ -27,6 +30,7 @@ class ClassificationRule(models.Model):
     active = models.BooleanField('Ativa', default=True)
     class Meta:
         ordering=['priority','pk']
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='expense_classification_primary_transition')]
 
 
 class Expense(models.Model):
