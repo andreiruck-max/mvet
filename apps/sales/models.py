@@ -157,6 +157,7 @@ class SaleTaxRevision(Immutable):
 
 
 class SaleCorrection(Immutable):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     key=models.UUIDField(default=uuid.uuid4,unique=True)
     sale=models.ForeignKey(Sale,on_delete=models.PROTECT,related_name='corrections')
     actor=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT)
@@ -185,9 +186,10 @@ class SaleCorrection(Immutable):
         return rows
 
     class Meta:
-        constraints=[models.UniqueConstraint(fields=['sale','before_revision'],name='sales_unique_correction_revision')]
+        constraints=[models.CheckConstraint(condition=models.Q(company_id=1), name='sales_correction_primary_transition'), models.UniqueConstraint(fields=['sale','before_revision'],name='sales_unique_correction_revision')]
 
 class SaleRecovery(Immutable):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     key = models.UUIDField(default=uuid.uuid4, unique=True)
     sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name='recoveries')
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
@@ -201,10 +203,11 @@ class SaleRecovery(Immutable):
     returned_operation = models.OneToOneField(StockOperation, on_delete=models.PROTECT, related_name='+')
     recovery_operation = models.OneToOneField(StockOperation, on_delete=models.PROTECT, related_name='+')
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['sale','before_revision'],name='sales_unique_recovery_revision')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='sales_recovery_primary_transition'), models.UniqueConstraint(fields=['sale','before_revision'],name='sales_unique_recovery_revision')]
 
 
 class SaleCostRevision(Immutable):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     key = models.UUIDField(default=uuid.uuid4, unique=True)
     sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name='cost_revisions')
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
@@ -218,4 +221,4 @@ class SaleCostRevision(Immutable):
 
     class Meta:
         ordering = ['-pk']
-        constraints = [models.UniqueConstraint(fields=['sale', 'before_revision'], name='sales_unique_cost_revision')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='sales_cost_revision_primary_transition'), models.UniqueConstraint(fields=['sale', 'before_revision'], name='sales_unique_cost_revision')]
