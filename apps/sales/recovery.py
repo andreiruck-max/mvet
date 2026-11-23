@@ -8,7 +8,7 @@ from django.utils import timezone
 from apps.core.services import audit, require
 from apps.finance.models import FinancialTitle
 from apps.inventory.models import StockOperation
-from apps.inventory.services import domain_lock, _apply, _date, _fingerprint, number
+from apps.inventory.services import domain_lock, _apply, _date, _fingerprint, number, _require_owner, validate_operation_owner
 from apps.products.models import Product
 from .models import Sale, SaleRecovery, SaleCorrection
 
@@ -23,6 +23,7 @@ def recover_sale(*, actor, sale_id, revision, key, fees, reason):
     fees=number(fees,Decimal('0.01'),zero=True);key=UUID(str(key));reason=reason.strip()
     domain_lock()
     sale=Sale.objects.select_for_update().get(pk=sale_id)
+    _require_owner(sale.company_id, actor)
     previous=SaleRecovery.objects.filter(key=key).first()
     if previous:
         if (previous.sale_id,previous.actor_id,previous.before_revision,previous.after_fees,previous.reason)!=(sale.pk,actor.pk,revision,fees,reason):
@@ -42,6 +43,8 @@ def recover_sale(*, actor, sale_id, revision, key, fees, reason):
     if imported and (imported.discrepancy or imported.source_status not in ('5', '6')):
         raise ValidationError('Nota com divergência ou situação externa diferente de autorizada. Confira o Bling antes de recuperar.')
     returned=sale.return_operation
+    validate_operation_owner(returned,sale.company_id)
+    validate_operation_owner(sale.stock_operation,sale.company_id)
     if returned.kind!='SALE_RETURN' or returned.reversal_of_id!=sale.stock_operation_id or StockOperation.objects.filter(reversal_of=returned).exists():
         raise ValidationError('Cadeia de estorno inconsistente ou já recuperada.')
     moves=list(returned.movements.select_related('location').order_by('pk'))
@@ -59,11 +62,11 @@ def recover_sale(*, actor, sale_id, revision, key, fees, reason):
     products={p.pk:p for p in Product.objects.select_for_update().filter(pk__in=[m.product_id for m in moves]).order_by('pk')}
     if any(not p.active for p in products.values()) or any(not m.location.active for m in moves):
         raise ValidationError('Produto ou depósito inativo. Confira o cadastro antes de recuperar.')
-    today=timezone.localdate();_date(today,products.values())
-    operation=StockOperation.objects.create(kind='SALE_OUT',date=today,actor=actor,reason=reason,reversal_of=returned,fingerprint=_fingerprint(['recover_sale',sale.pk,str(key)]))
+    today=timezone.localdate();_date(today,products.values(),company_id=sale.company_id)
+    operation=StockOperation.objects.create(company_id=sale.company_id, kind='SALE_OUT',date=today,actor=actor,reason=reason,reversal_of=returned,fingerprint=_fingerprint(['recover_sale',sale.pk,str(key)]))
     for movement in moves:
         _apply(operation,products[movement.product_id],movement.location,-movement.quantity,-(movement.value+movement.cost_variance),unit_cost=movement.unit_cost)
-    recovery=SaleRecovery.objects.create(key=key,sale=sale,actor=actor,reason=reason,before_revision=revision,before_fees=sale.fees,after_fees=fees,
+    recovery=SaleRecovery.objects.create(company_id=sale.company_id,key=key,sale=sale,actor=actor,reason=reason,before_revision=revision,before_fees=sale.fees,after_fees=fees,
         original_operation_id=sale.stock_operation_id,returned_operation=returned,recovery_operation=operation,
         cancellation_snapshot={'actor_id':sale.cancelled_by_id,'at':sale.cancelled_at.isoformat() if sale.cancelled_at else None,'reason':sale.cancellation_reason})
     before={'status':sale.status,'fees':str(sale.fees),'revision':sale.revision,'stock_operation':sale.stock_operation_id,'return_operation':sale.return_operation_id}

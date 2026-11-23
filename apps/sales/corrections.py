@@ -8,7 +8,7 @@ from apps.inventory.models import StockOperation, StockLocation
 from apps.products.models import Product
 from apps.accounts.access import master
 from apps.core.services import audit
-from apps.inventory.services import domain_lock, number, _apply, _date, _fingerprint
+from apps.inventory.services import domain_lock, number, _apply, _date, _fingerprint, _require_owner, validate_operation_owner
 from apps.finance.models import FinancialTitle
 from .models import Sale, SaleCorrection, SalesChannel
 
@@ -23,9 +23,11 @@ def snapshot(sale):
 
 
 def relocate(sale, location, actor, key, reason):
+    _require_owner(sale.company_id, actor)
     original = sale.stock_operation
     if not original or original.kind != 'SALE_OUT' or StockOperation.objects.filter(reversal_of=original).exists():
         raise ValidationError('Saída de estoque ausente ou já estornada. Confira o histórico da venda.')
+    validate_operation_owner(original,sale.company_id)
     moves = list(original.movements.select_related('location').order_by('pk'))
     if not moves or any(m.location_id != sale.location_id or m.quantity >= 0 for m in moves):
         raise ValidationError('Saída de estoque incompatível com o depósito da venda.')
@@ -35,12 +37,12 @@ def relocate(sale, location, actor, key, reason):
     if any(not p.active for p in products.values()):
         raise ValidationError('Há produto inativo. Revise o cadastro antes de trocar o depósito.')
     today = timezone.localdate()
-    _date(today, products.values())
-    returned = StockOperation.objects.create(kind='SALE_RETURN', date=today, actor=actor, reason=reason,
+    _date(today, products.values(),company_id=sale.company_id)
+    returned = StockOperation.objects.create(company_id=sale.company_id, kind='SALE_RETURN', date=today, actor=actor, reason=reason,
         reversal_of=original, fingerprint=_fingerprint(['correct_sale_return', sale.pk, str(key)]))
     for m in moves:
         _apply(returned, products[m.product_id], m.location, -m.quantity, -(m.value+m.cost_variance), unit_cost=m.unit_cost)
-    outgoing = StockOperation.objects.create(kind='SALE_OUT', date=today, actor=actor, reason=reason,
+    outgoing = StockOperation.objects.create(company_id=sale.company_id, kind='SALE_OUT', date=today, actor=actor, reason=reason,
         reversal_of=returned, fingerprint=_fingerprint(['correct_sale_location', sale.pk, str(key)]))
     for m in moves:
         _apply(outgoing, products[m.product_id], location, m.quantity, m.value+m.cost_variance, unit_cost=m.unit_cost)
@@ -63,6 +65,7 @@ def correct_sale(*,actor,sale_id,revision,key,reason,values,channel_id=None,loca
         tax_amount=number(tax_amount,Decimal('.01'),zero=True)
         tax_request['amount']=str(tax_amount)
     sale=Sale.objects.select_for_update().get(pk=sale_id)
+    _require_owner(sale.company_id, actor)
     channel_id = sale.channel_id if channel_id is None else int(channel_id)
     location_id = sale.location_id if location_id is None else int(location_id)
     prior=SaleCorrection.objects.filter(key=key).first()
@@ -122,7 +125,7 @@ def correct_sale(*,actor,sale_id,revision,key,reason,values,channel_id=None,loca
     after=snapshot(sale)
     if before==after:raise ValidationError('Nenhum valor, canal ou depósito foi alterado.')
     after['tax_correction_request']=tax_request
-    entry=SaleCorrection.objects.create(key=key,sale=sale,actor=actor,reason=reason,before_revision=revision,before=before,after=after)
+    entry=SaleCorrection.objects.create(company_id=sale.company_id,key=key,sale=sale,actor=actor,reason=reason,before_revision=revision,before=before,after=after)
     if connection.vendor=='postgresql':
         with connection.cursor() as cursor:cursor.execute("SELECT set_config('mvet.sale_correction', %s, true)",[str(key)])
     try:

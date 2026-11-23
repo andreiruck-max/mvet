@@ -451,3 +451,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 23/11/2026 — MVet 3.0: serviços centrais de estoque validam proprietário e contexto antes de escrita/replay; auditoria local filtra empresa. Mantida trava secundária (ADR 0079).
 
 23/11/2026 — MVet 3.0: contagens e importações validam empresa antes da prévia ou replay e preservam identidade nos registros. ADR 0080.
+
+23/11/2026 — MVet 3.0: estoque de compra/venda herda empresa do documento, com conferência de origem antes de estorno/recuperação/relocação. ADR 0081.

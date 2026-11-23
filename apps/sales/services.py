@@ -9,7 +9,7 @@ from apps.core.models import Company
 from apps.core.services import require, audit
 from apps.products.models import Product
 from apps.inventory.models import StockLocation, StockOperation
-from apps.inventory.services import domain_lock, number, QTY, _fingerprint, _apply, _value_out, quant, _date
+from apps.inventory.services import domain_lock, number, QTY, _fingerprint, _apply, _value_out, quant, _date, _require_owner, validate_operation_owner
 from .models import Sale, SaleItem, SaleConsumption, SalesChannel, TaxRule, SaleExtraCost
 
 FINANCIAL_FIELDS = ['products_amount','discount','shipping_received','shipping_paid','fees','difal','commission','other_costs']
@@ -126,6 +126,7 @@ def confirm(*,actor,sale_id,revision):
     require(actor,'core.operate_sales')
     domain_lock()
     sale=Sale.objects.select_for_update().get(pk=sale_id)
+    _require_owner(sale.company_id, actor)
     if sale.status=='CONFIRMED': return sale
     if sale.status!='DRAFT': raise ValidationError('Venda cancelada não pode ser confirmada.')
     if sale.revision!=revision: raise ValidationError('A venda foi alterada. Revise os dados antes de confirmar.')
@@ -143,15 +144,15 @@ def confirm(*,actor,sale_id,revision):
     ids={pid for _,parts in expanded for pid,_ in parts}
     products={p.pk:p for p in Product.objects.select_for_update().filter(pk__in=ids).order_by('pk')}
     if any(not p.active or p.kind!='SIMPLE' for p in products.values()):raise ValidationError('Componente inativo ou kit aninhado.')
-    today=timezone.localdate();_date(today,products.values())
-    operation=StockOperation.objects.create(kind='SALE_OUT',date=today,actor=actor,reason=sale.reference,fingerprint=_fingerprint(['sale',sale.pk]))
+    today=timezone.localdate();_date(today,products.values(),company_id=sale.company_id)
+    operation=StockOperation.objects.create(company_id=sale.company_id, kind='SALE_OUT',date=today,actor=actor,reason=sale.reference,fingerprint=_fingerprint(['sale',sale.pk]))
     cmv=Decimal('0')
     for item,parts in expanded:
         item.cmv=Decimal('0')
         for pid,quantity in parts:
-            product=products[pid];value=_value_out(product,quantity,sale.location,allow_negative=True)
+            product=products[pid];value=_value_out(product,quantity,sale.location,allow_negative=True,company_id=sale.company_id)
             movement=_apply(operation,product,sale.location,-quantity,-value)
-            SaleConsumption.objects.create(item=item,movement=movement)
+            SaleConsumption.objects.create(company_id=sale.company_id,item=item,movement=movement)
             item.cmv+=value
         item.unit_cost=quant(item.cmv/item.quantity)
         item.sku_snapshot=item.product.sku;item.name_snapshot=item.product.name
@@ -174,15 +175,17 @@ def cancel(*,actor,sale_id,reason):
     if not reason.strip() or len(reason)>500: raise ValidationError('Informe o motivo do cancelamento (até 500 caracteres).')
     domain_lock()
     sale=Sale.objects.select_for_update().get(pk=sale_id)
+    _require_owner(sale.company_id, actor)
     if sale.status=='CANCELLED':return sale
     from apps.finance.services import cancel_origin
     cancel_origin(actor,reason,sale=sale)
     previous=sale.status
     if previous=='CONFIRMED':
+        validate_operation_owner(sale.stock_operation,sale.company_id)
         moves=list(sale.stock_operation.movements.select_related('location').order_by('pk'))
         products={p.pk:p for p in Product.objects.select_for_update().filter(pk__in=[m.product_id for m in moves]).order_by('pk')}
-        today=timezone.localdate();_date(today,products.values())
-        operation=StockOperation.objects.create(kind='SALE_RETURN',date=today,actor=actor,reason=reason.strip(),fingerprint=_fingerprint(['cancel_sale',sale.pk]),reversal_of=sale.stock_operation)
+        today=timezone.localdate();_date(today,products.values(),company_id=sale.company_id)
+        operation=StockOperation.objects.create(company_id=sale.company_id, kind='SALE_RETURN',date=today,actor=actor,reason=reason.strip(),fingerprint=_fingerprint(['cancel_sale',sale.pk]),reversal_of=sale.stock_operation)
         for movement in moves:
             _apply(operation,products[movement.product_id],movement.location,-movement.quantity,-(movement.value+movement.cost_variance),unit_cost=movement.unit_cost)
         sale.return_operation=operation

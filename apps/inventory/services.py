@@ -27,6 +27,13 @@ def _require_owner(company_id, actor=None):
     return company_id
 
 
+def validate_operation_owner(operation, company_id):
+    """Reject an inconsistent source ledger before consuming its reversal legs."""
+    _require_owner(company_id)
+    if operation.company_id != company_id or operation.movements.exclude(company_id=company_id).exists():
+        raise ValidationError('Empresa do livro de estoque difere do documento de origem.')
+
+
 def domain_lock():
     # Also taken by catalog/composition changes and opening imports. Short critical
     # sections serialize stock writes, including idempotency checks and kit expansion.
