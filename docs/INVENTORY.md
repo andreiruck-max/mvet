@@ -119,3 +119,7 @@ Saldos, operações, movimentos, cargas iniciais e conciliações identificam a
 empresa proprietária (ADR 0078). Histórico pertence à Mercadovet, sem mudar
 custos ou snapshots. Restrição temporária impede outras empresas; serviços,
 consultas e unicidades por proprietário ainda serão adaptados antes da ativação.
+
+Serviços centrais validam o proprietário e impedem operações/replay no modo
+Grupo (ADR 0079). Cálculo local e conferência do livro usam company_id;
+ativação secundária depende das etapas restantes, não só destes filtros.
