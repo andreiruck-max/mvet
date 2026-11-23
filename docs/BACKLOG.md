@@ -323,3 +323,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 3e: consultas de catálogo/planejamento e totais por proprietário preparadas; CI pendente. Políticas de produto, resumo de kits e contexto nas demais consultas ainda pendentes.
 
 - PR 3f: políticas comerciais por empresa/SKU, cópia inicial e sincronização dos serviços primários; CI pendente. Remover campos/fallback legado, contextualizar alertas/UI e ativar Agro somente após isolamento integral.
+
+- PR 3g: formulários, detalhes, indicação de mínimo e alertas primários leem CompanyProductPolicy; CI pendente. Geração de alertas para múltiplas empresas continua pendente.

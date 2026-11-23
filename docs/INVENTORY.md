@@ -143,3 +143,8 @@ sem duplicar produto. Valores atuais copiados para Mercadovet; cadastro e preço
 mantêm espelho legado na mesma transação. Catálogo, preço e planejamento usam a
 política primária, com compatibilidade para produtos sem política. Agro segue
 bloqueada até isolamento completo das telas/serviços (ADR 0083).
+
+Formulários de produto/preço, detalhe e indicação de estoque mínimo leem a
+mesma política empresarial usada pelo catálogo. Alertas de estoque mínimo da
+Mercadovet usam esse mínimo, preservando o estoque agregado legado enquanto
+as demais empresas permanecem bloqueadas. Teste HTTP verifica consistência.

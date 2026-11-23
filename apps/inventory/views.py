@@ -18,6 +18,7 @@ from .forms import ProductForm, OperationForm, NamedForm, ReversalForm, Componen
 from .selectors import catalog, kit_summary, selected_location, location_values, stock_totals, search_products
 from .services import execute, reverse, domain_lock
 from apps.products.pricing import sale_price, retail_location
+from apps.products.policies import commercial_values
 from apps.core.models import Company
 
 def can_read(user):
@@ -121,6 +122,7 @@ def lookup(request):
 @login_required
 def product_detail(request,pk):
     check_read(request.user);p=get_object_or_404(Product,pk=pk)
+    p.commercial_minimum = commercial_values(p)["minimum"]
     parts,available,cost=kit_summary(p)
     moves=Paginator(p.movements.select_related('operation','location').order_by('-pk'),25).get_page(request.GET.get('page'))
     balances = list(p.balances.select_related('location'))
@@ -139,7 +141,7 @@ def product_detail(request,pk):
 @permission_required('core.operate_stock',raise_exception=True)
 def product_edit(request,pk=None):
     obj=get_object_or_404(Product,pk=pk) if pk else None
-    form=ProductForm(request.POST or None,instance=obj)
+    form=ProductForm(request.POST or None,instance=obj,initial={"minimum":commercial_values(obj)["minimum"]} if obj else None)
     if request.method=='POST' and form.is_valid():
         try:
             product=save_product(actor=request.user,pk=pk,data=form.cleaned_data)
@@ -274,8 +276,9 @@ def pricing(request, pk=None):
             help_text='Vazio usa o markup geral. Zero é um percentual válido.' if product else 'Aplicado aos produtos sem percentual individual. Preço = custo médio da loja Mercadovet × (1 + markup/100).')
     if product:
         PricingForm.base_fields['fixed_sale_price'] = forms.DecimalField(label='Preço de venda fixo (R$)', required=False, min_value=0, max_digits=14, decimal_places=2, help_text='Quando preenchido, prevalece sobre o markup. Apague para voltar ao preço calculado pelo custo.')
-    initial = product.markup if product else Company.objects.get(pk=1).default_markup
-    form = PricingForm(request.POST or None, initial={'markup':initial, 'fixed_sale_price':product.fixed_sale_price if product else None})
+    values = commercial_values(product) if product else {}
+    initial = values["markup"] if product else Company.objects.get(pk=1).default_markup
+    form = PricingForm(request.POST or None, initial={"markup":initial, "fixed_sale_price":values.get("fixed_sale_price")})
     if request.method == 'POST' and form.is_valid():
         with transaction.atomic():
             configure_pricing(actor=request.user, markup=form.cleaned_data['markup'], product_id=pk)
