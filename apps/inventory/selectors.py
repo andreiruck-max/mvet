@@ -41,12 +41,17 @@ def catalog(params, location=None, *, company_id=1):
         location, _ = selected_location(params,company_id=company_id)
     field = DecimalField(max_digits=18, decimal_places=4)
     balances = StockBalance.objects.filter(company_id=company_id,product_id=OuterRef('pk'), location_id=location.pk if location else None)
+    from apps.products.models import CompanyProductPolicy
+    from django.db.models import Prefetch
+    rows = rows.prefetch_related(Prefetch("company_policies", queryset=CompanyProductPolicy.objects.filter(company_id=company_id), to_attr="_commercial_policies"))
+    policies = CompanyProductPolicy.objects.filter(company_id=company_id,product_id=OuterRef('pk'))
+    rows = rows.annotate(commercial_minimum=Coalesce(Subquery(policies.values('minimum')[:1]), F('minimum'),output_field=field))
     rows = rows.annotate(stock_cost=Coalesce(Subquery(balances.values('average_cost')[:1]), Value(Decimal(0)), output_field=DecimalField(max_digits=24, decimal_places=6)))
     rows = rows.annotate(stock_quantity=Coalesce(Subquery(balances.values('quantity')[:1]), Value(Decimal(0)), output_field=field))
     if params.get('status', 'active') == 'active': rows = rows.filter(active=True)
     if params.get('status') == 'inactive': rows = rows.filter(active=False)
     if params.get('positive', '1') == '1': rows = rows.filter(stock_quantity__gt=0)
-    if params.get('low') == '1': rows = rows.filter(kind='SIMPLE', stock_quantity__lte=F('minimum'))
+    if params.get('low') == '1': rows = rows.filter(kind='SIMPLE', stock_quantity__lte=F('commercial_minimum'))
     order = params.get('sort', 'sku')
     if order not in {'name', 'sku', 'quantity', '-quantity'}: order = 'sku'
     if order == 'sku':

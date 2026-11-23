@@ -455,3 +455,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 23/11/2026 — MVet 3.0: estoque de compra/venda herda empresa do documento, com conferência de origem antes de estorno/recuperação/relocação. ADR 0081.
 
 23/11/2026 — MVet 3.0: catálogo e planejamento filtram proprietário; totais empresariais derivados dos saldos locais. ADR 0082.
+
+23/11/2026 — MVet 3.0: política comercial por empresa/SKU para mínimo, markup e preço fixo; migração preserva cadastro histórico e serviços sincronizam a compatibilidade Mercadovet. ADR 0083.

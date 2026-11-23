@@ -60,7 +60,7 @@ def purchase_plan(*, location, zero_days, history_days, coverage_days, q='', sho
         if excluded:
             excluded_count += 1
         sold = max(Decimal(0), -sales.get(product.pk, Decimal(0)))
-        target = max(product.minimum, sold * Decimal(coverage_days) / Decimal(history_days))
+        target = max(product.commercial_minimum, sold * Decimal(coverage_days) / Decimal(history_days))
         pending = incoming.get(product.pk, Decimal(0))
         suggested = Decimal(0) if excluded else max(Decimal(0), target-product.stock_quantity-pending).quantize(Decimal('1'), rounding=ROUND_UP)
         if suggested > 0:
