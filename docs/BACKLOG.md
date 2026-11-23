@@ -319,3 +319,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 3c: contagem/cargas/conciliação com contexto empresarial explícito e tokens vinculados. CI pendente; operação secundária e físico compartilhado ainda bloqueados.
 
 - PR 3d: vínculo explícito documento/proprietário nos fluxos de estoque de compras e vendas; testes CI pendentes. Rascunhos, demais FKs, configuração e consultas empresariais seguem pendentes.
+
+- PR 3e: consultas de catálogo/planejamento e totais por proprietário preparadas; CI pendente. Políticas de produto, resumo de kits e contexto nas demais consultas ainda pendentes.
