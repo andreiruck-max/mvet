@@ -131,3 +131,7 @@ compatibilidade temporária com tokens antigos da Mercadovet (ADR 0080).
 Compras e vendas passam sua empresa explicitamente aos movimentos/custos;
 estorno, recuperação e relocação conferem a empresa do livro de origem
 (ADR 0081). Grupo não confirma, recebe, cancela ou reproduz essas operações.
+
+Catálogo/planejamento recebem empresa explicitamente e filtram saldos,
+movimentos e compras. Total empresarial deriva de StockBalance. Consulta
+secundária continua negada até configuração completa (ADR 0082).

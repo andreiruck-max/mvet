@@ -7,6 +7,7 @@ from django.utils import timezone
 from apps.purchases.models import PurchaseItem, Supplier
 from .models import StockMovement, StockLocation
 from .selectors import catalog
+from .services import _require_owner
 
 
 class PlanningForm(forms.Form):
@@ -28,21 +29,22 @@ class PlanningForm(forms.Form):
     show_excluded = forms.BooleanField(label='Mostrar fora de linha', required=False)
 
 
-def purchase_plan(*, location, zero_days, history_days, coverage_days, q='', show_excluded=False, need='all', supplier='', grouping='sku', today=None):
+def purchase_plan(*, location, zero_days, history_days, coverage_days, q='', show_excluded=False, need='all', supplier='', grouping='sku', today=None, company_id=1):
+    _require_owner(company_id)
     today = today or timezone.localdate()
-    products = list(catalog({'positive': '0', 'q': q}, location).filter(kind='SIMPLE'))
+    products = list(catalog({'positive': '0', 'q': q}, location,company_id=company_id).filter(kind='SIMPLE'))
     ids = [p.pk for p in products]
-    moves = StockMovement.objects.filter(location=location, product_id__in=ids)
+    moves = StockMovement.objects.filter(company_id=company_id,location=location, product_id__in=ids)
     # Actual recording time is intentional: a backdated adjustment happened now.
     latest = dict(moves.exclude(quantity=0).values('product_id').annotate(last=Max('operation__created_at')).values_list('product_id', 'last'))
     sales = dict(moves.filter(operation__kind='SALE_OUT', operation__reversal__isnull=True,
         operation__date__gte=today-timedelta(days=history_days-1), operation__date__lte=today)
         .values('product_id').annotate(qty=Sum('quantity')).values_list('product_id', 'qty'))
-    incoming = dict(PurchaseItem.objects.filter(product_id__in=ids, moves_stock=True,
+    incoming = dict(PurchaseItem.objects.filter(company_id=company_id,purchase__company_id=company_id,product_id__in=ids, moves_stock=True,
         purchase__location=location, purchase__status='ORDERED')
         .values('product_id').annotate(qty=Sum('quantity')).values_list('product_id', 'qty'))
     # One query for all products; latest commercial purchase across all locations.
-    last_purchases = {item.product_id: item for item in PurchaseItem.objects.filter(
+    last_purchases = {item.product_id: item for item in PurchaseItem.objects.filter(company_id=company_id,purchase__company_id=company_id,
         product_id__in=ids, moves_stock=True, purchase__status='RECEIVED',
         purchase__acquisition_kind='NORMAL', purchase__date__lte=today,
         purchase__received_date__lte=today).select_related('purchase__supplier')
