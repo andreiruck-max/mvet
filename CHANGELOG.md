@@ -439,3 +439,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - MVet 3.0: identidade empresarial dos canais, regras e revisões tributárias, sem recalcular histórico (ADR 0073).
 
 - MVet 3.0: titularidade do plano de contas e regras de classificação, preservando hierarquia e histórico (ADR 0074).
+
+- MVet 3.0: empresa dos comissionados/padrões e validação da pessoa na criação do plano (ADR 0075).

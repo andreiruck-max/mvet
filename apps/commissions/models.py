@@ -12,12 +12,14 @@ def rate(**kwargs):
         validators=[MinValueValidator(0), MaxValueValidator(100)], **kwargs)
 
 class CommissionSettings(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     default_rate = rate(default=0)
     class Meta:
-        constraints = [models.CheckConstraint(condition=models.Q(id=1), name='commission_single_settings'),
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='commission_settings_primary_transition'), models.CheckConstraint(condition=models.Q(id=1), name='commission_single_settings'),
             models.CheckConstraint(condition=models.Q(default_rate__gte=0, default_rate__lte=100), name='commission_default_rate')]
 
 class Payee(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     name = models.CharField('Nome', max_length=180)
     kind = models.CharField('Tipo', max_length=20, choices=[('EMPLOYEE','Vendedor interno'),('REP','Representante'),('PARTNER','Parceiro comercial (base produtos)'),('PARTNER_PROFIT','Parceiro comercial (% do lucro)'),('OTHER','Outro')], default='EMPLOYEE')
     user = models.OneToOneField(settings.AUTH_USER_MODEL, verbose_name='Usuário para consulta (opcional)', null=True, blank=True, on_delete=models.PROTECT)
@@ -25,7 +27,7 @@ class Payee(models.Model):
     active = models.BooleanField('Ativo', default=True)
     class Meta:
         ordering = ['name','pk']
-        constraints = [models.CheckConstraint(condition=models.Q(default_rate__isnull=True)|models.Q(default_rate__gte=0,default_rate__lte=100), name='commission_payee_rate')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='commission_payee_primary_transition'), models.CheckConstraint(condition=models.Q(default_rate__isnull=True)|models.Q(default_rate__gte=0,default_rate__lte=100), name='commission_payee_rate')]
     def __str__(self): return self.name
 
 class CommissionPlan(models.Model):

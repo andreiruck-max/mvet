@@ -305,3 +305,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 2k: identidade dos canais e histórico tributário preparada; CI pendente. Consulta/configuração por empresa e demais revisões comerciais ainda pendentes.
 
 - PR 2l: titularidade do plano de contas/classificação preparada; CI pendente. Instalação, consultas e unicidades por empresa ainda pendentes.
+
+- PR 2m: titularidade de comissionados e percentuais padrão preparada; CI pendente. Telas, consultas e pagamentos por empresa ainda pendentes.
