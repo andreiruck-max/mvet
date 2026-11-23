@@ -13,7 +13,7 @@ from apps.core.services import require
 from apps.products.services import save_product
 from apps.products.models import Product
 from .models import OpeningImport, StockLocation
-from .services import domain_lock, execute, number, QTY, MONEY, quant
+from .services import domain_lock, execute, number, QTY, MONEY, quant, _require_owner
 
 NS={'s':'http://schemas.openxmlformats.org/spreadsheetml/2006/main'}
 
@@ -70,23 +70,24 @@ def read_inventory(path, *, merge_duplicates=False):
     return result,{'errors':errors,'warnings':warnings,'products':len(result),'source_rows':sum(len(i) for i in groups.values())}
 
 @transaction.atomic
-def load_opening(*,actor,path,location_name,merge_duplicates=False,commit=False):
+def load_opening(*,actor,path,location_name,merge_duplicates=False,commit=False, company_id=1):
+    _require_owner(company_id, actor)
     require(actor,'core.operate_stock');require(actor,'core.view_costs')
     rows,report=read_inventory(path,merge_duplicates=merge_duplicates)
     if not commit or report['errors']:return report
     digest=hashlib.sha256(open(path,'rb').read()).hexdigest()
     domain_lock()
-    previous=OpeningImport.objects.filter(digest=digest).first()
+    previous=OpeningImport.objects.filter(company_id=company_id, digest=digest).first()
     if previous:return {**previous.report,'already_loaded':True}
     if Product.objects.filter(sku__in=[r['sku'] for r in rows]).exists():
         raise ValidationError('Um ou mais SKUs já existem. A carga inicial não sobrescreve produtos; use ajustes ou cadastre manualmente.')
     location,_=StockLocation.objects.get_or_create(name=location_name)
     if not location.active:raise ValidationError('Local de abertura inativo.')
-    date=Company.objects.get(pk=1).cutover_date
+    date=Company.objects.get(pk=company_id).cutover_date
     for row in rows:
         p=save_product(actor=actor,data={'sku':row['sku'],'name':row['name'],'unit':'UN','kind':'SIMPLE'})
-        execute(actor=actor,key=uuid.uuid5(uuid.NAMESPACE_URL,digest+':'+row['sku']),kind='OPENING',date=date,
+        execute(actor=actor,company_id=company_id,key=uuid.uuid5(uuid.NAMESPACE_URL,digest+':'+row['sku']),kind='OPENING',date=date,
             reason=f'Abertura da planilha; linhas {row["lines"]}',product_id=p.pk,location_id=location.pk,quantity=row['quantity'],cost=row['cost'])
     report['loaded']=len(rows)
-    OpeningImport.objects.create(digest=digest,actor=actor,report=report)
+    OpeningImport.objects.create(company_id=company_id, digest=digest,actor=actor,report=report)
     return report

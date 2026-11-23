@@ -12,7 +12,7 @@ from apps.core.services import require
 from apps.products.models import Product
 from apps.products.services import save_product
 from .models import OpeningImport, StockLocation, StockOperation
-from .services import domain_lock, number, quant, QTY, MONEY, _date, _apply
+from .services import domain_lock, number, quant, QTY, MONEY, _date, _apply, _require_owner
 
 
 def read_snapshot(path):
@@ -78,15 +78,16 @@ def row_without_balances(row):
 
 
 @transaction.atomic
-def load_snapshot(*, actor, path, commit=False):
+def load_snapshot(*, actor, path, commit=False, company_id=1):
+    _require_owner(company_id, actor)
     for permission in ('operate_stock', 'manage_products', 'receive_stock', 'view_costs'):
         require(actor, 'core.' + permission)
     day, rows, report = read_snapshot(path)
     domain_lock()
-    previous = OpeningImport.objects.filter(digest=report['digest']).first()
+    previous = OpeningImport.objects.filter(company_id=company_id, digest=report['digest']).first()
     if previous:
         return {**previous.report, 'already_loaded': True}
-    _date(day, [])
+    _date(day, [],company_id=company_id)
     existing = list(Product.objects.filter(sku__in=[r['sku'] for r in rows]).values_list('sku', flat=True))
     if existing:
         raise ValidationError('SKUs já cadastrados; nenhuma carga aplicada. Concilie antes: ' + ', '.join(existing))
@@ -106,7 +107,7 @@ def load_snapshot(*, actor, path, commit=False):
             reason += '. ' + ' / '.join(notes)
         if len(reason) > 500:
             raise ValidationError('Observações excedem o limite do movimento.')
-        operation = StockOperation.objects.create(
+        operation = StockOperation.objects.create(company_id=company_id,
             key=uuid.uuid5(uuid.NAMESPACE_URL, report['digest'] + ':' + row['sku']),
             fingerprint=report['digest'], kind='OPENING', date=day, actor=actor, reason=reason)
         # Zero reference costs first, so they never override a positive balance's average.
@@ -115,5 +116,5 @@ def load_snapshot(*, actor, path, commit=False):
                    quant(item['quantity'] * item['cost']), unit_cost=item['cost'],
                    average_override=item['cost'] if not item['quantity'] and not product.quantity else None)
     report['committed'] = True
-    OpeningImport.objects.create(digest=report['digest'], actor=actor, report=report)
+    OpeningImport.objects.create(company_id=company_id, digest=report['digest'], actor=actor, report=report)
     return report

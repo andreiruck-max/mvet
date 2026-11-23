@@ -13,7 +13,7 @@ from apps.core.services import audit
 from apps.products.models import Product
 from apps.products.services import save_product
 from .models import StockLocation, StockBalance, StockMovement, StockOperation, InventoryReconciliation
-from .services import domain_lock, number, QTY, MONEY, quant, _apply, _date
+from .services import domain_lock, number, QTY, MONEY, quant, _apply, _date, _require_owner
 
 
 def parse_snapshot(raw):
@@ -61,21 +61,23 @@ def parse_snapshot(raw):
         raise ValidationError('Arquivo de conciliação inválido. Confira SKU, depósitos, data e decimais.') from exc
 
 
-def revision():
+def revision(*, company_id=1):
+    _require_owner(company_id)
     # Capture projection/catalog state as well as the immutable ledger watermark.
-    content = [StockMovement.objects.aggregate(last=Max('pk'))['last'],
+    content = [StockMovement.objects.filter(company_id=company_id).aggregate(last=Max('pk'))['last'],
                list(Product.objects.order_by('pk').values_list('pk','sku','active','kind','unit')),
                list(StockLocation.objects.order_by('pk').values_list('pk','name','active')),
-               list(StockBalance.objects.order_by('pk').values_list('product_id','location_id','quantity','value','average_cost'))]
+               list(StockBalance.objects.filter(company_id=company_id).order_by('pk').values_list('product_id','location_id','quantity','value','average_cost'))]
     return hashlib.sha256(json.dumps(content, default=str).encode()).hexdigest()
 
 
 @transaction.atomic
-def reconcile(*, actor, raw, commit=False, expected_revision=None):
+def reconcile(*, actor, raw, commit=False, expected_revision=None, company_id=1):
+    _require_owner(company_id, actor)
     master(actor)
     day, payload, digest = parse_snapshot(raw)
     domain_lock()
-    previous = InventoryReconciliation.objects.filter(digest=digest).first()
+    previous = InventoryReconciliation.objects.filter(company_id=company_id, digest=digest).first()
     if previous:
         return dict(previous.report, already_applied=True)
     mode = payload.get('mode', 'historical')
@@ -83,13 +85,13 @@ def reconcile(*, actor, raw, commit=False, expected_revision=None):
         raise ValidationError('O dia mudou desde a prévia. Envie a planilha novamente.')
     if mode == 'historical':
         names = {loc['location'] for loc in payload['locations']}
-        for prior in InventoryReconciliation.objects.filter(base_date=day):
+        for prior in InventoryReconciliation.objects.filter(company_id=company_id, base_date=day):
             if names & {loc['name'] for loc in prior.report.get('locations', [])}:
                 raise ValidationError('Este depósito já tem uma conciliação nesta data-base. Para corrigir novamente, envie uma contagem com Substituir a posição atual.')
-        if StockMovement.objects.filter(location__name__in=names,operation__date__gt=day,operation__kind='RECONCILE').exists():
+        if StockMovement.objects.filter(company_id=company_id, location__name__in=names,operation__date__gt=day,operation__kind='RECONCILE').exists():
             raise ValidationError('Há conciliação posterior nesta posição. Use Substituir a posição atual para evitar reaplicar ajustes antigos.')
-    _date(day, [])
-    current_revision = revision()
+    _date(day, [],company_id=company_id)
+    current_revision = revision(company_id=company_id)
     if commit and expected_revision != current_revision:
         raise ValidationError('O estoque mudou desde a prévia. Confira novamente antes de aplicar.')
     products = {p.sku:p for p in Product.objects.select_for_update().order_by('pk')}
@@ -104,7 +106,7 @@ def reconcile(*, actor, raw, commit=False, expected_revision=None):
         omitted = []
         if source['complete']:
             # A complete snapshot explicitly means absent SKUs have zero at base date.
-            for balance in StockBalance.objects.filter(location=location).select_related('product'):
+            for balance in StockBalance.objects.filter(company_id=company_id, location=location).select_related('product'):
                 p = balance.product
                 if p.sku not in items:
                     items[p.sku] = dict(sku=p.sku,name=p.name,unit=p.unit,quantity='0',value='0',cost=str(balance.average_cost))
@@ -116,8 +118,8 @@ def reconcile(*, actor, raw, commit=False, expected_revision=None):
                 raise ValidationError(f'{sku}: kit virtual não pode receber saldo físico.')
             qty, value, cost = (Decimal(item[k]) for k in ('quantity','value','cost'))
             total_q += qty; total_v += value
-            current = StockBalance.objects.filter(product=p,location=location).first() if p else None
-            moves = StockMovement.objects.filter(product=p,location=location,operation__date__gt=day) if p and mode == 'historical' else StockMovement.objects.none()
+            current = StockBalance.objects.filter(company_id=company_id, product=p,location=location).first() if p else None
+            moves = StockMovement.objects.filter(company_id=company_id, product=p,location=location,operation__date__gt=day) if p and mode == 'historical' else StockMovement.objects.none()
             later = moves.aggregate(q=Sum('quantity'),v=Sum('value'))
             target_q = qty + (later['q'] or Decimal(0))
             target_v = value + (later['v'] or Decimal(0))
@@ -149,12 +151,12 @@ def reconcile(*, actor, raw, commit=False, expected_revision=None):
             continue
         # Refresh after adjustments in the other depot; preserve aggregate projection.
         p.refresh_from_db()
-        current = StockBalance.objects.filter(product=p,location=location).first()
+        current = StockBalance.objects.filter(company_id=company_id, product=p,location=location).first()
         before_q,before_v = (current.quantity,current.value) if current else (Decimal(0),Decimal(0))
-        operation = StockOperation.objects.create(key=uuid4(),fingerprint=digest,kind='RECONCILE',date=timezone.localdate(),actor=actor,
+        operation = StockOperation.objects.create(company_id=company_id, key=uuid4(),fingerprint=digest,kind='RECONCILE',date=timezone.localdate(),actor=actor,
             reason=f'Conciliação {mode} de posição em {day}. Arquivo {digest[:16]}.')
         _apply(operation,p,location,qty-before_q,value-before_v,unit_cost=cost,local_average_override=cost,average_override=cost)
     report['committed'] = True
-    record = InventoryReconciliation.objects.create(base_date=day,digest=digest,actor=actor,report=report)
+    record = InventoryReconciliation.objects.create(company_id=company_id, base_date=day,digest=digest,actor=actor,report=report)
     audit(actor,record,'inventory_reconciliation',{},report)
     return report
