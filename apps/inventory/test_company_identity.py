@@ -55,8 +55,8 @@ class StockCompanyMigrationTests(StockFixtures, TransactionTestCase):
                 with self.assertRaises(DatabaseError), transaction.atomic():
                     model.objects.update(**{field:value})
             Company.objects.get_or_create(pk=2, defaults={'name':'Agro sintética','active':False})
-            # Mutable projections/import logs must also reject a secondary owner for now.
-            for model in [StockBalance, OpeningImport]:
+            # Opening imports remain restricted until their full workflow is scoped.
+            for model in [OpeningImport]:
                 with self.assertRaises(DatabaseError), transaction.atomic():
                     model.objects.update(company_id=2)
         finally:

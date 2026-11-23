@@ -161,3 +161,10 @@ não basta: o ponto inicial precisa corresponder ao livro anterior.
 Na execução CLI, a auditoria usa snapshot PostgreSQL REPEATABLE READ/READ ONLY,
 sem bloquear escritores. Chamadas embutidas em transação existente conservam
 as garantias dessa transação; o chamador deve controlar sua consistência.
+
+### MVet 3.0: aritmética interna por proprietário
+A chave de saldo é empresa/SKU/depósito (ADR 0085). Primitivas internas suportam
+posições assinadas e médias separadas; comandos públicos continuam restritos à
+Mercadovet. Testes A/B/C de livro não equivalem ao fluxo fiscal/financeiro de
+fornecimento interempresa, ainda pendente. Product é agregado informativo, não
+fonte de CMV empresarial.

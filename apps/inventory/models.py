@@ -15,8 +15,7 @@ class StockBalance(models.Model):
     value = models.DecimalField(max_digits=24, decimal_places=6, default=0)
     average_cost = models.DecimalField(max_digits=24, decimal_places=6, default=0)
     class Meta:
-        constraints = [models.CheckConstraint(condition=Q(company_id=1), name='stock_balance_primary_company'),
-            models.UniqueConstraint(fields=['product','location'], name='unique_stock_location'),
+        constraints = [models.UniqueConstraint(fields=['company','product','location'], name='unique_owner_stock_location'),
             models.CheckConstraint(condition=Q(average_cost__gte=0), name='stock_cost_nonnegative'),
             models.CheckConstraint(condition=Q(quantity__gt=0,value__gte=0)|Q(quantity__lt=0,value__lte=0)|Q(quantity=0,value=0), name='stock_value_sign')]
 
@@ -39,7 +38,6 @@ class StockOperation(Immutable):
     reversal_of = models.OneToOneField('self', null=True, blank=True, on_delete=models.PROTECT, related_name='reversal')
     class Meta:
         ordering = ['-pk']
-        constraints = [models.CheckConstraint(condition=Q(company_id=1), name='stock_operation_primary_company')]
 
 class StockMovement(Immutable):
     owner_before_quantity = models.DecimalField(max_digits=18, decimal_places=4, null=True, editable=False)
@@ -64,8 +62,7 @@ class StockMovement(Immutable):
     class Meta:
         ordering = ['pk']
         indexes = [models.Index(fields=['product','operation'])]
-        constraints = [models.CheckConstraint(condition=Q(company_id=1), name='stock_movement_primary_company'),
-            models.CheckConstraint(condition=(Q(owner_before_quantity__isnull=True,owner_after_quantity__isnull=True,owner_before_value__isnull=True,owner_after_value__isnull=True) |
+        constraints = [models.CheckConstraint(condition=(Q(owner_before_quantity__isnull=True,owner_after_quantity__isnull=True,owner_before_value__isnull=True,owner_after_value__isnull=True) |
                 Q(owner_before_quantity__isnull=False,owner_after_quantity__isnull=False,owner_before_value__isnull=False,owner_after_value__isnull=False)),name='stock_owner_snapshot_complete')]
 
 

@@ -77,7 +77,7 @@ def _date(date, products, *, opening=False, company_id=1):
             raise ValidationError(f'{p.sku}: há movimento posterior. Registre um ajuste na data atual para preservar o histórico.')
 
 def _value_out(p, quantity, location, *, allow_negative=False, company_id=1):
-    _require_owner(company_id)
+    # Internal valuation only. Public commands authorize the owner before calling.
     balance = StockBalance.objects.filter(company_id=company_id, product=p, location=location).first()
     if balance is None or quantity > balance.quantity:
         if not allow_negative:
@@ -89,7 +89,12 @@ def _value_out(p, quantity, location, *, allow_negative=False, company_id=1):
     return balance.value if quantity == balance.quantity else min(balance.value, quant(quantity * balance.average_cost))
 
 def _apply(operation, product, location, quantity, value, *, average_override=None, unit_cost=None, local_average_override=None, variance_override=None):
-    company_id = _require_owner(operation.company_id, operation.actor)
+    # Internal primitive: the calling command owns authorization and the stock lock.
+    # Secondary public commands remain blocked by _require_owner.
+    company_id = operation.company_id
+    scope = getattr(operation.actor, '_mvet_company_scope', None)
+    if scope is not None and scope.require_operation() != company_id:
+        raise PermissionDenied('Empresa da operação difere do contexto selecionado.')
     balance, _ = StockBalance.objects.get_or_create(company_id=company_id, product=product, location=location)
     balance = StockBalance.objects.select_for_update().get(pk=balance.pk)
     before_local_average = balance.average_cost
