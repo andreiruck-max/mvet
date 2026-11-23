@@ -148,3 +148,7 @@ Formulários de produto/preço, detalhe e indicação de estoque mínimo leem a
 mesma política empresarial usada pelo catálogo. Alertas de estoque mínimo da
 Mercadovet usam esse mínimo, preservando o estoque agregado legado enquanto
 as demais empresas permanecem bloqueadas. Teste HTTP verifica consistência.
+
+Novos movimentos guardam posição de quantidade/valor do proprietário antes e
+depois, além dos snapshots globais legados. Campos novos ficam nulos nos
+movimentos históricos; auditoria confere as diferenças nos novos (ADR 0084).

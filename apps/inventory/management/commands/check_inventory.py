@@ -11,6 +11,11 @@ class Command(BaseCommand):
         errors=[]
         if StockMovement.objects.exclude(company_id=F('operation__company_id')).exists():
             errors.append('Empresa do movimento diverge da operação.')
+        snapshots = StockMovement.objects.filter(owner_before_quantity__isnull=False)
+        if snapshots.exclude(owner_after_quantity=F('owner_before_quantity')+F('quantity')).exists():
+            errors.append('Snapshot empresarial de quantidade diverge do movimento.')
+        if snapshots.exclude(owner_after_value=F('owner_before_value')+F('value')).exists():
+            errors.append('Snapshot empresarial de valor diverge do movimento.')
         for p in Product.objects.all():
             ledger=p.movements.aggregate(quantity=Sum('quantity'),value=Sum('value'))
             if p.quantity!=(ledger['quantity'] or 0) or p.value!=(ledger['value'] or 0):errors.append(f'SKU {p.sku}: total diverge do livro.')
