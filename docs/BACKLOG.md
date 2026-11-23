@@ -307,3 +307,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 2l: titularidade do plano de contas/classificação preparada; CI pendente. Instalação, consultas e unicidades por empresa ainda pendentes.
 
 - PR 2m: titularidade de comissionados e percentuais padrão preparada; CI pendente. Telas, consultas e pagamentos por empresa ainda pendentes.
+
+- PR 2n: configurações CRM e inicialização da empresa principal preparadas; CI pendente. Rotinas, unicidades e telas por empresa continuam pendentes.

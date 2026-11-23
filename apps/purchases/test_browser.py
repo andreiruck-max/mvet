@@ -17,7 +17,7 @@ class PurchasesBrowser(StaticLiveServerTestCase):
     def test_supplier_purchase_receipt_and_transfer(self):
         from playwright.sync_api import sync_playwright
         physical=StockLocation.objects.create(name='Estoque Mercadovet');full=StockLocation.objects.create(name='Estoque Full')
-        Company.objects.create(pk=1,default_stock_location=physical)
+        Company.objects.update_or_create(pk=1, defaults={'default_stock_location': physical})[0]
         actor=User.objects.create_superuser('purchases-browser')
         first=Product.objects.create(sku='PUR-01',name='Primeiro produto de demonstração')
         second=Product.objects.create(sku='PUR-02',name='Segundo produto de demonstração')

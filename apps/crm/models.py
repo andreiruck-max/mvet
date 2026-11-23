@@ -44,9 +44,12 @@ class Contact(models.Model):
 
 
 class RecurrenceRule(models.Model):
+    owning_company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     result = models.CharField(max_length=25,choices=c.RESULTS,unique=True)
     days = models.PositiveIntegerField('Retornar após (dias)',default=7,validators=[MinValueValidator(1),MaxValueValidator(3650)])
     allow_manual = models.BooleanField('Funcionário pode escolher outra data',default=True)
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(owning_company_id=1), name='crm_recurrence_primary_transition')]
     def __str__(self): return self.get_result_display()
 
 
@@ -119,12 +122,13 @@ class ImportBatch(models.Model):
         constraints = [models.CheckConstraint(condition=models.Q(owning_company_id=1), name='crm_import_primary_transition')]
 
 class IntakeSettings(models.Model):
+    owning_company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     daily_limit = models.PositiveIntegerField('Novos contatos por dia (total da equipe)', default=0, validators=[MaxValueValidator(2000)])
     paused = models.BooleanField('Pausar liberação de novos contatos', default=True)
     starts_on = models.DateField('Liberar a partir de')
     revision = models.PositiveIntegerField(default=0)
     class Meta:
-        constraints = [models.CheckConstraint(condition=models.Q(id=1), name='crm_single_intake_settings'),
+        constraints = [models.CheckConstraint(condition=models.Q(owning_company_id=1), name='crm_intake_primary_transition'), models.CheckConstraint(condition=models.Q(id=1), name='crm_single_intake_settings'),
                        models.CheckConstraint(condition=models.Q(daily_limit__lte=2000), name='crm_intake_limit_range')]
 
 

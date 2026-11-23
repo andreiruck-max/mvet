@@ -157,6 +157,9 @@ class FoundationTests(TestCase):
         self.assertEqual(response["X-Content-Type-Options"], "nosniff")
 
     def test_empty_setup_has_useful_message(self):
+        from apps.crm.models import RecurrenceRule, IntakeSettings
+        RecurrenceRule.objects.all().delete()
+        IntakeSettings.objects.all().delete()
         Company.objects.all().delete()
         self.client.force_login(self.configurator)
         response = self.client.get(reverse("configuration"))

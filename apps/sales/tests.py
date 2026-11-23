@@ -19,7 +19,7 @@ from .services import save_draft, confirm, cancel, save_configuration
 
 class Fixture:
     def setUp(self):
-        self.company=Company.objects.create(pk=1)
+        self.company=Company.objects.update_or_create(pk=1, defaults={})[0]
         self.actor=User.objects.create_superuser('owner')
         self.operator=User.objects.create_user('operator')
         self.operator.user_permissions.add(Permission.objects.get(codename='operate_sales'))

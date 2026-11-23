@@ -22,7 +22,7 @@ from . import services as s, selectors
 class Fixture:
     def setUp(self):
         self.today=timezone.localdate();self.cutoff=self.today-timedelta(days=10)
-        Company.objects.create(pk=1,cutover_date=self.cutoff)
+        Company.objects.update_or_create(pk=1, defaults={'cutover_date': self.cutoff})[0]
         self.admin=User.objects.create_superuser('fin-admin')
         self.operator=User.objects.create_user('fin-op')
         self.operator.user_permissions.add(Permission.objects.get(codename='operate_finance'))

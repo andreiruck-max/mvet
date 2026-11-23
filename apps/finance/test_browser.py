@@ -16,7 +16,7 @@ from .services import save_account
 class FinanceBrowser(StaticLiveServerTestCase):
     def test_bank_statement_default_window_and_sticky_header(self):
         from playwright.sync_api import sync_playwright, expect
-        today=timezone.localdate();Company.objects.create(pk=1)
+        today=timezone.localdate();Company.objects.update_or_create(pk=1, defaults={})[0]
         actor=User.objects.create_superuser('bank-flow-browser')
         account=save_account(actor=actor,data=dict(name='Banco sintético',kind='BANK',opening_date=today,opening_balance=Decimal('1000')))
         Title.objects.create(direction='PAY',description='Compra sintética · parcela 1',counterparty='Fornecedor demonstrativo',date=today,due_date=today,amount=Decimal('25'),actor=actor)
@@ -83,7 +83,7 @@ class FinanceBrowser(StaticLiveServerTestCase):
 
     def test_title_partial_payment_transfer_and_daily_cash(self):
         from playwright.sync_api import sync_playwright
-        today=timezone.localdate();Company.objects.create(pk=1)
+        today=timezone.localdate();Company.objects.update_or_create(pk=1, defaults={})[0]
         actor=User.objects.create_superuser('finance-browser')
         save_account(actor=actor,data=dict(name='Conta A',kind='BANK',opening_date=today,opening_balance=Decimal('1000')))
         save_account(actor=actor,data=dict(name='Conta B',kind='BANK',opening_date=today,opening_balance=Decimal('0')))
@@ -126,7 +126,7 @@ class FinanceBrowser(StaticLiveServerTestCase):
         from django.urls import reverse
         from uuid import uuid4
         from .services import create_title
-        Company.objects.create(pk=1)
+        Company.objects.update_or_create(pk=1, defaults={})[0]
         actor=User.objects.create_superuser('title-edit-browser')
         today=timezone.localdate()
         title=create_title(actor=actor,key=uuid4(),data=dict(direction='PAY',description='Título para editar',date=today,due_date=today,amount=Decimal('100'),category='OTHER'))
@@ -158,7 +158,7 @@ class FinanceBrowser(StaticLiveServerTestCase):
     def test_modal_cancel_validation_filters_focus_and_fallback(self):
         from playwright.sync_api import sync_playwright,expect
         from django.urls import reverse
-        today=timezone.localdate();Company.objects.create(pk=1)
+        today=timezone.localdate();Company.objects.update_or_create(pk=1, defaults={})[0]
         actor=User.objects.create_superuser('modal-browser')
         first=save_account(actor=actor,data=dict(name='Origem modal',kind='BANK',opening_date=today,opening_balance=Decimal('1000')))
         second=save_account(actor=actor,data=dict(name='Destino modal',kind='BANK',opening_date=today,opening_balance=Decimal('0')))
@@ -245,7 +245,7 @@ class FinanceBrowser(StaticLiveServerTestCase):
                 return pool.submit(call).result()
         from apps.integrations.models import BlingConnection, BlingBankAccount, BlingBankRun, BlingBankEntry, BlingBankDay
         from apps.integrations import bank_services
-        today=timezone.localdate();Company.objects.create(pk=1)
+        today=timezone.localdate();Company.objects.update_or_create(pk=1, defaults={})[0]
         actor=User.objects.create_superuser('statement-browser')
         account=save_account(actor=actor,data=dict(name='Carteira demonstrativa',kind='WALLET',opening_date=today,opening_balance=Decimal('100')))
         conn=BlingConnection.objects.create(pk=1,issuer='12345678000195',tokens='synthetic')
@@ -291,7 +291,7 @@ class FinanceBrowser(StaticLiveServerTestCase):
         from uuid import uuid4
         from .services import create_title
         from .models import DuePayment
-        today=timezone.localdate();Company.objects.create(pk=1)
+        today=timezone.localdate();Company.objects.update_or_create(pk=1, defaults={})[0]
         actor=User.objects.create_superuser('partial-browser')
         account=save_account(actor=actor,data=dict(name='Banco parcial',kind='BANK',opening_date=today,opening_balance=Decimal('2000000')))
         title=create_title(actor=actor,key=uuid4(),data=dict(direction='PAY',description='Despesa parcial sintética',date=today,due_date=today,amount=Decimal('13000'),account=account))

@@ -23,7 +23,7 @@ class StockFixtures:
     def setUp(self):
         clock=patch('apps.inventory.services.timezone.localdate',return_value=date(2026,9,20))
         clock.start();self.addCleanup(clock.stop)
-        Company.objects.create(pk=1)
+        Company.objects.update_or_create(pk=1, defaults={})[0]
         self.actor=User.objects.create_superuser('stock-admin',password='testing-only')
         self.p=Product.objects.create(sku='P1',name='Produto teste')
         self.loc=StockLocation.objects.create(name='Loja')

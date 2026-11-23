@@ -114,7 +114,7 @@ class RecoveryBrowser(Fixture,StaticLiveServerTestCase):
 class SalesBrowser(StaticLiveServerTestCase):
     def test_create_confirm_cancel_multiline_sale(self):
         from playwright.sync_api import sync_playwright
-        company=Company.objects.create(pk=1);actor=User.objects.create_superuser('sales-browser')
+        company=Company.objects.update_or_create(pk=1, defaults={})[0];actor=User.objects.create_superuser('sales-browser')
         location=StockLocation.objects.create(name='Local de teste');channel=SalesChannel.objects.create(name='Canal de teste')
         full=StockLocation.objects.create(name='Estoque Full')
         company.default_stock_location=location;company.save(update_fields=['default_stock_location'])
