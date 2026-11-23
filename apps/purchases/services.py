@@ -8,7 +8,7 @@ from apps.core.models import Company
 from apps.core.services import require, audit
 from apps.products.models import Product
 from apps.inventory.models import StockLocation, StockOperation
-from apps.inventory.services import domain_lock, number, QTY, MONEY, quant, _fingerprint, _date, _apply, prior_local_average
+from apps.inventory.services import domain_lock, number, QTY, MONEY, quant, _fingerprint, _date, _apply, prior_local_average, _require_owner, validate_operation_owner
 from .models import Supplier, Purchase, PurchaseItem, PurchaseInstallment
 
 CENT=Decimal('0.01')
@@ -156,6 +156,7 @@ def confirm(*,actor,purchase_id,revision):
     require(actor,'core.confirm_purchases')
     require(actor,'core.operate_purchases');domain_lock()
     p=Purchase.objects.select_for_update().get(pk=purchase_id)
+    _require_owner(p.company_id, actor)
     if p.status in {'ORDERED','RECEIVED'}:return p
     if p.status!='DRAFT':raise ValidationError('Compra cancelada não pode ser confirmada.')
     if p.revision!=revision:raise ValidationError('A compra mudou. Revise antes de confirmar.')
@@ -173,6 +174,7 @@ def receive(*,actor,purchase_id,date,revision):
     require(actor,'core.receive_purchases')
     require(actor,'core.operate_purchases');domain_lock()
     p=Purchase.objects.select_for_update().get(pk=purchase_id)
+    _require_owner(p.company_id, actor)
     if p.status=='RECEIVED':return p
     if p.status!='ORDERED':raise ValidationError('Confirme a compra antes de receber.')
     if p.revision!=revision:raise ValidationError('A compra mudou. Revise antes de receber.')
@@ -181,8 +183,8 @@ def receive(*,actor,purchase_id,date,revision):
     items=list(p.items.filter(moves_stock=True).order_by('product_id','pk'))
     products={product.pk:product for product in Product.objects.select_for_update().filter(pk__in=[i.product_id for i in items]).order_by('pk')}
     if not p.items.exists() or any(not product.active or product.kind!='SIMPLE' for product in products.values()):raise ValidationError('Itens inválidos ou inativos.')
-    _date(date,products.values())
-    op=StockOperation.objects.create(kind='PUR_RECEIPT',date=date,actor=actor,reason=f'Compra {p.document}/{p.series}',fingerprint=_fingerprint(['purchase',p.pk])) if items else None
+    _date(date,products.values(),company_id=p.company_id)
+    op=StockOperation.objects.create(company_id=p.company_id, kind='PUR_RECEIPT',date=date,actor=actor,reason=f'Compra {p.document}/{p.series}',fingerprint=_fingerprint(['purchase',p.pk])) if items else None
     for item in items:
         item.movement=_apply(op,products[item.product_id],p.location,item.quantity,item.allocated_total,unit_cost=item.landed_unit_cost)
         item.save(update_fields=['movement'])
@@ -196,18 +198,20 @@ def cancel(*,actor,purchase_id,reason):
     require(actor,'core.operate_purchases')
     if not reason.strip() or len(reason)>500:raise ValidationError('Informe motivo de até 500 caracteres.')
     domain_lock();p=Purchase.objects.select_for_update().get(pk=purchase_id)
+    _require_owner(p.company_id, actor)
     if p.status=='CANCELLED':return p
     from apps.finance.services import cancel_origin
     cancel_origin(actor,reason,purchase_installment__purchase=p)
     previous=p.status
     if previous=='RECEIVED' and p.receipt_id:
+        validate_operation_owner(p.receipt,p.company_id)
         moves=list(p.receipt.movements.select_related('location').order_by('-pk'))
         products={product.pk:product for product in Product.objects.select_for_update().filter(pk__in=[m.product_id for m in moves]).order_by('pk')}
         for product in products.values():
-            latest=product.movements.filter(operation__reversal__isnull=True).exclude(operation__kind='REVERSAL').order_by('-pk').first()
+            latest=product.movements.filter(company_id=p.company_id,operation__reversal__isnull=True).exclude(operation__kind='REVERSAL').order_by('-pk').first()
             if latest.operation_id!=p.receipt_id:raise ValidationError('Há movimentos posteriores nos produtos. Não é seguro desfazer este recebimento. Regularize as operações posteriores antes do cancelamento.')
-        today=timezone.localdate();_date(today,products.values())
-        op=StockOperation.objects.create(kind='PUR_RETURN',date=today,actor=actor,reason=reason,fingerprint=_fingerprint(['cancel_purchase',p.pk]),reversal_of=p.receipt)
+        today=timezone.localdate();_date(today,products.values(),company_id=p.company_id)
+        op=StockOperation.objects.create(company_id=p.company_id, kind='PUR_RETURN',date=today,actor=actor,reason=reason,fingerprint=_fingerprint(['cancel_purchase',p.pk]),reversal_of=p.receipt)
         for move in moves:_apply(op,products[move.product_id],move.location,-move.quantity,-(move.value+move.cost_variance),variance_override=-move.cost_variance,average_override=move.before_average,unit_cost=move.unit_cost,local_average_override=prior_local_average(move))
         p.reversal=op
     # Payment services in Phase 5 must block/reverse settled installments first.

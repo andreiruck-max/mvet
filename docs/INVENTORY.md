@@ -127,3 +127,7 @@ ativação secundária depende das etapas restantes, não só destes filtros.
 Contagens e importações validam contexto também na prévia e no replay.
 Tokens de contagem vinculam empresa e registros de carga preservam proprietário;
 compatibilidade temporária com tokens antigos da Mercadovet (ADR 0080).
+
+Compras e vendas passam sua empresa explicitamente aos movimentos/custos;
+estorno, recuperação e relocação conferem a empresa do livro de origem
+(ADR 0081). Grupo não confirma, recebe, cancela ou reproduz essas operações.
