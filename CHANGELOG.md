@@ -445,3 +445,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - MVet 3.0: fundação da empresa principal em instalações vazias e identidade empresarial das configurações CRM, preservando valores antigos (ADR 0076).
 
 - MVet 3.0: identidade empresarial dos históricos de correção, CMV e recuperação de vendas (ADR 0077).
+
+23/11/2026 — MVet 3.0: identidade empresarial aditiva no estoque e importações, com histórico Mercadovet preservado e bloqueio temporário de proprietários secundários. ADR 0078.

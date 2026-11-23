@@ -8,13 +8,15 @@ from apps.products.models import NamedActive, Product
 class StockLocation(NamedActive): pass
 
 class StockBalance(models.Model):
+    company = models.ForeignKey("core.Company", on_delete=models.PROTECT, default=1, editable=False)
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='balances')
     location = models.ForeignKey(StockLocation, on_delete=models.PROTECT)
     quantity = models.DecimalField(max_digits=18, decimal_places=4, default=0)
     value = models.DecimalField(max_digits=24, decimal_places=6, default=0)
     average_cost = models.DecimalField(max_digits=24, decimal_places=6, default=0)
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['product','location'], name='unique_stock_location'),
+        constraints = [models.CheckConstraint(condition=Q(company_id=1), name='stock_balance_primary_company'),
+            models.UniqueConstraint(fields=['product','location'], name='unique_stock_location'),
             models.CheckConstraint(condition=Q(average_cost__gte=0), name='stock_cost_nonnegative'),
             models.CheckConstraint(condition=Q(quantity__gt=0,value__gte=0)|Q(quantity__lt=0,value__lte=0)|Q(quantity=0,value=0), name='stock_value_sign')]
 
@@ -26,6 +28,7 @@ class Immutable(models.Model):
     def delete(self,*args,**kwargs): raise ValidationError('Registro imutável. Utilize estorno.')
 
 class StockOperation(Immutable):
+    company = models.ForeignKey("core.Company", on_delete=models.PROTECT, default=1, editable=False)
     key = models.UUIDField(default=uuid.uuid4, unique=True)
     fingerprint = models.CharField(max_length=64)
     kind = models.CharField(max_length=20, choices=[('RECONCILE','Conciliação de estoque'),('OPENING','Saldo inicial'),('RECEIPT','Entrada'),('ISSUE','Saída'),('ADJUST_IN','Ajuste: acréscimo'),('ADJUST_OUT','Ajuste: redução'),('TRANSFER','Transferência'),('SPLIT','Fracionamento'),('KIT_ISSUE','Saída de kit'),('REVALUE','Correção de custo'),('REVERSAL','Estorno'),('SALE_OUT','Venda'),('SALE_RETURN','Cancelamento de venda'),('PUR_RECEIPT','Recebimento de compra'),('PUR_RETURN','Cancelamento de compra')])
@@ -34,9 +37,12 @@ class StockOperation(Immutable):
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
     reversal_of = models.OneToOneField('self', null=True, blank=True, on_delete=models.PROTECT, related_name='reversal')
-    class Meta: ordering = ['-pk']
+    class Meta:
+        ordering = ['-pk']
+        constraints = [models.CheckConstraint(condition=Q(company_id=1), name='stock_operation_primary_company')]
 
 class StockMovement(Immutable):
+    company = models.ForeignKey("core.Company", on_delete=models.PROTECT, default=1, editable=False)
     cost_variance = models.DecimalField(max_digits=24, decimal_places=6, default=0, editable=False)
     before_local_average = models.DecimalField(max_digits=24, decimal_places=6, null=True, editable=False)
     operation = models.ForeignKey(StockOperation, on_delete=models.PROTECT, related_name='movements')
@@ -54,17 +60,24 @@ class StockMovement(Immutable):
     class Meta:
         ordering = ['pk']
         indexes = [models.Index(fields=['product','operation'])]
+        constraints = [models.CheckConstraint(condition=Q(company_id=1), name='stock_movement_primary_company')]
 
 class OpeningImport(models.Model):
+    company = models.ForeignKey("core.Company", on_delete=models.PROTECT, default=1, editable=False)
     digest = models.CharField(max_length=64, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     report = models.JSONField(default=dict)
+    class Meta:
+        constraints = [models.CheckConstraint(condition=Q(company_id=1), name="opening_import_primary_company")]
 
 
 class InventoryReconciliation(Immutable):
+    company = models.ForeignKey("core.Company", on_delete=models.PROTECT, default=1, editable=False)
     base_date = models.DateField(db_index=True)
     digest = models.CharField(max_length=64, unique=True)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
     report = models.JSONField()
+    class Meta:
+        constraints = [models.CheckConstraint(condition=Q(company_id=1), name="reconciliation_primary_company")]
