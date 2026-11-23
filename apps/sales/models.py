@@ -12,11 +12,14 @@ def money(label):
     return models.DecimalField(label, max_digits=18, decimal_places=2, default=0, validators=[MinValueValidator(0)])
 
 class SalesChannel(NamedActive):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     commission_payee = models.ForeignKey('commissions.Payee', on_delete=models.PROTECT, null=True, blank=True, verbose_name='Comissionado automático', related_name='sales_channels')
     class Meta:
         ordering = ['name']
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='sales_channel_primary_transition')]
 
 class TaxRule(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     name = models.CharField('Nome', max_length=120)
     rate = models.DecimalField('Alíquota (%)', max_digits=7, decimal_places=4, validators=[MinValueValidator(0), MaxValueValidator(100)])
     starts_on = models.DateField('Início da vigência')
@@ -25,7 +28,7 @@ class TaxRule(models.Model):
     active = models.BooleanField('Ativa', default=True)
     class Meta:
         ordering = ['name', '-starts_on']
-        constraints = [models.CheckConstraint(condition=models.Q(rate__gte=0,rate__lte=100),name='sales_tax_rate_range'), models.CheckConstraint(condition=models.Q(ends_on__isnull=True)|models.Q(ends_on__gte=models.F('starts_on')),name='sales_tax_dates')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='sales_rule_primary_transition'), models.CheckConstraint(condition=models.Q(rate__gte=0,rate__lte=100),name='sales_tax_rate_range'), models.CheckConstraint(condition=models.Q(ends_on__isnull=True)|models.Q(ends_on__gte=models.F('starts_on')),name='sales_tax_dates')]
     def __str__(self): return self.name
 
 class Sale(models.Model):
@@ -128,6 +131,7 @@ class SaleExtraCost(models.Model):
         constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='sale_extra_primary_transition'), models.CheckConstraint(condition=models.Q(amount__gte=0), name='sales_extra_nonnegative')]
 
 class TaxRateChange(Immutable):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     rule = models.ForeignKey(TaxRule, on_delete=models.PROTECT, related_name='changes')
     effective_from = models.DateField('Usar a partir de')
     rate = models.DecimalField('Nova alíquota (%)', max_digits=7, decimal_places=4, validators=[MinValueValidator(0), MaxValueValidator(100)])
@@ -138,9 +142,10 @@ class TaxRateChange(Immutable):
     class Meta:
         ordering = ['-effective_from','-pk']
         indexes = [models.Index(fields=['rule','effective_from'])]
-        constraints = [models.CheckConstraint(condition=models.Q(rate__gte=0,rate__lte=100),name='sales_changed_tax_rate_range')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='sales_rate_change_primary_transition'), models.CheckConstraint(condition=models.Q(rate__gte=0,rate__lte=100),name='sales_changed_tax_rate_range')]
 
 class SaleTaxRevision(Immutable):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     sale = models.ForeignKey(Sale, on_delete=models.PROTECT, related_name='tax_revisions')
     change = models.ForeignKey(TaxRateChange, on_delete=models.PROTECT, related_name='revisions')
     before_amount = money('Imposto anterior')
@@ -148,7 +153,7 @@ class SaleTaxRevision(Immutable):
     before_snapshot = models.JSONField()
     after_snapshot = models.JSONField()
     class Meta:
-        constraints = [models.UniqueConstraint(fields=['sale','change'],name='sales_unique_tax_revision')]
+        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='sales_tax_revision_primary_transition'), models.UniqueConstraint(fields=['sale','change'],name='sales_unique_tax_revision')]
 
 
 class SaleCorrection(Immutable):
