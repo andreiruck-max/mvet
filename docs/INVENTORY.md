@@ -123,3 +123,7 @@ consultas e unicidades por proprietário ainda serão adaptados antes da ativaç
 Serviços centrais validam o proprietário e impedem operações/replay no modo
 Grupo (ADR 0079). Cálculo local e conferência do livro usam company_id;
 ativação secundária depende das etapas restantes, não só destes filtros.
+
+Contagens e importações validam contexto também na prévia e no replay.
+Tokens de contagem vinculam empresa e registros de carga preservam proprietário;
+compatibilidade temporária com tokens antigos da Mercadovet (ADR 0080).

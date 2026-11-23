@@ -9,20 +9,22 @@ from apps.core.models import AuditLog
 from apps.core.services import audit, require
 from apps.products.models import Product
 from .models import StockBalance, StockLocation, StockMovement
-from .services import domain_lock, number, QTY, execute, _fingerprint
+from .services import domain_lock, number, QTY, execute, _fingerprint, _require_owner
 
 SALT = 'mvet.inventory.count.v1'
 
 
-def count_snapshot(actor, product, location):
+def count_snapshot(actor, product, location, *, company_id=1):
+    _require_owner(company_id, actor)
     require(actor, 'core.operate_stock'); require(actor, 'core.adjust_stock')
-    return signing.dumps({'actor': actor.pk, 'product': product.pk, 'location': location.pk,
-                          'last': StockMovement.objects.filter(product=product).order_by('-pk').values_list('pk', flat=True).first(),
+    return signing.dumps({'company': company_id, 'actor': actor.pk, 'product': product.pk, 'location': location.pk,
+                          'last': StockMovement.objects.filter(company_id=company_id, product=product).order_by('-pk').values_list('pk', flat=True).first(),
                           'key': str(uuid4())}, salt=SALT)
 
 
 @transaction.atomic
-def apply_count(*, actor, product_id, location_id, snapshot, counted, reason):
+def apply_count(*, actor, product_id, location_id, snapshot, counted, reason, company_id=1):
+    _require_owner(company_id, actor)
     require(actor, 'core.operate_stock'); require(actor, 'core.adjust_stock')
     number(counted, QTY, zero=True)
     reason = reason.strip()
@@ -32,6 +34,8 @@ def apply_count(*, actor, product_id, location_id, snapshot, counted, reason):
         token = signing.loads(snapshot, salt=SALT, max_age=86400)
     except signing.BadSignature as exc:
         raise ValidationError('Contagem expirada ou inválida. Abra novamente a tela.') from exc
+    if token.get('company', 1) != company_id:
+        raise ValidationError('Contagem pertence a outra empresa.')
     if (token['actor'], token['product'], token['location']) != (actor.pk, product_id, location_id):
         raise ValidationError('Contagem inválida para este produto, depósito ou usuário.')
     domain_lock()
@@ -45,21 +49,21 @@ def apply_count(*, actor, product_id, location_id, snapshot, counted, reason):
     location = StockLocation.objects.get(pk=location_id, active=True)
     if product.kind != 'SIMPLE' or not product.active:
         raise ValidationError('Contagem exige produto simples e ativo.')
-    last = product.movements.order_by('-pk').values_list('pk', flat=True).first()
+    last = product.movements.filter(company_id=company_id).order_by('-pk').values_list('pk', flat=True).first()
     if last != token['last']:
         raise ValidationError('O produto foi movimentado após abrir a contagem. Volte e abra uma nova contagem para conferir o saldo atualizado.')
-    balance = StockBalance.objects.filter(product=product, location=location).first()
+    balance = StockBalance.objects.filter(company_id=company_id, product=product, location=location).first()
     before = balance.quantity if balance else Decimal(0)
     difference = counted - before
     operation = None
     if difference:
         if difference > 0 and (balance is None or balance.average_cost == 0):
             raise ValidationError('Acréscimo sem custo de referência: use Movimentar estoque → Ajuste: acréscimo e informe o custo.')
-        operation = execute(actor=actor, key=token['key'], kind='ADJUST_IN' if difference > 0 else 'ADJUST_OUT',
+        operation = execute(actor=actor, company_id=company_id, key=token['key'], kind='ADJUST_IN' if difference > 0 else 'ADJUST_OUT',
                             date=timezone.localdate(), reason=f'Contagem: saldo {before}; contado {counted}. {reason}',
                             product_id=product.pk, location_id=location.pk, quantity=abs(difference),
                             cost=balance.average_cost if difference > 0 else None)
-    result = {'count_key': token['key'], 'fingerprint': fingerprint, 'location': location.pk,
+    result = {'company': company_id, 'count_key': token['key'], 'fingerprint': fingerprint, 'location': location.pk,
               'counted': str(counted), 'difference': str(difference), 'reason': reason,
               'operation': operation.pk if operation else None, 'date': str(timezone.localdate())}
     audit(actor, product, 'stock_count', {'quantity': str(before), 'location': location.pk}, result)
