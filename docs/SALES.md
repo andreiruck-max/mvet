@@ -78,3 +78,6 @@ Master: abra a venda confirmada → **Corrigir CMV** → informe custo correto p
 ## Transição MVet 3.0
 Canais, regras, alterações de alíquota e revisões tributárias têm empresa proprietária
 (ADR 0073). Permanecem restritos à Mercadovet até contextualização dos serviços.
+
+Correções comerciais, revisões de CMV e recuperações também possuem empresa
+proprietária no laboratório 3.0 (ADR 0077), preservando snapshots e vínculos antigos.

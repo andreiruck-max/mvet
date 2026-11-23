@@ -443,3 +443,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - MVet 3.0: empresa dos comissionados/padrões e validação da pessoa na criação do plano (ADR 0075).
 
 - MVet 3.0: fundação da empresa principal em instalações vazias e identidade empresarial das configurações CRM, preservando valores antigos (ADR 0076).
+
+- MVet 3.0: identidade empresarial dos históricos de correção, CMV e recuperação de vendas (ADR 0077).
