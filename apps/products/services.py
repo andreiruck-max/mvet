@@ -2,11 +2,13 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models.deletion import ProtectedError
 from apps.core.services import require, audit
-from apps.inventory.services import domain_lock, number, QTY
+from apps.inventory.services import domain_lock, number, QTY, _require_owner
 from .models import Product, ProductComposition
+from .policies import sync_primary_policy
 
 @transaction.atomic
 def save_product(*,actor,data,pk=None):
+    _require_owner(1,actor)
     require(actor,'core.manage_products')
     require(actor,'core.operate_stock')
     domain_lock()
@@ -21,6 +23,7 @@ def save_product(*,actor,data,pk=None):
         if k not in {'sku','name','unit','kind','brand','category','minimum','active'}: raise ValidationError('Campo não editável.')
         setattr(obj,k,v)
     obj.full_clean();obj.save()
+    sync_primary_policy(obj)
     audit(actor,obj,'update_product' if pk else 'create_product',before,{k:str(getattr(obj,k)) for k in data})
     return obj
 

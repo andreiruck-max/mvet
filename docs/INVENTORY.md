@@ -135,3 +135,11 @@ estorno, recuperação e relocação conferem a empresa do livro de origem
 Catálogo/planejamento recebem empresa explicitamente e filtram saldos,
 movimentos e compras. Total empresarial deriva de StockBalance. Consulta
 secundária continua negada até configuração completa (ADR 0082).
+
+## Política comercial por empresa (MVet 3.0)
+
+CompanyProductPolicy identifica mínimo, markup e preço fixo por empresa/SKU,
+sem duplicar produto. Valores atuais copiados para Mercadovet; cadastro e preço
+mantêm espelho legado na mesma transação. Catálogo, preço e planejamento usam a
+política primária, com compatibilidade para produtos sem política. Agro segue
+bloqueada até isolamento completo das telas/serviços (ADR 0083).

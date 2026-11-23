@@ -39,3 +39,21 @@ class ProductComposition(models.Model):
     quantity = models.DecimalField('Quantidade', max_digits=18, decimal_places=4)
     class Meta:
         constraints = [models.UniqueConstraint(fields=['kit','component'], name='unique_component'), models.CheckConstraint(condition=Q(quantity__gt=0) & ~Q(kit=models.F('component')), name='valid_component')]
+
+
+class CompanyProductPolicy(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='company_policies')
+    minimum = models.DecimalField('Estoque mínimo', max_digits=18, decimal_places=4, default=0)
+    markup = models.DecimalField('Markup individual (%)', max_digits=8, decimal_places=2,
+        null=True, blank=True, validators=[MinValueValidator(0)])
+    fixed_sale_price = models.DecimalField('Preço de venda fixo', max_digits=14, decimal_places=2,
+        null=True, blank=True, validators=[MinValueValidator(0)])
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['company', 'product'], name='unique_company_product_policy'),
+            models.CheckConstraint(condition=Q(minimum__gte=0), name='policy_minimum_nonnegative'),
+            models.CheckConstraint(condition=Q(markup__isnull=True) | Q(markup__gte=0), name='policy_markup_nonnegative'),
+            models.CheckConstraint(condition=Q(fixed_sale_price__isnull=True) | Q(fixed_sale_price__gte=0), name='policy_price_nonnegative'),
+        ]
