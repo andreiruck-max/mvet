@@ -45,3 +45,8 @@ Controle e conferência de comissões oferecem períodos prontos para as datas d
 ### Valor manual na definição de comissão (22/10/2026)
 
 A tela Definir comissão da venda aceita valor total manual em R$, opcional. Preenchido, prevalece sobre o percentual; vazio mantém a prioridade percentual manual, padrão do comissionado e padrão global. Zero é valor explícito. O total manual é auditado, rateado nas parcelas e substitui a comissão da venda sem duplicar custo. Funciona também sem percentual configurado.
+
+## Transição MVet 3.0
+Comissionados e percentuais padrão têm empresa proprietária (ADR 0075). Criação de
+plano valida a empresa da pessoa e busca padrão da empresa da venda. Segunda empresa
+ainda bloqueada até contextualização completa dos fluxos.

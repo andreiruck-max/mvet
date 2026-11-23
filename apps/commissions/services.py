@@ -129,11 +129,13 @@ def _create_plan(*,actor,sale_id,payee_id,customer,rate,installments,key,reason,
     if sale.status!='CONFIRMED' or CommissionPlan.objects.filter(sale=sale).exists():
         raise ValidationError('Selecione uma venda confirmada ainda sem controle de comissão.')
     payee=Payee.objects.get(pk=payee_id)
+    if payee.company_id != sale.company_id:
+        raise ValidationError('Comissionado e venda devem pertencer à mesma empresa.')
     if not payee.active:raise ValidationError('Selecione um comissionado ativo.')
     if not 1<=len(rows)<=60 or any(d<sale.date for d,a in rows):raise ValidationError('Informe de 1 a 60 parcelas, com vencimentos a partir da venda.')
     face=sale.products_amount-sale.discount+sale.shipping_received
     if sum((a for d,a in rows),ZERO)!=face:raise ValidationError(f'As parcelas devem somar produtos − desconto + frete: R$ {face:.2f}. Ajuste a diferença antes de salvar.')
-    default=CommissionSettings.objects.filter(pk=1).first()
+    default=CommissionSettings.objects.filter(company_id=sale.company_id).first()
     if override_total is None and rate is None and payee.default_rate is None and default is None:
         raise ValidationError('Informe um percentual na venda ou configure o percentual do comissionado / padrão global.')
     source='MANUAL' if rate is not None else 'PAYEE' if payee.default_rate is not None else 'DEFAULT'
@@ -141,7 +143,7 @@ def _create_plan(*,actor,sale_id,payee_id,customer,rate,installments,key,reason,
     if default is None and rate is None and payee.default_rate is None: source='MANUAL'
     basis='PROFIT' if payee.kind=='PARTNER_PROFIT' else 'PRODUCTS'
     base=commission_base(sale,basis)
-    plan=CommissionPlan(sale=sale,payee=payee,customer=customer.strip(),rate=selected,rate_source=source,
+    plan=CommissionPlan(company_id=sale.company_id,sale=sale,payee=payee,customer=customer.strip(),rate=selected,rate_source=source,
         basis=basis,base=base,override_total=override_total,
         total=override_total if override_total is not None else rounded(base*selected/100))
     plan.full_clean();plan.save()
