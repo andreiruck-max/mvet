@@ -19,7 +19,7 @@ from .services import save_category, save_rule
 class ExpenseBrowser(StaticLiveServerTestCase):
     def test_suggested_code_and_optional_counterparty_with_category_search(self):
         from playwright.sync_api import sync_playwright, expect
-        Company.objects.create(pk=1);actor=User.objects.create_superuser('expense-form-browser')
+        Company.objects.update_or_create(pk=1, defaults={})[0];actor=User.objects.create_superuser('expense-form-browser')
         root=save_category(actor=actor,data=dict(code='04',name='Despesas operacionais',nature='OPERATING',postable=False))
         root_id=str(root.pk)
         client=Client();client.force_login(actor);output=Path('artifacts');output.mkdir(exist_ok=True)
@@ -64,7 +64,7 @@ class ExpenseBrowser(StaticLiveServerTestCase):
 
     def test_classification_payment_and_monthly_recurrence(self):
         from playwright.sync_api import sync_playwright
-        today=timezone.localdate();Company.objects.create(pk=1)
+        today=timezone.localdate();Company.objects.update_or_create(pk=1, defaults={})[0]
         actor=User.objects.create_superuser('expense-browser')
         category=save_category(actor=actor,data=dict(code='04',name='Contabilidade',nature='OPERATING'))
         save_rule(actor=actor,data=dict(name='Honorários',field='description',operator='CONTAINS',value='contabilidade',category=category))
@@ -133,7 +133,7 @@ class ExpenseBrowser(StaticLiveServerTestCase):
         from uuid import uuid4
         from .services import create_expense
         from playwright.sync_api import sync_playwright, expect
-        today=timezone.localdate();Company.objects.create(pk=1)
+        today=timezone.localdate();Company.objects.update_or_create(pk=1, defaults={})[0]
         actor=User.objects.create_superuser('expense-edit-bulk-browser')
         account=save_account(actor=actor,data=dict(name='Conta do lote',kind='BANK',opening_date=today,opening_balance=Decimal('1000')))
         first=save_category(actor=actor,data=dict(code='04',name='Serviços',nature='OPERATING'))

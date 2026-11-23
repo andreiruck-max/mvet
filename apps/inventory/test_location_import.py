@@ -17,7 +17,7 @@ from uuid import uuid4
 
 class LocationImportTests(TestCase):
     def setUp(self):
-        Company.objects.create(pk=1)
+        Company.objects.update_or_create(pk=1, defaults={})[0]
         self.actor = User.objects.create_superuser('import-test', password='testing-only')
         self.temp = TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

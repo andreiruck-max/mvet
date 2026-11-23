@@ -22,7 +22,7 @@ from .selectors import supplier_report, purchases
 
 class Fixture:
     def setUp(self):
-        self.company=Company.objects.create(pk=1)
+        self.company=Company.objects.update_or_create(pk=1, defaults={})[0]
         self.admin=User.objects.create_superuser('purchase-owner')
         self.buyer=User.objects.create_user('buyer');self.buyer.user_permissions.add(Permission.objects.get(codename='operate_purchases'))
         self.seller=User.objects.create_user('seller');self.seller.user_permissions.add(Permission.objects.get(codename='operate_sales'))

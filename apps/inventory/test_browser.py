@@ -18,7 +18,7 @@ from uuid import uuid4
 class BrowserAcceptance(StaticLiveServerTestCase):
     def test_desktop_mobile_and_manual_stock_flow(self):
         from playwright.sync_api import sync_playwright
-        company=Company.objects.create(pk=1)
+        company=Company.objects.update_or_create(pk=1, defaults={})[0]
         actor=User.objects.create_superuser('ui-test-owner')
         p=Product.objects.create(sku='TEST-01',name='Produto de demonstração',minimum=2)
         Product.objects.create(sku='NEED-UI',name='Produto para reposição',minimum=3)
@@ -99,7 +99,7 @@ class BrowserAcceptance(StaticLiveServerTestCase):
 
     def test_mvet15_switch_depot_search_and_totals(self):
         from playwright.sync_api import sync_playwright
-        company = Company.objects.create(pk=1)
+        company = Company.objects.update_or_create(pk=1, defaults={})[0]
         actor = User.objects.create_superuser('ui-depots')
         loja = StockLocation.objects.create(name='Estoque Mercadovet')
         full = StockLocation.objects.create(name='Full Mercado Livre')
@@ -130,7 +130,7 @@ class BrowserAcceptance(StaticLiveServerTestCase):
 
     def test_count_filter_currency_and_back_navigation(self):
         from playwright.sync_api import sync_playwright
-        company=Company.objects.create(pk=1)
+        company=Company.objects.update_or_create(pk=1, defaults={})[0]
         actor=User.objects.create_superuser('count-ui')
         location=StockLocation.objects.create(name='Estoque Mercadovet')
         StockLocation.objects.create(name='Full Mercado Livre')
@@ -177,7 +177,7 @@ class BrowserAcceptance(StaticLiveServerTestCase):
         import json
         from django.utils import timezone
         from playwright.sync_api import sync_playwright
-        company=Company.objects.create(pk=1)
+        company=Company.objects.update_or_create(pk=1, defaults={})[0]
         actor=User.objects.create_superuser('pricing-browser')
         location=StockLocation.objects.create(name='Estoque Mercadovet')
         company.default_stock_location=location;company.save()
@@ -231,7 +231,7 @@ class BrowserAcceptance(StaticLiveServerTestCase):
         from playwright.sync_api import sync_playwright
         from django.utils import timezone
         from .models import StockBalance, StockOperation
-        Company.objects.create(pk=1)
+        Company.objects.update_or_create(pk=1, defaults={})[0]
         actor=User.objects.create_superuser('batch-ui-owner')
         origin=StockLocation.objects.create(name='Loja teste')
         target=StockLocation.objects.create(name='Full teste')

@@ -60,7 +60,7 @@ class AccessTests(TestCase):
         protected=Client(enforce_csrf_checks=True);protected.force_login(self.master)
         self.assertEqual(protected.post(reverse('user_access',args=[self.user.pk]),{}).status_code,403)
         from apps.core.models import Company
-        Company.objects.create(pk=1)
+        Company.objects.update_or_create(pk=1, defaults={})[0]
         self.save(['core.view_dashboard']);self.client.force_login(self.user)
         self.assertEqual(self.client.get(reverse('dashboard')).status_code,200)
         save_access(actor=self.master,user_id=self.user.pk,active=True,permissions=[],revision=1)
@@ -106,7 +106,7 @@ class AccessTests(TestCase):
 
     def test_settings_hub_does_not_grant_company_write_or_master_actions(self):
         from apps.core.models import Company
-        Company.objects.create(pk=1)
+        Company.objects.update_or_create(pk=1, defaults={})[0]
         self.save(['core.manage_expense_rules']);self.client.force_login(self.user)
         response=self.client.get(reverse('configuration'))
         self.assertContains(response,'Plano de contas e despesas')

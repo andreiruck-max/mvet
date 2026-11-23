@@ -14,7 +14,7 @@ class EmployeeAccessBrowser(StaticLiveServerTestCase):
     def test_master_profile_creation_search_save_and_employee_denial(self):
         from playwright.sync_api import sync_playwright, expect
         master=User.objects.create_superuser('master_settings')
-        Company.objects.create(pk=1)
+        Company.objects.update_or_create(pk=1, defaults={})[0]
         client=Client();client.force_login(master)
         with sync_playwright() as pw:
             browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1000})
@@ -55,7 +55,7 @@ class EmployeeAccessBrowser(StaticLiveServerTestCase):
     def test_navigation_accordion_order_persistence_and_bell(self):
         from playwright.sync_api import sync_playwright, expect
         master=User.objects.create_superuser('navigation_master')
-        Company.objects.create(pk=1)
+        Company.objects.update_or_create(pk=1, defaults={})[0]
         client=Client();client.force_login(master)
         with sync_playwright() as pw:
             browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':900})

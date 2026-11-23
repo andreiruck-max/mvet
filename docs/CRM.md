@@ -43,3 +43,8 @@ Ao abrir Pendências, o sistema sorteia até completar a cota de hoje (timezone 
 Visão Master inclui lista paginada de atividades por autor e período, do mais recente para o mais antigo, com divisórias por dia. Atalhos Hoje, Ontem, Últimos 7 dias e Este mês; datas personalizadas disponíveis. Cada registro mostra cliente, data/hora, autor, canal/tipo, resultado histórico, próximo contato registrado e mensagens/observação expansíveis. Link abre a ficha completa. Filtros e totais preservados na paginação.
 
 Atividade realizada por filtra o autor histórico, incluindo usuários inativos; Responsável atual da carteira continua separado e opcional. Resultado da atividade filtra o registro histórico, não o último resultado atual do cliente. Contagens são de registros, não de clientes distintos. Pendências/carteiras mostram a posição atual; atividades usam data informada no fuso local. Horário de gravação é exibido nos detalhes para distinguir registros retroativos. Somente master; histórico e operações comerciais não são alterados.
+
+## Transição MVet 3.0
+Regras de retorno e distribuição diária recebem empresa proprietária (ADR 0076).
+A migration garante primeiro a empresa principal sem alterar cadastro existente.
+Operação secundária permanece bloqueada até contextualização dos serviços.
