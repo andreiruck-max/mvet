@@ -465,3 +465,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 23/11/2026 — MVet 3.0: auditoria de estoque detecta saldos locais ausentes mesmo zerados e snapshots empresariais com origem inconsistente.
 
 - MVet 3.0: saldo único por proprietário/SKU/depósito e aritmética interna de custos independentes, com testes de déficit e mudança de propriedade nos dois sentidos. Comandos secundários permanecem bloqueados (ADR 0085).
+
+- MVet 3.0: busca, detalhe de SKU e kits exibem quantidade/custo da empresa, sem incorporar posições de outro proprietário.
