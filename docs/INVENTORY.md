@@ -178,3 +178,7 @@ continua valorizada pelo depósito escolhido, sem usar essa média informativa.
 Histórico de operações, acesso direto ao detalhe/estorno e prévia de contagem
 filtram proprietário também no backend. IDs de operações de outra empresa
 retornam 404, inclusive em POST.
+
+A migration 0015 acrescenta validação PostgreSQL de proprietário: movimento e
+operação, assim como estorno e origem, devem pertencer à mesma empresa. Não
+reescreve livro histórico nem altera os gatilhos de imutabilidade (ADR 0086).
