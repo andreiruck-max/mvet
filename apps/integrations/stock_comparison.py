@@ -84,14 +84,15 @@ def external(row, quantity):
 
 
 def local(product, location):
-    balance = StockBalance.objects.filter(product=product, location=location).first()
+    # This connection remains primary-only until per-company OAuth is enabled.
+    balance = StockBalance.objects.filter(company_id=1, product=product, location=location).first()
     retail = retail_location()
     if not retail: raise ValidationError('Configure o depósito da loja para calcular o preço de venda do MVet.')
-    retail_balance = StockBalance.objects.filter(product=product, location=retail).first()
+    retail_balance = StockBalance.objects.filter(company_id=1, product=product, location=retail).first()
     price = sale_price(product, retail_balance.average_cost if retail_balance else Decimal(0), Company.objects.get(pk=1).default_markup)
     return {'sku': product.sku, 'unit': product.unit.strip().upper(), 'price': str(price),
             'quantity': str(balance.quantity if balance else Decimal(0)), 'retail': retail.pk,
-            'last': product.movements.order_by('-pk').values_list('pk', flat=True).first()}
+            'last': product.movements.filter(company_id=1).order_by('-pk').values_list('pk', flat=True).first()}
 
 
 def comparison(*, actor, products, location, deposit):

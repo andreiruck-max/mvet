@@ -182,3 +182,8 @@ retornam 404, inclusive em POST.
 A migration 0015 acrescenta validação PostgreSQL de proprietário: movimento e
 operação, assim como estorno e origem, devem pertencer à mesma empresa. Não
 reescreve livro histórico nem altera os gatilhos de imutabilidade (ADR 0086).
+
+Durante a transição, comparação local com o Bling primário filtra saldo, custo
+para preço e última movimentação da Mercadovet. Valor de estoque no dashboard e
+variâncias de custo na DRE/detalhamento usam o mesmo proprietário. Isso não
+habilita conexão Bling secundária nem representa DRE consolidada do grupo.

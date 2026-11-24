@@ -61,7 +61,7 @@ def sources(token,data):
             qs=qs.filter(category_snapshot__nature=nature) if kind=='nature' else qs.filter(category_snapshot=spec['snapshot'])
             for row in qs:add(row.purchase.date,'Compra '+row.purchase.document,str(row.purchase.supplier)+' · '+row.name_snapshot,row.nonstock_total,'purchase_detail',row.purchase_id)
         if kind=='inventory' or (kind=='nature' and nature=='OPERATING'):
-            for row in StockMovement.objects.filter(operation__date__range=dates).exclude(cost_variance=0).select_related('operation','product','location'):
+            for row in StockMovement.objects.filter(company_id=1, operation__date__range=dates).exclude(cost_variance=0).select_related('operation','product','location'):
                 add(row.operation.date,'Movimento #'+str(row.operation_id),str(row.product)+' · '+str(row.location),row.cost_variance,'operation_detail',row.operation_id)
     elif kind=='financial' and spec.get('direction') in ('PAY','RECEIVE'):
         direction=spec['direction']

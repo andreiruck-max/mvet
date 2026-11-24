@@ -471,3 +471,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - MVet 3.0: estoque de outra empresa não mascara faltas nem provoca alertas falsos de estoque mínimo na Mercadovet.
 
 - MVet 3.0: PostgreSQL rejeita novos movimentos e estornos vinculados a operações de outro proprietário, preservando o livro histórico.
+
+- MVet 3.0: dashboard, variâncias da DRE e comparação local de estoque/preço com Bling deixam de misturar posições patrimoniais de outro proprietário.
