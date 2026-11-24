@@ -196,9 +196,15 @@ def cancel(*,actor,sale_id,reason):
     return sale
 
 @transaction.atomic
-def save_configuration(*,actor,model,data,pk=None):
+def save_configuration(*,actor,model,data,pk=None,company_id=1):
+    if model not in (SalesChannel, TaxRule):
+        raise ValidationError("Cadastro comercial inválido.")
+    from apps.inventory.services import _require_owner
+    _require_owner(company_id, actor)
+    if "company" in data or "company_id" in data:
+        raise ValidationError("Empresa divergente do contexto selecionado.")
     require(actor,'core.manage_channels' if model is SalesChannel else 'core.manage_taxes');domain_lock()
-    obj=model.objects.select_for_update().get(pk=pk) if pk else model()
+    obj=model.objects.select_for_update().get(pk=pk,company_id=company_id) if pk else model(company_id=company_id)
     if model is SalesChannel and 'commission_payee' in data and data['commission_payee']!=obj.commission_payee:
         require(actor,'core.manage_commissions')
         if data['commission_payee'] and not data['commission_payee'].active:raise ValidationError('Selecione um comissionado ativo.')

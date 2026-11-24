@@ -135,7 +135,7 @@ def configuration(request,kind,pk=None):
     choices={'canais':(SalesChannel,ChannelForm,'Canais de venda'),'impostos':(TaxRule,TaxForm,'Regras tributárias')}
     if kind not in choices:raise PermissionDenied
     model,form_class,title=choices[kind]
-    obj=get_object_or_404(model,pk=pk) if pk else None
+    obj=get_object_or_404(model,pk=pk,company_id=1) if pk else None
     form=form_class(request.POST or None,instance=obj)
     if request.method=='POST' and form.is_valid():
         try:
@@ -143,14 +143,14 @@ def configuration(request,kind,pk=None):
             return redirect('sales_configuration',kind=kind)
         except ValidationError as exc:form.add_error(None,'; '.join(exc.messages))
         except IntegrityError:form.add_error(None,'Cadastro duplicado.')
-    return render(request,'sales/configuration.html',{'form':form,'kind':kind,'title':title,'page':Paginator(model.objects.all(),30).get_page(request.GET.get('page'))})
+    return render(request,'sales/configuration.html',{'form':form,'kind':kind,'title':title,'page':Paginator(model.objects.filter(company_id=1),30).get_page(request.GET.get('page'))})
 
 
 @login_required
 @permission_required('core.manage_taxes',raise_exception=True)
 def tax_change(request,pk):
     from django.utils import timezone
-    rule=get_object_or_404(TaxRule,pk=pk)
+    rule=get_object_or_404(TaxRule,pk=pk,company_id=1)
     rate,base,_=effective_terms(rule,timezone.localdate())
     latest=rule.changes.order_by('-pk').first()
     form=TaxChangeForm(request.POST or None,initial={'rate':rate,'base':base,'revision':latest.pk if latest else 0})

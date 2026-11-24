@@ -81,3 +81,10 @@ Canais, regras, alterações de alíquota e revisões tributárias têm empresa 
 
 Correções comerciais, revisões de CMV e recuperações também possuem empresa
 proprietária no laboratório 3.0 (ADR 0077), preservando snapshots e vínculos antigos.
+
+## MVet 3.0 — regras tributárias próprias
+Regras e versões possuem proprietário independente; nomes iguais não significam
+tributação compartilhada. Cálculo/sugestão usam a empresa da venda. Telas e campos
+primários não oferecem regras da Agro, e o banco impede trocar empresa de regra
+ou vincular versão tributária de outra empresa. A operação secundária ainda está
+bloqueada até completar o isolamento do módulo (ADR 0087).
