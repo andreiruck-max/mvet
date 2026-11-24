@@ -3,7 +3,7 @@
 Central em `/notificacoes/`, com lista paginada (30), filtros por situação, leitura, tipo e severidade, link ao registro e leitura individual. Preferências pessoais não alteram as dos demais usuários. Configuração global exige `core.manage_configuration`; alterações e preferências são auditadas.
 
 ## Condições implementadas
-- Estoque: produto simples ativo, mínimo maior que zero e quantidade global menor ou igual ao mínimo. Quantidade soma os locais; transferência Mercadovet/Full não altera esse total. Mínimo zero desabilita o alerta do produto. Kits virtuais não têm estoque próprio e ficam fora desta regra.
+- Estoque: produto simples ativo, mínimo maior que zero e quantidade da empresa menor ou igual ao mínimo. Quantidade soma os locais do mesmo proprietário; transferência Mercadovet/Full não altera esse total. Mínimo zero desabilita o alerta do produto. Kits virtuais não têm estoque próprio e ficam fora desta regra.
 - Margem: venda confirmada abaixo do limite salvo na venda ou contribuição negativa. Negativa é crítica, baixa é atenção. Inclui imposto retroativo e taxas extras pelos valores efetivos da venda; nunca recalcula CMV. Cancelamento resolve no próximo processamento.
 - Vencimentos: títulos abertos a pagar e receber com principal restante, até a antecedência configurada (padrão 3 dias). Futuro é informação, hoje atenção, vencido crítico. Liquidação integral/cancelamento resolve; parcial atualiza saldo. Inclui parcelas de compras, despesas e recebíveis.
 - Backup: habilitado explicitamente pelo administrador. Falha registrada é crítica; ausência de sucesso após o prazo configurado também. Antes da primeira execução, conta-se desde a ativação. Sem evidência, o sistema não afirma sucesso. Prazo padrão 36 horas.
@@ -30,3 +30,5 @@ Importações externas e detector de inconsistências integrados à central fica
 Alertas, leituras e preferências possuem identidade empresarial, inicialmente restrita
 à Mercadovet. Processamento e configuração continuam globais até sua contextualização.
 Evidências de backup pertencem à instalação. Ver ADR 0071.
+
+Alertas de estoque da Mercadovet leem StockBalance.company_id=1 e CompanyProductPolicy. Estoque de outra empresa não resolve nem provoca alerta de falta; ausência de saldo próprio equivale a zero. Os demais tipos e a configuração secundária permanecem pendentes de contextualização.

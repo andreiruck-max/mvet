@@ -467,3 +467,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - MVet 3.0: saldo único por proprietário/SKU/depósito e aritmética interna de custos independentes, com testes de déficit e mudança de propriedade nos dois sentidos. Comandos secundários permanecem bloqueados (ADR 0085).
 
 - MVet 3.0: busca, detalhe de SKU e kits exibem quantidade/custo da empresa, sem incorporar posições de outro proprietário.
+
+- MVet 3.0: estoque de outra empresa não mascara faltas nem provoca alertas falsos de estoque mínimo na Mercadovet.

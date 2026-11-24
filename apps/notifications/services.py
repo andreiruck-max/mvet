@@ -21,16 +21,20 @@ def notification_lock():
 
 def conditions(config, now):
     from apps.products.models import Product, CompanyProductPolicy
-    from django.db.models import OuterRef, Subquery
+    from django.db.models import OuterRef, Subquery, Sum, Value, DecimalField
+    from apps.inventory.models import StockBalance
+    from decimal import Decimal
     from django.db.models.functions import Coalesce
     from apps.sales.models import Sale
     from apps.finance.models import FinancialTitle
     today = timezone.localdate(now)
     if config.stock:
         policies = CompanyProductPolicy.objects.filter(company_id=1,product_id=OuterRef('pk'))
-        products = Product.objects.annotate(commercial_minimum=Coalesce(Subquery(policies.values('minimum')[:1]),F('minimum')))
-        for p in products.filter(active=True, kind='SIMPLE', commercial_minimum__gt=0, quantity__lte=F('commercial_minimum')).iterator():
-            yield 'STOCK', p.pk, f'Estoque mínimo: {p.sku}', f'{p.name}: {p.quantity} {p.unit} no total dos estoques; mínimo {p.commercial_minimum}.', 'WARNING'
+        balances = StockBalance.objects.filter(company_id=1,product_id=OuterRef('pk')).values('product_id').annotate(total=Sum('quantity'))
+        products = Product.objects.annotate(commercial_minimum=Coalesce(Subquery(policies.values('minimum')[:1]),F('minimum')),
+            owner_quantity=Coalesce(Subquery(balances.values('total')[:1]),Value(Decimal(0)),output_field=DecimalField(max_digits=18,decimal_places=4)))
+        for p in products.filter(active=True, kind='SIMPLE', commercial_minimum__gt=0, owner_quantity__lte=F('commercial_minimum')).iterator():
+            yield 'STOCK', p.pk, f'Estoque mínimo: {p.sku}', f'{p.name}: {p.owner_quantity} {p.unit} no total dos estoques da empresa; mínimo {p.commercial_minimum}.', 'WARNING'
     if config.margin:
         for sale in Sale.objects.filter(status='CONFIRMED').iterator():
             if sale.margin_label not in ('ALERTA', 'MARGEM NEGATIVA'):
