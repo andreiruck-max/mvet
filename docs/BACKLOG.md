@@ -329,3 +329,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 3h: snapshots de posição empresarial nos novos movimentos, sem reescrever histórico; CI pendente. Cenários A/B/C e ativação secundária continuam pendentes.
 
 - PR 3i: auditoria detecta projeção local ausente e posição empresarial incoerente com o livro acumulado; CI pendente.
+
+- PR 3j: chave empresa/SKU/depósito e testes internos A/B/C de aritmética, atomicidade e custo independente. CI a validar. Sem ativar Agro; documento interempresa, dívida de origem, financeiro e consultas secundárias permanecem pendentes.

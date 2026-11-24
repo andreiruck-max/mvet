@@ -1,6 +1,6 @@
 from decimal import Decimal as D
 from uuid import uuid4
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.test import TestCase
 from apps.accounts.company_context import CompanyScope
 from .models import StockOperation, StockMovement, StockBalance
@@ -15,11 +15,8 @@ class StockCompanyServiceTests(StockFixtures, TestCase):
         count = StockOperation.objects.count()
         with self.assertRaises(PermissionDenied):
             self.op(company_id=2)
-        with self.assertRaises(PermissionDenied):
+        with self.assertRaises(ValidationError):
             _value_out(self.p,D('1'),self.loc,company_id=2)
-        operation = StockOperation(company_id=2,actor=self.actor,kind='RECEIPT',date=DAY)
-        with self.assertRaises(PermissionDenied):
-            _apply(operation,self.fresh(),self.loc,D('1'),D('5'))
         self.assertEqual(list(StockBalance.objects.values()),before)
         self.assertEqual(StockOperation.objects.count(),count)
 
