@@ -187,3 +187,8 @@ Durante a transição, comparação local com o Bling primário filtra saldo, cu
 para preço e última movimentação da Mercadovet. Valor de estoque no dashboard e
 variâncias de custo na DRE/detalhamento usam o mesmo proprietário. Isso não
 habilita conexão Bling secundária nem representa DRE consolidada do grupo.
+
+Regressão concorrente PostgreSQL usa duas conexões/threads recebendo o mesmo SKU
+no mesmo depósito para proprietários distintos. Confere custos individuais,
+soma física e snapshots pelo auditor após dez transações, com prazo de lock.
+É teste das primitivas internas; não habilita recebimento público secundário.

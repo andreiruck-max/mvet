@@ -473,3 +473,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - MVet 3.0: PostgreSQL rejeita novos movimentos e estornos vinculados a operações de outro proprietário, preservando o livro histórico.
 
 - MVet 3.0: dashboard, variâncias da DRE e comparação local de estoque/preço com Bling deixam de misturar posições patrimoniais de outro proprietário.
+
+- MVet 3.0: regressão concorrente por proprietário verifica custo individual e agregado físico sem perda de atualizações no mesmo SKU/depósito.
