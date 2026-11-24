@@ -79,7 +79,7 @@ def correct_sale(*,actor,sale_id,revision,key,reason,values,channel_id=None,loca
         if sale.revision!=revision+1 or sale.status!='CONFIRMED':raise ValidationError('Esta correção já foi executada; reabra a venda.')
         return sale
     if sale.status!='CONFIRMED' or sale.revision!=revision:raise ValidationError('A venda mudou ou não está confirmada. Reabra a página.')
-    channel = SalesChannel.objects.filter(pk=channel_id).first()
+    channel = SalesChannel.objects.filter(pk=channel_id,company_id=sale.company_id).first()
     location = StockLocation.objects.filter(pk=location_id).first()
     if not channel or (channel_id != sale.channel_id and not channel.active):
         raise ValidationError('Selecione um canal ativo.')

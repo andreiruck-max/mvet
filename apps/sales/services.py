@@ -207,7 +207,7 @@ def save_configuration(*,actor,model,data,pk=None,company_id=1):
     obj=model.objects.select_for_update().get(pk=pk,company_id=company_id) if pk else model(company_id=company_id)
     if model is SalesChannel and 'commission_payee' in data and data['commission_payee']!=obj.commission_payee:
         require(actor,'core.manage_commissions')
-        if data['commission_payee'] and not data['commission_payee'].active:raise ValidationError('Selecione um comissionado ativo.')
+        if data['commission_payee'] and (not data['commission_payee'].active or data['commission_payee'].company_id != company_id):raise ValidationError('Selecione um comissionado ativo da mesma empresa.')
     before={k:str(getattr(obj,k)) for k in data}
     if model is TaxRule and pk and any(k in data and data[k]!=getattr(obj,k) for k in ['rate','base','starts_on']):
         raise ValidationError('Use Alíquota e vigência para alterar a tributação com histórico.')

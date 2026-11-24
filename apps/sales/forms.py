@@ -22,7 +22,7 @@ class CorrectionForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         from django.db.models import Q
-        self.fields['channel'].queryset = SalesChannel.objects.filter(Q(active=True)|Q(pk=self.instance.channel_id))
+        self.fields['channel'].queryset = SalesChannel.objects.filter(company_id=1).filter(Q(active=True)|Q(pk=self.instance.channel_id))
         self.fields['location'].queryset = StockLocation.objects.filter(Q(active=True)|Q(pk=self.instance.location_id))
         self.fields['channel'].required = self.fields['location'].required = True
         self.fields['location'].label = 'Estoque da venda'
@@ -78,7 +78,7 @@ class SaleForm(forms.ModelForm):
             self.fields['channel'].required=True
             self.fields['location'].required=True
         self.fields['date'].initial=timezone.localdate
-        self.fields['channel'].queryset=SalesChannel.objects.filter(active=True)
+        self.fields['channel'].queryset=SalesChannel.objects.filter(company_id=1,active=True)
         self.fields['location'].queryset=StockLocation.objects.filter(active=True)
         self.fields['tax_rule'].queryset=TaxRule.objects.filter(company_id=1,active=True)
         for name in ['channel']:
@@ -185,7 +185,7 @@ class FilterForm(forms.Form):
     q=forms.CharField(label='NF ou produto',required=False)
     start=forms.DateField(label='De',required=False,widget=forms.DateInput(attrs={'type':'date'}))
     end=forms.DateField(label='Até',required=False,widget=forms.DateInput(attrs={'type':'date'}))
-    channel=forms.ModelChoiceField(label='Canal',queryset=SalesChannel.objects.all(),required=False)
+    channel=forms.ModelChoiceField(label='Canal',queryset=SalesChannel.objects.filter(company_id=1),required=False)
     location=forms.ModelChoiceField(label='Estoque',queryset=StockLocation.objects.all(),required=False)
     status=forms.ChoiceField(label='Status',choices=[('','Todos'),*Sale._meta.get_field('status').choices],required=False)
     period=forms.ChoiceField(label='Período',required=False,choices=[('','Personalizado'),('today','Hoje'),('yesterday','Ontem'),('week','Semana'),('month','Mês'),('previous_month','Mês anterior'),('year','Ano')])

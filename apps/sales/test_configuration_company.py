@@ -38,7 +38,7 @@ class ConfigurationCompanyMigrationTests(Fixture, TransactionTestCase):
             self.assertEqual(Sale.objects.values().get(pk=sale.pk), sale_before)
             Company.objects.get_or_create(pk=2, defaults={'active': False})
             for model in [SalesChannel]:
-                with self.assertRaises(IntegrityError), transaction.atomic():
+                with self.assertRaises(DatabaseError), transaction.atomic():
                     model.objects.update(company_id=2)
             with self.assertRaises(DatabaseError), transaction.atomic():
                 SaleTaxRevision.objects.update(after_amount=999)

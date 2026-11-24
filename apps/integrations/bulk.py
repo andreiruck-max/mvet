@@ -62,7 +62,7 @@ class BulkForm(forms.Form):
     action=forms.ChoiceField(label='Ação',choices=[('ignore','Ignorar / rejeitar'),('reopen','Reabrir'),('edit','Modificar preenchimento')])
     reason=forms.CharField(label='Motivo',max_length=500,initial='Organização das notas a conferir')
     location=forms.ModelChoiceField(label='Estoque',required=False,queryset=StockLocation.objects.filter(active=True))
-    channel=forms.ModelChoiceField(label='Canal',required=False,queryset=SalesChannel.objects.filter(active=True))
+    channel=forms.ModelChoiceField(label='Canal',required=False,queryset=SalesChannel.objects.filter(company_id=1,active=True))
     acquisition_kind=forms.ChoiceField(label='Tipo de entrada',required=False,choices=[('','Manter'),('NORMAL','Compra com financeiro'),('BONUS','Bonificação sem financeiro')])
     item_mode=forms.ChoiceField(label='Destino de todos os itens',required=False,choices=[('','Manter'),('STOCK','Movimentar estoque'),('NONSTOCK','Somente financeiro — sem estoque')])
     category=forms.ModelChoiceField(label='Categoria sem estoque',required=False,queryset=ChartOfAccount.objects.filter(active=True,postable=True).exclude(nature__in=['REVENUE','DEPRECIATION','GROUP']))

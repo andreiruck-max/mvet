@@ -12,11 +12,12 @@ def money(label):
     return models.DecimalField(label, max_digits=18, decimal_places=2, default=0, validators=[MinValueValidator(0)])
 
 class SalesChannel(NamedActive):
+    name = models.CharField('Nome', max_length=120)
     company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)
     commission_payee = models.ForeignKey('commissions.Payee', on_delete=models.PROTECT, null=True, blank=True, verbose_name='Comissionado automático', related_name='sales_channels')
     class Meta:
         ordering = ['name']
-        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='sales_channel_primary_transition')]
+        constraints = [models.UniqueConstraint(fields=['company','name'],name='unique_company_sales_channel')]
 
 class TaxRule(models.Model):
     company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)

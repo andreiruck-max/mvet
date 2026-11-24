@@ -70,7 +70,7 @@ def sales_sheet(request):
         ctx['company_totals'] = metrics_for(request.user, selectors.sales_summary(selectors.sale_rows(company_data)))
         from apps.sales.models import SalesChannel
         channel_values = {row['id']:row for row in selectors.channel_summary(company_data)}
-        ctx['channels'] = [metrics_for(request.user, channel_values.get(channel.pk, dict(id=channel.pk,name=channel.name,**selectors.metrics({})))) for channel in SalesChannel.objects.filter(active=True)]
+        ctx['channels'] = [metrics_for(request.user, channel_values.get(channel.pk, dict(id=channel.pk,name=channel.name,**selectors.metrics({})))) for channel in SalesChannel.objects.filter(company_id=1,active=True)]
         ctx['channels'].sort(key=lambda row: (-row['revenue'], row['name'].casefold()))
         rows = selectors.sale_rows(d).order_by(
             'channel__name', 'channel_id', d.get('sort') or 'date',

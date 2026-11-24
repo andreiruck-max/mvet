@@ -46,7 +46,7 @@ class Command(BaseCommand):
                     'Crie um master individual com createsuperuser.')
                 add('default_stock', bool(company and company.default_stock_location
                     and company.default_stock_location.active), 'Selecione um estoque padrão ativo nas configurações.')
-                add('sales_channel', SalesChannel.objects.filter(active=True).exists(),
+                add('sales_channel', SalesChannel.objects.filter(company_id=1,active=True).exists(),
                     'Cadastre pelo menos um canal ativo para confirmar vendas.')
         except DatabaseError:
             # Driver messages may contain hosts, users or credentials. Never echo them.
