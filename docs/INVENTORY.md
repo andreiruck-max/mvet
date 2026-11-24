@@ -175,3 +175,6 @@ quantidade disponível ou custo exibido. O resumo empresarial usa média dos
 saldos positivos, ou negativos quando não houver positivos; sem quantidade,
 usa a referência local da última movimentação da própria empresa. A saída
 continua valorizada pelo depósito escolhido, sem usar essa média informativa.
+Histórico de operações, acesso direto ao detalhe/estorno e prévia de contagem
+filtram proprietário também no backend. IDs de operações de outra empresa
+retornam 404, inclusive em POST.

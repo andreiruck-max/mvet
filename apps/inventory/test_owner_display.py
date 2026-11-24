@@ -3,9 +3,9 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from apps.core.models import Company
 from apps.products.models import Product, ProductComposition
-from .models import StockBalance
+from .models import StockBalance, StockOperation
 from .selectors import owner_position, kit_summary
-from .tests import StockFixtures
+from .tests import StockFixtures, DAY
 
 
 @override_settings(STORAGES={'default':{'BACKEND':'django.core.files.storage.FileSystemStorage'},'staticfiles':{'BACKEND':'django.contrib.staticfiles.storage.StaticFilesStorage'}})
@@ -43,3 +43,22 @@ class OwnerDisplayTests(StockFixtures, TestCase):
         product=response.context['product']
         self.assertEqual((product.owner_quantity,product.owner_value,product.owner_average),(D('10'),D('50'),D('5')))
         self.assertEqual({b.company_id for b in response.context['balances']},{1})
+
+    def test_secondary_operation_is_hidden_and_cannot_be_reversed_by_url(self):
+        from uuid import uuid4
+        operation=StockOperation.objects.create(company_id=2,actor=self.actor,
+            date=DAY,kind='RECEIPT',reason='Operação secundária confidencial',
+            key=uuid4(),fingerprint='secondary-http-fixture')
+        response=self.client.get(reverse('operations'))
+        self.assertEqual(response.status_code,200)
+        self.assertNotContains(response,operation.reason)
+        detail=reverse('operation_detail',args=[operation.pk])
+        self.assertEqual(self.client.get(detail).status_code,404)
+        self.assertEqual(self.client.post(detail,{'reason':'Tentativa','date':DAY,'key':uuid4()}).status_code,404)
+        self.assertFalse(StockOperation.objects.filter(reversal_of=operation).exists())
+
+    def test_count_preview_shows_only_primary_position(self):
+        response=self.client.get(reverse('product_count',args=[self.p.pk,self.loc.pk]))
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.context['balance'].company_id,1)
+        self.assertEqual(response.context['balance'].quantity,D('10'))

@@ -188,7 +188,7 @@ def operation_new(request):
 @login_required
 @permission_required('core.operate_stock',raise_exception=True)
 def operations(request):
-    rows=StockOperation.objects.select_related('actor')
+    rows=StockOperation.objects.filter(company_id=1).select_related('actor')
     q=request.GET.get('q','').strip()
     if q: rows=rows.filter(Q(reason__icontains=q)|Q(movements__product__sku__icontains=q)|Q(movements__product__name__icontains=q)).distinct()
     from django.forms import DateField
@@ -201,7 +201,7 @@ def operations(request):
 @login_required
 @permission_required('core.operate_stock',raise_exception=True)
 def operation_detail(request,pk):
-    op=get_object_or_404(StockOperation,pk=pk)
+    op=get_object_or_404(StockOperation,pk=pk,company_id=1)
     form=ReversalForm(request.POST or None)
     if request.method=='POST':
         if not request.user.has_perm('core.view_costs'):raise PermissionDenied
@@ -210,7 +210,7 @@ def operation_detail(request,pk):
                 new=reverse(actor=request.user,operation_id=pk,**form.cleaned_data)
                 messages.success(request,'Estorno registrado.');return redirect(detail_url(request, 'operation_detail', new.pk))
             except ValidationError as exc:form.add_error(None,"; ".join(exc.messages))
-    return render(request,'inventory/operation.html',{'operation':op,'movements':op.movements.select_related('product','location'),'form':form})
+    return render(request,'inventory/operation.html',{'operation':op,'movements':op.movements.filter(company_id=1).select_related('product','location'),'form':form})
 
 NAMED={'locais':(StockLocation,'Locais de estoque'),'marcas':(Brand,'Marcas'),'categorias':(ProductCategory,'Categorias')}
 @login_required
@@ -254,7 +254,7 @@ def product_count(request, pk, location_id):
     product = get_object_or_404(Product, pk=pk, active=True, kind='SIMPLE')
     location = get_object_or_404(StockLocation, pk=location_id, active=True)
     token = count_snapshot(request.user, product, location)
-    balance = StockBalance.objects.filter(product=product, location=location).first()
+    balance = StockBalance.objects.filter(company_id=1, product=product, location=location).first()
     form = CountForm(request.POST or None, initial={'snapshot': token})
     if request.method == 'POST' and form.is_valid():
         try:
