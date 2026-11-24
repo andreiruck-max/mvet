@@ -13,7 +13,7 @@ class OwnerDisplayTests(StockFixtures, TestCase):
     def setUp(self):
         super().setUp()
         self.op()
-        Company.objects.create(pk=2,name='Agro sintética',active=False)
+        Company.objects.get_or_create(pk=2, defaults={'name':'Agro sintética', 'active':False})
         # A deliberately different secondary projection must not leak into primary reads.
         StockBalance.objects.create(company_id=2,product=self.p,location=self.loc,
             quantity=D('100'),value=D('9900'),average_cost=D('99'))
