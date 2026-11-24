@@ -28,7 +28,7 @@ class TaxRule(models.Model):
     active = models.BooleanField('Ativa', default=True)
     class Meta:
         ordering = ['name', '-starts_on']
-        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='sales_rule_primary_transition'), models.CheckConstraint(condition=models.Q(rate__gte=0,rate__lte=100),name='sales_tax_rate_range'), models.CheckConstraint(condition=models.Q(ends_on__isnull=True)|models.Q(ends_on__gte=models.F('starts_on')),name='sales_tax_dates')]
+        constraints = [models.CheckConstraint(condition=models.Q(rate__gte=0,rate__lte=100),name='sales_tax_rate_range'), models.CheckConstraint(condition=models.Q(ends_on__isnull=True)|models.Q(ends_on__gte=models.F('starts_on')),name='sales_tax_dates')]
     def __str__(self): return self.name
 
 class Sale(models.Model):
@@ -142,7 +142,7 @@ class TaxRateChange(Immutable):
     class Meta:
         ordering = ['-effective_from','-pk']
         indexes = [models.Index(fields=['rule','effective_from'])]
-        constraints = [models.CheckConstraint(condition=models.Q(company_id=1), name='sales_rate_change_primary_transition'), models.CheckConstraint(condition=models.Q(rate__gte=0,rate__lte=100),name='sales_changed_tax_rate_range')]
+        constraints = [models.CheckConstraint(condition=models.Q(rate__gte=0,rate__lte=100),name='sales_changed_tax_rate_range')]
 
 class SaleTaxRevision(Immutable):
     company = models.ForeignKey('core.Company', on_delete=models.PROTECT, default=1, editable=False)

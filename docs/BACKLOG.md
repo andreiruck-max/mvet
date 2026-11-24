@@ -341,3 +341,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 3n: consumidores de estoque (snapshot local Bling, dashboard e variância DRE) filtram proprietário primário. CI pendente; conexão secundária e DRE consolidada continuam pendentes.
 
 - PR 3o: teste PostgreSQL de concorrência entre proprietários no mesmo SKU/depósito. CI pendente. Concorrência do fluxo completo interempresa ainda depende de sua implementação.
+
+- PR 4a preparatória: regras/versões tributárias independentes no banco, cálculo e consultas primárias isoladas; CI pendente. Configuração operacional Agro e isolamento completo de vendas ainda pendentes.

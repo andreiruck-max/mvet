@@ -80,7 +80,7 @@ class SaleForm(forms.ModelForm):
         self.fields['date'].initial=timezone.localdate
         self.fields['channel'].queryset=SalesChannel.objects.filter(active=True)
         self.fields['location'].queryset=StockLocation.objects.filter(active=True)
-        self.fields['tax_rule'].queryset=TaxRule.objects.filter(active=True)
+        self.fields['tax_rule'].queryset=TaxRule.objects.filter(company_id=1,active=True)
         for name in ['channel']:
             if self.fields[name].queryset.count()==1:self.fields[name].initial=self.fields[name].queryset.first()
         if not self.instance.pk and 'tax_rule' not in self.initial:

@@ -30,7 +30,7 @@ def calculate_tax(sale):
 
 def affected_sales(rule,effective_from):
     if effective_from>timezone.localdate():return Sale.objects.none()
-    following=rule.changes.filter(effective_from__gt=effective_from).order_by('effective_from').first()
+    following=rule.changes.filter(company_id=rule.company_id,effective_from__gt=effective_from).order_by('effective_from').first()
     rows=Sale.objects.filter(company_id=rule.company_id,tax_rule=rule,status='CONFIRMED',tax_override__isnull=True,date__gte=effective_from).exclude(tax_snapshot__override=True)
     if following:rows=rows.filter(date__lt=following.effective_from)
     return rows
@@ -44,7 +44,7 @@ def change_rate(*,actor,rule_id,rate,effective_from,base,reason,revision,company
     if scope.require_operation() != company_id:
         raise ValidationError('Empresa divergente do contexto selecionado.')
     rule=TaxRule.objects.select_for_update().get(pk=rule_id, company_id=company_id)
-    latest=rule.changes.order_by('-pk').first()
+    latest=rule.changes.filter(company_id=company_id).order_by('-pk').first()
     if revision!=(latest.pk if latest else 0):raise ValidationError('A regra mudou em outra sessão. Reabra a edição.')
     number(rate,Decimal('0.0001'),zero=True)
     if rate>100:raise ValidationError('Alíquota deve estar entre 0 e 100%.')
@@ -63,7 +63,7 @@ def change_rate(*,actor,rule_id,rate,effective_from,base,reason,revision,company
             sale.tax_amount=amount;sale.tax_snapshot=new_snapshot;sale.save(update_fields=['tax_amount','tax_snapshot'])
             audit(actor,sale,'recalculate_sale_tax',before,{'tax_amount':str(amount),'tax_snapshot':new_snapshot,'revision_id':revision_row.pk,'reason':reason})
             from apps.commissions.services import refresh_profit_commission
-            following=rule.changes.filter(effective_from__gt=effective_from).order_by('effective_from').first()
+            following=rule.changes.filter(company_id=rule.company_id,effective_from__gt=effective_from).order_by('effective_from').first()
             from datetime import timedelta
             end=following.effective_from-timedelta(days=1) if following else timezone.localdate()
             refresh_profit_commission(sale,actor,

@@ -475,3 +475,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - MVet 3.0: dashboard, variâncias da DRE e comparação local de estoque/preço com Bling deixam de misturar posições patrimoniais de outro proprietário.
 
 - MVet 3.0: regressão concorrente por proprietário verifica custo individual e agregado físico sem perda de atualizações no mesmo SKU/depósito.
+
+- MVet 3.0: regras tributárias e histórico de alíquotas independentes por empresa, com proteção PostgreSQL e filtros no cadastro/seleção primários. Agro permanece inativa.
