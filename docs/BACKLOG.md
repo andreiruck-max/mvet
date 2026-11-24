@@ -337,3 +337,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 3l: alertas de estoque mínimo usam quantidade assinada do proprietário, sem mistura com outra empresa. CI pendente; demais alertas e configuração por empresa seguem pendentes.
 
 - PR 3m: integridade PostgreSQL nas FKs de movimento/operação e estorno/origem. CI pendente. Documento fiscal e financeiro interempresa permanecem etapas separadas.
+
+- PR 3n: consumidores de estoque (snapshot local Bling, dashboard e variância DRE) filtram proprietário primário. CI pendente; conexão secundária e DRE consolidada continuam pendentes.

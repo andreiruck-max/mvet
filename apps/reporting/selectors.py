@@ -82,7 +82,7 @@ def dre(d):
     sales=sales_summary(sale_rows({**d,'status':'CONFIRMED'}))
     groups,expenses=expense_report({'start':d['start'],'end':d['end']})
     from apps.inventory.models import StockMovement
-    variances=StockMovement.objects.filter(operation__date__range=(d['start'],d['end'])).exclude(cost_variance=0).aggregate(amount=Sum('cost_variance'),count=Count('pk'))
+    variances=StockMovement.objects.filter(company_id=1, operation__date__range=(d['start'],d['end'])).exclude(cost_variance=0).aggregate(amount=Sum('cost_variance'),count=Count('pk'))
     if variances['count']:
         groups.append(dict(label='Diferença de custo · estoque negativo',nature='OPERATING',amount=variances['amount'],count=variances['count'],source_kind='inventory'))
         expenses['OPERATING']+=variances['amount']

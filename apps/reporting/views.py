@@ -1,3 +1,4 @@
+from apps.inventory.models import StockBalance
 from urllib.parse import urlencode
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.paginator import Paginator
@@ -42,7 +43,7 @@ def dashboard(request):
         if request.user.has_perm('core.view_dre'):ctx['dre']=selectors.dre({**d, 'channel': None})
         if request.user.has_perm('core.view_purchase_reports'):
             ctx['purchases'] = Purchase.objects.filter(date__range=(d['start'],d['end']),status__in=['ORDERED','RECEIVED']).aggregate(amount=Sum('total'),count=Count('pk'))
-        if request.user.has_perm('core.view_costs'):ctx['stock']=Product.objects.aggregate(value=Sum('value'))['value'] or 0
+        if request.user.has_perm('core.view_costs'):ctx['stock']=StockBalance.objects.filter(company_id=1).aggregate(value=Sum('value'))['value'] or 0
         if request.user.has_perm('core.view_finance'):
             today=timezone.localdate();horizon=today+timedelta(days=30)
             ctx['forecast_dates']=links({'start':today,'end':horizon})
