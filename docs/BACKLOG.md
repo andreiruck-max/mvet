@@ -335,3 +335,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 3k: detalhe, busca JSON e kits primários isolados de projeções secundárias; testes HTTP com custos e quantidades divergentes. CI pendente; demais consultas globais ainda exigem revisão antes de ativar Agro.
 
 - PR 3l: alertas de estoque mínimo usam quantidade assinada do proprietário, sem mistura com outra empresa. CI pendente; demais alertas e configuração por empresa seguem pendentes.
+
+- PR 3m: integridade PostgreSQL nas FKs de movimento/operação e estorno/origem. CI pendente. Documento fiscal e financeiro interempresa permanecem etapas separadas.

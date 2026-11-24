@@ -469,3 +469,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - MVet 3.0: busca, detalhe de SKU e kits exibem quantidade/custo da empresa, sem incorporar posições de outro proprietário.
 
 - MVet 3.0: estoque de outra empresa não mascara faltas nem provoca alertas falsos de estoque mínimo na Mercadovet.
+
+- MVet 3.0: PostgreSQL rejeita novos movimentos e estornos vinculados a operações de outro proprietário, preservando o livro histórico.
