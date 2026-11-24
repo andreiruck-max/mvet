@@ -15,7 +15,7 @@ from .tests import StockFixtures, DAY
 class OwnerArithmeticTests(StockFixtures, TestCase):
     def setUp(self):
         super().setUp()
-        Company.objects.create(pk=2, name='Agro sintética', active=False)
+        Company.objects.get_or_create(pk=2, defaults={'name':'Agro sintética', 'active':False})
 
     def leg(self, owner, quantity, value, kind='RECEIPT', reference=None):
         with transaction.atomic():
