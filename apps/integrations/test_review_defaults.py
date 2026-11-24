@@ -115,3 +115,18 @@ class ReviewDefaultsTests(Fixture, TestCase):
         self.assertEqual(parse_qs(urlsplit(response.url).query)['next'],[origin])
         response=self.client.get(reverse('bling_detail',args=[row.pk]),{'next':'https://example.org/'})
         self.assertEqual(response.context['queue_return_url'],reverse('bling_queue'))
+
+    def test_defaults_reject_channels_from_other_company(self):
+        from apps.core.models import Company
+        from django.core.exceptions import ValidationError
+        from .forms import ReviewDefaultsForm
+        Company.objects.get_or_create(pk=2,defaults={'active':False})
+        foreign=SalesChannel.objects.create(company_id=2,name='Canal de outra empresa')
+        form=ReviewDefaultsForm()
+        for field in ['full_channel','default_channel']:
+            self.assertNotIn(foreign,form.fields[field].queryset)
+            with self.assertRaises(ValidationError):
+                save_review_defaults(actor=self.actor,data=dict(self.config,**{field:foreign}))
+        defaults=ReviewDefaults.objects.get(pk=1)
+        self.assertEqual(defaults.full_channel_id,self.full_channel.pk)
+        self.assertEqual(defaults.default_channel_id,self.channel.pk)

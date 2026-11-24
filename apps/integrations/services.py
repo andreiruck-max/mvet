@@ -172,6 +172,8 @@ def save_review_defaults(*, actor, data):
         if name != 'full_store':
             value.refresh_from_db()
             if not value.active: raise ValidationError('Canal ou estoque inativo. Reabra a configuração.')
+            if name in ('full_channel', 'default_channel') and value.company_id != 1:
+                raise ValidationError('Canal de outra empresa. Reabra a configuração.')
         setattr(obj, name, value)
     obj.full_clean(); obj.save()
     audit(actor, obj, 'bling_review_defaults', before, {f: str(getattr(obj, f + '_id' if f != 'full_store' else f)) for f in fields})
