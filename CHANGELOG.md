@@ -483,3 +483,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 MVet 3.0 — Venda e consumo de estoque recusam vínculos de outro CNPJ no PostgreSQL, inclusive em rascunhos. A validação inicial não modifica históricos (ADR 0089).
 
 MVet 3.0 — O master pode preparar a tributação de cada CNPJ no cadastro de empresas. A lista mostra a alíquota vigente; o histórico distingue mudanças futuras e não mistura vendas da Mercadovet (ADR 0090).
+
+MVet 3.0 — O contexto Grupo oferece a posição física por produto e depósito, com quantidades por CNPJ, custo conforme permissão e subtotal identificado quando o acesso é parcial (ADR 0091).

@@ -1,4 +1,4 @@
-"""Validated company context; group and secondary operations remain unavailable."""
+"""Validated company context. Group reporting is explicitly read-only."""
 from dataclasses import dataclass
 from django.core.exceptions import PermissionDenied
 from apps.core.models import Company
@@ -58,7 +58,11 @@ class CompanyContextMiddleware:
             return None
         scope = resolve_scope(request.user, request.session.get('company_selection', '1'))
         # Legacy routes cannot serve secondary/group data before tenant migration.
-        scope.require_operation()
+        if name == 'group_stock':
+            if not scope.group:
+                raise PermissionDenied('Selecione o contexto Grupo para esta consulta.')
+        else:
+            scope.require_operation()
         request.company_scope = scope
         request.user._mvet_company_scope = scope
 
@@ -84,12 +88,15 @@ def context_view(request):
     if not request.user.is_superuser:
         companies = companies.filter(pk__in=UserCompanyAccess.objects.filter(user=request.user,active=True).values('company_id'))
     try:
-        resolve_scope(request.user,'group')
+        group_scope = resolve_scope(request.user,'group')
         group_allowed = True
     except PermissionDenied:
         group_allowed = False
-    return render(request, 'accounts/company_context.html', {'scope_companies':companies,
-        'group_allowed':group_allowed,'selection':request.session.get('company_selection','1')})
+    selection = request.session.get('company_selection','1')
+    from apps.inventory.group_stock import stock_columns
+    show_stock = group_allowed and selection == 'group' and bool(stock_columns(request.user,group_scope))
+    return render(request, 'accounts/company_context.html', {'scope_companies':companies,'show_group_stock':show_stock,
+        'group_allowed':group_allowed,'selection':selection})
 
 
 def template_context(request):

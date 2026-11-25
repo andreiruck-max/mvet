@@ -349,3 +349,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 4c: validar no banco vínculos empresariais de vendas e consumos com configurações e estoque. O lançamento de venda secundária continua bloqueado.
 
 - PR 4d: tela e serviços para preparar regras, alíquotas e vigências de uma empresa inativa pelo cadastro de empresas. O cadastro secundário permanece pré-operacional.
+
+- Estoque do Grupo: consulta por SKU e depósito, propriedades e custos segregados, físico algébrico e subtotal explícito para acessos parciais. O relatório não cria fornecimentos interempresa.

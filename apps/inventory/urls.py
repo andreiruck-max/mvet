@@ -1,7 +1,9 @@
 from django.urls import path
 from . import views
+from .group_stock import group_stock
 from apps.integrations.stock_views import comparison, catalog
 urlpatterns=[
+ path("grupo/posicao/", group_stock, name="group_stock"),
  path("transferir-varios/", views.transfer_batch_new, name="transfer_batch"),
  path("conferir-bling/cadastrar/", catalog, name="bling_product_catalog"),
  path("conferir-bling/", comparison, name="bling_stock_comparison"),
