@@ -1,6 +1,7 @@
 {% extends 'base.html' %}{% block content %}
 <h1>Contexto empresarial · MVet 3.0</h1>
-<p class="notice">Preparação multiempresa: somente os módulos legados da Mercadovet estão disponíveis. Grupo é somente leitura e ainda não apresenta relatórios consolidados. Empresas secundárias continuam inativas.</p>
+<p class="notice">Escolha Mercadovet para fazer lançamentos ou Grupo para consultar posições de estoque. Empresas secundárias continuam inativas.</p>
 <form method="post" class="panel">{% csrf_token %}<label for="company-scope">Empresa</label><select id="company-scope" name="company">{% for company in scope_companies %}<option value="{{ company.pk }}" {% if selection == company.pk|stringformat:'s' %}selected{% endif %}>{{ company.trade_name|default:company.name }}</option>{% endfor %}{% if group_allowed %}<option value="group" {% if selection == 'group' %}selected{% endif %}>Grupo · somente leitura</option>{% endif %}</select><button>Selecionar contexto</button></form>
+{% if show_group_stock %}<p><a class="button primary" href="{% url 'group_stock' %}">Consultar estoque do grupo</a></p>{% endif %}
 {% if selection == '1' %}<a href="{% url 'home' %}">Abrir Mercadovet</a>{% endif %}
 {% endblock %}

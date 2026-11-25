@@ -48,6 +48,13 @@ class CompanyRegistryBrowser(StaticLiveServerTestCase):
         from playwright.sync_api import sync_playwright
         from django.urls import reverse
         Company.objects.get_or_create(pk=1)
+        from apps.inventory.models import StockBalance, StockLocation
+        from apps.products.models import Product
+        Company.objects.get_or_create(pk=2,defaults={'active':False,'name':'Agro para consulta'})
+        loc=StockLocation.objects.create(name='Depósito compartilhado')
+        product=Product.objects.create(sku='22',name='Produto com dois proprietários')
+        StockBalance.objects.create(company_id=1,product=product,location=loc,quantity=10,value=50,average_cost=5)
+        StockBalance.objects.create(company_id=2,product=product,location=loc,quantity=-2,value=-14,average_cost=7)
         actor=User.objects.create_superuser('scope-browser')
         client=Client();client.force_login(actor)
         with sync_playwright() as pw:
@@ -60,6 +67,13 @@ class CompanyRegistryBrowser(StaticLiveServerTestCase):
             page.locator('#company-scope').select_option('group')
             page.get_by_role('button',name='Selecionar contexto',exact=True).click()
             page.wait_for_load_state()
+            page.get_by_role('link',name='Consultar estoque do grupo').click()
+            page.get_by_role('heading',name='Estoque físico do grupo').wait_for()
+            page.get_by_label('Depósito').select_option(str(loc.pk))
+            page.get_by_label('SKU ou nome').fill('22')
+            page.get_by_role('button',name='Consultar',exact=True).click()
+            row=page.get_by_role('row').filter(has_text='Produto com dois proprietários')
+            self.assertEqual(row.locator('td').last.inner_text(),'8')
             response=page.goto(self.live_server_url+reverse('dashboard'))
             self.assertEqual(response.status,403)
             page.goto(self.live_server_url+reverse('company_context'))

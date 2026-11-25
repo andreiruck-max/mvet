@@ -192,3 +192,13 @@ Regressão concorrente PostgreSQL usa duas conexões/threads recebendo o mesmo S
 no mesmo depósito para proprietários distintos. Confere custos individuais,
 soma física e snapshots pelo auditor após dez transações, com prazo de lock.
 É teste das primitivas internas; não habilita recebimento público secundário.
+
+**Grupo → Consultar estoque do grupo (3.0):** selecione o depósito e pesquise o
+SKU ou nome. A linha do produto mostra as quantidades assinadas por proprietário,
+o custo médio daquele proprietário no depósito (se permitido) e a soma das
+quantidades. Exemplo: Mercadovet +10 e Agro −2 resultam em 8 unidades físicas.
+Mudar a propriedade para +8/0 mantém o total em 8. Kits virtuais não contam
+novamente seus componentes. O filtro padrão mantém posições opostas mesmo
+quando a soma é zero. “Todos os produtos físicos” inclui também os sem saldo.
+Uma consulta restrita mostra apenas o subtotal autorizado; não há custo médio
+do grupo nem escrita no estoque ou no Bling (ADR 0091).

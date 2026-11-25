@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Estoque por empresa e depósito{% endblock %}
+{% block content %}
+<section class="compact-report stock-page">
+<div class="page-heading"><h1>{% if complete %}Estoque físico do grupo{% else %}Estoque das empresas autorizadas{% endif %}</h1></div>
+{% if complete %}<p class="muted">O físico é a soma das quantidades de cada empresa no depósito. Saldos negativos entram na conta. Kits virtuais aparecem pelos seus componentes.</p>
+{% else %}<p class="notice">O subtotal soma apenas as empresas às quais você tem acesso. Ele não representa todo o estoque físico do grupo.</p>{% endif %}
+{% if has_location %}
+<form method="get" class="filters card">{% for field in form %}<div>{{ field.label_tag }} {{ field }}{{ field.errors }}</div>{% endfor %}<button>Consultar</button></form>
+{% if page != None %}
+<div class="panel table-wrap"><table><thead><tr><th rowspan="2" scope="col">SKU / produto</th><th rowspan="2" scope="col">Un.</th>
+{% for col in columns %}<th colspan="{% if col.costs %}2{% else %}1{% endif %}" scope="colgroup">{{ col.company.trade_name|default:col.company.name }}{% if not col.company.active %} (inativa){% endif %}</th>{% endfor %}
+<th rowspan="2" scope="col">{% if complete %}Físico do depósito{% else %}Subtotal autorizado{% endif %}</th></tr>
+<tr>{% for col in columns %}<th scope="col">Quantidade</th>{% if col.costs %}<th scope="col">Custo médio (R$)</th>{% endif %}{% endfor %}</tr></thead>
+<tbody>{% for row in page %}<tr><th scope="row">{{ row.sku }} · {{ row.name }}{% if not row.active %} (inativo){% endif %}</th><td>{{ row.unit }}</td>
+{% for cell in row.cells %}<td class="num{% if cell.quantity < 0 %} negative{% endif %}">{{ cell.quantity|floatformat:"-4" }}</td>
+{% if cell.show_cost %}<td class="num">{% if cell.cost != None %}{{ cell.cost|floatformat:6 }}{% else %}—{% endif %}</td>{% endif %}{% endfor %}
+<td class="num"><strong>{{ row.total|floatformat:"-4" }}</strong></td></tr>{% endfor %}</tbody></table></div>
+{% if not page.paginator.count %}<p>Nenhum produto encontrado para este depósito e filtro.</p>{% endif %}
+{% include 'inventory/pagination.html' %}
+{% endif %}
+{% else %}<p>Nenhum depósito cadastrado.</p>{% endif %}
+</section>{% endblock %}
