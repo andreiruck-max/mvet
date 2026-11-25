@@ -14,6 +14,32 @@ from .models import Purchase, Supplier
 @skipUnless(os.environ.get('MVET_BROWSER_TESTS')=='1','Browser acceptance is enabled in CI')
 @override_settings(STORAGES={'default':{'BACKEND':'django.core.files.storage.FileSystemStorage'},'staticfiles':{'BACKEND':'django.contrib.staticfiles.storage.StaticFilesStorage'}})
 class PurchasesBrowser(StaticLiveServerTestCase):
+    def test_same_supplier_document_opens_only_the_current_buyers_purchase(self):
+        from django.urls import reverse
+        from django.utils import timezone
+        from playwright.sync_api import sync_playwright
+        Company.objects.get_or_create(pk=1)
+        Company.objects.get_or_create(pk=2,defaults={'active':False})
+        actor=User.objects.create_superuser('purchase-scope-browser')
+        fields=dict(supplier=Supplier.objects.create(legal_name='Fornecedor compartilhado'),
+                    location=StockLocation.objects.create(name='Depósito compartilhado'),
+                    document='NF-DEMO-2',series='1',date=timezone.localdate(),created_by=actor)
+        primary,secondary=[Purchase.objects.create(company_id=owner,**fields) for owner in (1,2)]
+        client=Client();client.force_login(actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch()
+            context=browser.new_context()
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page()
+            page.goto(self.live_server_url+reverse('purchases'))
+            link=page.get_by_role('link',name='NF-DEMO-2 / 1',exact=True)
+            link.wait_for()
+            self.assertEqual(link.count(),1)
+            self.assertEqual(link.get_attribute('href'),reverse('purchase_detail',args=[primary.pk]))
+            resp=page.goto(self.live_server_url+reverse('purchase_detail',args=[secondary.pk]))
+            self.assertEqual(resp.status,404)
+            browser.close()
+
     def test_supplier_purchase_receipt_and_transfer(self):
         from playwright.sync_api import sync_playwright
         physical=StockLocation.objects.create(name='Estoque Mercadovet');full=StockLocation.objects.create(name='Estoque Full')

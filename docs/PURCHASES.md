@@ -82,3 +82,8 @@ Unidade cadastrada no MVet prevalece; quantidade e preço da nota mantidos sem c
 parcelas preservam a empresa compradora, também na importação do Bling.
 Títulos herdam o CNPJ da parcela. A conta prevista pertence ao mesmo CNPJ e
 não gera movimentação bancária. O PostgreSQL verifica esses vínculos (ADR 0092).
+
+O número/série do fornecedor e a chave de reenvio são exclusivos por CNPJ
+comprador. Acesso individual ao detalhe, inclusive por URL direta, seleciona a
+empresa no servidor. O banco 3.0 admite rascunho secundário manual isolado
+para homologação; a operação da Agro permanece bloqueada (ADR 0093).

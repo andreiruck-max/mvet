@@ -10,7 +10,7 @@ from django.views.decorators.http import require_POST
 from .models import Supplier, Purchase
 from .forms import SupplierForm, PurchaseForm, Items, Installments, ReceiveForm, CancelForm, FilterForm
 from .services import save_supplier, save_draft, confirm, receive, cancel, FIELDS
-from .selectors import purchases, supplier_report
+from .selectors import purchases, supplier_report, owned_purchases
 
 def check_read(user):
     if not user.has_perm('core.operate_purchases') and not user.has_perm('core.view_purchase_reports'):raise PermissionDenied
@@ -57,7 +57,7 @@ def supplier_summary(request,pk):
 @login_required
 @permission_required('core.operate_purchases',raise_exception=True)
 def purchase_edit(request,pk=None):
-    obj=get_object_or_404(Purchase,pk=pk) if pk else None
+    obj=get_object_or_404(owned_purchases(),pk=pk) if pk else None
     if obj and obj.status!='DRAFT':messages.error(request,'Somente rascunhos podem ser editados.');return redirect('purchase_detail',pk=pk)
     form=PurchaseForm(request.POST or None,instance=obj)
     initial=[{'product':i.product_id,'quantity':i.quantity,'unit_cost':i.unit_cost,'discount':i.discount,'mode':'STOCK' if i.moves_stock else 'NONSTOCK','name':i.name_snapshot,'category':i.category_id} for i in obj.items.all()] if obj else []
@@ -78,14 +78,14 @@ def purchase_edit(request,pk=None):
 
 @login_required
 def purchase_detail(request,pk):
-    check_read(request.user);p=get_object_or_404(Purchase.objects.select_related('supplier','location','created_by','received_by','cancelled_by'),pk=pk)
+    check_read(request.user);p=get_object_or_404(owned_purchases().select_related('supplier','location','created_by','received_by','cancelled_by'),pk=pk)
     return render(request,'purchases/detail.html',{'purchase':p,'items':p.items.all(),'installments':p.installments.select_related('financial_title','purchase'),'receive_form':ReceiveForm(initial={'revision':p.revision}),'cancel_form':CancelForm()})
 
 @login_required
 @permission_required('core.operate_purchases',raise_exception=True)
 @require_POST
 def purchase_confirm(request,pk):
-    get_object_or_404(Purchase,pk=pk)
+    get_object_or_404(owned_purchases(),pk=pk)
     try:
         confirm(actor=request.user,purchase_id=pk,revision=int(request.POST.get('revision','-1')));messages.success(request,'Compra confirmada. Parcelas registradas; estoque aguarda recebimento.')
     except ValidationError as exc:messages.error(request,'; '.join(exc.messages))
@@ -96,7 +96,7 @@ def purchase_confirm(request,pk):
 @permission_required('core.operate_purchases',raise_exception=True)
 @require_POST
 def purchase_receive(request,pk):
-    get_object_or_404(Purchase,pk=pk);form=ReceiveForm(request.POST)
+    get_object_or_404(owned_purchases(),pk=pk);form=ReceiveForm(request.POST)
     if form.is_valid():
         try:
             receive(actor=request.user,purchase_id=pk,**form.cleaned_data);messages.success(request,'Compra recebida. Estoque e custo médio atualizados.')
@@ -108,7 +108,7 @@ def purchase_receive(request,pk):
 @permission_required('core.operate_purchases',raise_exception=True)
 @require_POST
 def purchase_cancel(request,pk):
-    get_object_or_404(Purchase,pk=pk);form=CancelForm(request.POST)
+    get_object_or_404(owned_purchases(),pk=pk);form=CancelForm(request.POST)
     if form.is_valid():
         try:
             cancel(actor=request.user,purchase_id=pk,reason=form.cleaned_data['reason']);messages.success(request,'Compra cancelada. Parcelas canceladas e recebimento revertido, quando aplicável.')

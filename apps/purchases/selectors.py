@@ -2,13 +2,17 @@ from datetime import timedelta
 from django.db.models import Q, F, Sum, Count, Max
 from django.db.models.functions import Coalesce
 from django.utils import timezone
+from apps.inventory.services import _require_owner
 from .models import Purchase, PurchaseItem, PurchaseInstallment
 
-def current_installments():
-    return PurchaseInstallment.objects.annotate(current_due_date=Coalesce('financial_title__due_date','due_date'))
+def owned_purchases(*, company_id=1):
+    return Purchase.objects.filter(company_id=_require_owner(company_id))
 
-def purchases(data):
-    rows=Purchase.objects.select_related('supplier','location')
+def current_installments(*, company_id=1):
+    return PurchaseInstallment.objects.filter(company_id=_require_owner(company_id)).annotate(current_due_date=Coalesce('financial_title__due_date','due_date'))
+
+def purchases(data, *, company_id=1):
+    rows=owned_purchases(company_id=company_id).select_related('supplier','location')
     if data.get('q'):
         q=data['q'];rows=rows.filter(Q(document__icontains=q)|Q(items__sku_snapshot__icontains=q)|Q(items__name_snapshot__icontains=q)|Q(items__product__sku__icontains=q)|Q(items__product__name__icontains=q)).distinct()
     for field in ['supplier','location','status']:
@@ -24,7 +28,7 @@ def purchases(data):
     if end:rows=rows.filter(date__lte=end)
     # A single installment must satisfy the complete due/status filter.
     if data.get('due_start') or data.get('due_end') or data.get('pending'):
-        installments=current_installments()
+        installments=current_installments(company_id=company_id)
         if data.get('due_start'):installments=installments.filter(current_due_date__gte=data['due_start'])
         if data.get('due_end'):installments=installments.filter(current_due_date__lte=data['due_end'])
         if data.get('pending'):installments=installments.filter(status='PENDING',purchase__status__in=['ORDERED','RECEIVED'])
@@ -34,11 +38,11 @@ def purchases(data):
         rows=rows.filter(pk__in=installments.values('purchase_id'))
     return rows.order_by(data.get('sort') or '-date','-pk')
 
-def supplier_report(supplier):
-    orders=Purchase.objects.filter(supplier=supplier,status__in=['ORDERED','RECEIVED'])
+def supplier_report(supplier, *, company_id=1):
+    orders=owned_purchases(company_id=company_id).filter(supplier=supplier,status__in=['ORDERED','RECEIVED'])
     summary=orders.aggregate(total=Sum('total'),count=Count('pk'),last=Max('date'))
     summary['average']=summary['total']/summary['count'] if summary['count'] else None
-    prices=PurchaseItem.objects.filter(purchase__supplier=supplier,purchase__status='RECEIVED').select_related('purchase','product').order_by('-purchase__received_date','-pk')
-    outstanding=current_installments().filter(purchase__in=orders,status='PENDING').exclude(financial_title__settled=F('financial_title__amount')).select_related('purchase','financial_title').order_by('current_due_date','pk')
+    prices=PurchaseItem.objects.filter(company_id=company_id,purchase__supplier=supplier,purchase__status='RECEIVED').select_related('purchase','product').order_by('-purchase__received_date','-pk')
+    outstanding=current_installments(company_id=company_id).filter(purchase__in=orders,status='PENDING').exclude(financial_title__settled=F('financial_title__amount')).select_related('purchase','financial_title').order_by('current_due_date','pk')
     summary['outstanding']=outstanding.aggregate(total=Sum(Coalesce('financial_title__amount','amount')-Coalesce('financial_title__settled',0,output_field=PurchaseInstallment._meta.get_field('amount'))))['total']
     return summary,prices,outstanding
