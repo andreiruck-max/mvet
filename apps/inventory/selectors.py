@@ -30,24 +30,30 @@ def selected_location(params, *, company_id=1):
     return chosen or next((loc for loc in locations if loc.active), None), locations
 
 
-def catalog(params, location=None, *, company_id=1):
+def catalog(params, location=None, *, company_id=1, include_value=False):
     _require_owner(company_id)
-    from django.db.models import Case, When, Value, DecimalField, OuterRef, Subquery, IntegerField
-    from django.db.models.functions import Cast, Coalesce
-    from .models import StockBalance
+    from django.db.models import DecimalField, FilteredRelation, OuterRef, Prefetch, Subquery, Value
+    from django.db.models.functions import Coalesce
     rows = Product.objects.select_related('brand', 'category')
     rows = search_products(rows, params.get('q', ''))
     if location is None:
         location, _ = selected_location(params,company_id=company_id)
     field = DecimalField(max_digits=18, decimal_places=4)
-    balances = StockBalance.objects.filter(company_id=company_id,product_id=OuterRef('pk'), location_id=location.pk if location else None)
     from apps.products.models import CompanyProductPolicy
-    from django.db.models import Prefetch
     rows = rows.prefetch_related(Prefetch("company_policies", queryset=CompanyProductPolicy.objects.filter(company_id=company_id), to_attr="_commercial_policies"))
     policies = CompanyProductPolicy.objects.filter(company_id=company_id,product_id=OuterRef('pk'))
     rows = rows.annotate(commercial_minimum=Coalesce(Subquery(policies.values('minimum')[:1]), F('minimum'),output_field=field))
-    rows = rows.annotate(stock_cost=Coalesce(Subquery(balances.values('average_cost')[:1]), Value(Decimal(0)), output_field=DecimalField(max_digits=24, decimal_places=6)))
-    rows = rows.annotate(stock_quantity=Coalesce(Subquery(balances.values('quantity')[:1]), Value(Decimal(0)), output_field=field))
+    # Unique (company, product, location): the two export tables read the same booked position.
+    money = DecimalField(max_digits=24, decimal_places=6)
+    rows = rows.alias(local_position=FilteredRelation('balances', condition=Q(
+        balances__company_id=company_id, balances__location_id=location.pk if location else None,
+    ))).annotate(
+        stock_position_id=F('local_position__pk'),
+        stock_cost=Coalesce('local_position__average_cost', Value(Decimal(0)), output_field=money),
+        stock_quantity=Coalesce('local_position__quantity', Value(Decimal(0)), output_field=field),
+    )
+    if include_value:
+        rows = rows.annotate(stock_value=Coalesce('local_position__value', Value(Decimal(0)), output_field=money))
     if params.get('status', 'active') == 'active': rows = rows.filter(active=True)
     if params.get('status') == 'inactive': rows = rows.filter(active=False)
     if params.get('positive', '1') == '1': rows = rows.filter(stock_quantity__gt=0)
@@ -62,7 +68,7 @@ def catalog(params, location=None, *, company_id=1):
 
 def location_values(product, *, company_id=1):
     _require_owner(company_id)
-    return {b.location_id: b.value for b in product.balances.all() if b.company_id == company_id}
+    return dict(product.balances.filter(company_id=company_id).values_list('location_id', 'value'))
 
 
 def stock_totals(locations, *, company_id=1):

@@ -202,3 +202,9 @@ novamente seus componentes. O filtro padrão mantém posições opostas mesmo
 quando a soma é zero. “Todos os produtos físicos” inclui também os sem saldo.
 Uma consulta restrita mostra apenas o subtotal autorizado; não há custo médio
 do grupo nem escrita no estoque ou no Bling (ADR 0091).
+
+Na exportação individual, a planilha e o PDF de estoque utilizam o mesmo
+registro por empresa, SKU e depósito da tela. “Estoque por local” mantém uma
+posição própria zerada e não cria uma linha de detalhe se apenas outra empresa
+possui o produto no local. O cadastro do SKU continua compartilhado. O valor de
+estoque vem da posição contabilizada, sem multiplicar uma média arredondada.

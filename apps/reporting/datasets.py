@@ -96,7 +96,7 @@ def build(kind, user, query):
         if user.has_perm('core.view_margins'): keys += ['before_tax', 'contribution','margin']; headers += ['Resultado antes do imposto','Contribuição','Margem (pontos percentuais)']
         result = Dataset('Faturamento por canal',headers,[[r.get(k) for k in keys] for r in rows],totals=metrics_for(user,selectors.sales_summary(selectors.sale_rows(d))))
     elif kind == 'stock':
-        from apps.inventory.selectors import catalog, selected_location, location_values
+        from apps.inventory.selectors import catalog, selected_location
         from apps.products.pricing import sale_price, retail_location
         from apps.core.models import Company
         markup = Company.objects.get(pk=1).default_markup
@@ -107,14 +107,19 @@ def build(kind, user, query):
         show_prices = location is not None and location == retail_location()
         if not show_prices: result.headers.pop()
         result.notes = 'Depósito: ' + (location.name if location else 'Nenhum') + '. Valor pelo custo médio do depósito. Kits sem estoque próprio.'
-        rows = bound(catalog(query, location)).prefetch_related('balances__location','components__component')
-        for p in rows:
-            if p.kind == 'KIT':
-                qty, cost = None, None
-            else: qty,cost=p.stock_quantity,p.stock_cost
-            result.rows.append([p.sku,p.name,qty]+([cost,location_values(p).get(location.pk if location else None, Decimal(0)) if p.kind != 'KIT' else None] if costs else [])+[p.unit]+([sale_price(p, cost, markup) if cost is not None else None] if show_prices else []))
-        # Local balances are a separate sheet; never infer Full from a global total.
-        result.locations = Dataset('Estoque por local',['SKU','PRODUTO','LOCAL','QTD'],[[p.sku,p.name,str(b.location),b.quantity] for p in rows for b in p.balances.all() if location and b.location_id == location.pk])
+        result.locations = Dataset('Estoque por local', ['SKU', 'PRODUTO', 'LOCAL', 'QTD'], [])
+        for p in bound(catalog(query, location, include_value=costs)):
+            physical = p.kind != 'KIT'
+            qty = p.stock_quantity if physical else None
+            row = [p.sku, p.name, qty]
+            if costs:
+                row += [p.stock_cost, p.stock_value] if physical else [None, None]
+            row.append(p.unit)
+            if show_prices:
+                row.append(sale_price(p, p.stock_cost, markup) if physical else None)
+            result.rows.append(row)
+            if physical and p.stock_position_id is not None:
+                result.locations.rows.append([p.sku, p.name, str(location), qty])
     elif kind == 'cash':
         from apps.finance.selectors import daily_cash
         rows,unallocated = daily_cash(d['start'],d['end'],d['account'].pk if d.get('account') else None,active_only=True)

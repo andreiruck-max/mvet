@@ -15,7 +15,7 @@ from apps.products.models import Product, Brand, ProductCategory
 from apps.products.services import save_product, remove_product, set_components, inactivate_product
 from .models import StockLocation, StockOperation, StockMovement, StockBalance
 from .forms import ProductForm, OperationForm, NamedForm, ReversalForm, Components
-from .selectors import owner_position, catalog, kit_summary, selected_location, location_values, stock_totals, search_products
+from .selectors import owner_position, catalog, kit_summary, selected_location, stock_totals, search_products
 from .services import execute, reverse, domain_lock
 from apps.products.pricing import sale_price, retail_location
 from apps.products.policies import commercial_values
@@ -68,14 +68,13 @@ def products(request):
         location, locations = selected_location(request.GET)
     except ValidationError as exc:
         return HttpResponseBadRequest('; '.join(exc.messages))
-    page = Paginator(catalog(request.GET, location).prefetch_related('balances'), 50).get_page(request.GET.get('page'))
+    costs = request.user.has_perm('core.view_costs')
+    page = Paginator(catalog(request.GET, location, include_value=costs), 50).get_page(request.GET.get('page'))
     default_markup = Company.objects.get(pk=1).default_markup
     for product in page:
         product.sale_price = sale_price(product, product.stock_cost, default_markup) if product.kind == 'SIMPLE' else None
     context = {'page': page, 'location': location, 'locations': locations, 'show_prices': location is not None and location == retail_location()}
-    if request.user.has_perm('core.view_costs'):
-        for product in page:
-            product.stock_value = location_values(product).get(location.pk if location else None, Decimal(0))
+    if costs:
         context['stock_totals'], context['stock_total'] = stock_totals(locations)
         context['stock_totals'].sort(key=lambda row: (-row['value'], row['location'].name))
     return render(request, 'inventory/products.html', context)
