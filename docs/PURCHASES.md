@@ -87,3 +87,10 @@ O número/série do fornecedor e a chave de reenvio são exclusivos por CNPJ
 comprador. Acesso individual ao detalhe, inclusive por URL direta, seleciona a
 empresa no servidor. O banco 3.0 admite rascunho secundário manual isolado
 para homologação; a operação da Agro permanece bloqueada (ADR 0093).
+
+Se os produtos já chegaram, **Confirmar compra e recebimento** no rascunho
+(registrado à mão ou importado do Bling) permite informar a data real. O botão
+exige as permissões de confirmar e receber. Estoque e títulos são gravados
+na mesma transação: uma data inválida não deixa parcelas penduradas. A opção
+**Confirmar compra** continua disponível para mercadoria em trânsito. Um duplo
+clique não duplica o recebimento. Pagamento bancário é uma ação separada.

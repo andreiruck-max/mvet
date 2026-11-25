@@ -79,7 +79,7 @@ def detail(request, pk):
                 if creating:data['supplier_data']=new_supplier.cleaned_data
                 purchase = services.create_draft(actor=request.user, invoice_id=pk, products=[f.cleaned_data.get('product') for f in items],treatments=[f.cleaned_data for f in items],
                     installments=[] if bonus else [(f.cleaned_data['due_date'], f.cleaned_data['amount'], f.cleaned_data['notes']) for f in installments if f.cleaned_data and not f.cleaned_data.get('DELETE')], **data)
-                messages.success(request, 'Rascunho importado. Confira parcelas, confirme a compra e registre o recebimento físico separadamente.')
+                messages.success(request, 'Rascunho importado. Confira os itens e as parcelas. Se a mercadoria já chegou, você pode confirmar e receber agora.')
                 return redirect('purchase_detail', pk=purchase.pk)
             except ValidationError as exc: form.add_error(None, '; '.join(exc.messages))
             except IntegrityError: form.add_error(None, 'Documento/série já existe para o fornecedor. Confira a compra existente.')

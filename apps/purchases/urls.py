@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 urlpatterns=[
+    path('<int:pk>/confirmar-receber/',views.purchase_confirm_receive,name='purchase_confirm_receive'),
     path('',views.purchase_list,name='purchases'),path('nova/',views.purchase_edit,name='purchase_new'),
     path('<int:pk>/',views.purchase_detail,name='purchase_detail'),path('<int:pk>/editar/',views.purchase_edit,name='purchase_edit'),
     path('<int:pk>/confirmar/',views.purchase_confirm,name='purchase_confirm'),path('<int:pk>/receber/',views.purchase_receive,name='purchase_receive'),path('<int:pk>/cancelar/',views.purchase_cancel,name='purchase_cancel'),

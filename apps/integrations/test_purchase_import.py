@@ -59,6 +59,17 @@ class PurchaseImportTests(Fixture, TestCase):
         self.assertEqual(PurchaseInvoiceImport.objects.get().purchase_id, purchase.pk)
         self.assertEqual(Purchase.objects.count(), 1)
         self.assertFalse(FinancialTitle.objects.exists())
+
+    def test_receiving_imported_purchase_does_not_repeat_the_incoming_note(self):
+        row = self.stage()
+        purchase = self.draft(row)
+        args = dict(actor=self.actor,purchase_id=purchase.pk,date=timezone.localdate(),revision=purchase.revision)
+        purchases.confirm_and_receive(**args)
+        self.assertEqual(self.draft(row).pk, purchase.pk)
+        purchases.confirm_and_receive(**args)
+        self.assertEqual(StockMovement.objects.filter(operation__kind='PUR_RECEIPT',company_id=1).count(),1)
+        self.assertEqual(FinancialTitle.objects.filter(purchase_installment__purchase=purchase).count(),1)
+        self.assertFalse(FinancialEntry.objects.exists())
     def test_carrier_freight_is_allocated_to_inventory_not_supplier_installments(self):
         items=incoming()['itens']
         items.append({**items[0], 'valor':'25'})

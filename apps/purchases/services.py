@@ -196,6 +196,25 @@ def receive(*,actor,purchase_id,date,revision):
     return p
 
 @transaction.atomic
+def confirm_and_receive(*, actor, purchase_id, date, revision):
+    """The commitment and the receipt either both succeed or neither is posted."""
+    owner = _require_owner(1, actor)
+    for perm in ('core.operate_purchases', 'core.confirm_purchases', 'core.receive_purchases'):
+        require(actor, perm)
+    domain_lock()
+    purchase = Purchase.objects.select_for_update().get(company_id=owner, pk=purchase_id)
+    if purchase.status == 'RECEIVED':
+        if purchase.received_date != date:
+            when = purchase.received_date.strftime(' em %d/%m/%Y') if purchase.received_date else ''
+            raise ValidationError(f'Esta compra já foi recebida{when}. A data original foi preservada.')
+        return purchase
+    if purchase.revision != revision:
+        raise ValidationError('A compra mudou. Reabra o rascunho antes de confirmar o recebimento.')
+    purchase = confirm(actor=actor, purchase_id=purchase.pk, revision=revision)
+    return receive(actor=actor, purchase_id=purchase.pk, date=date, revision=purchase.revision)
+
+
+@transaction.atomic
 def cancel(*,actor,purchase_id,reason):
     require(actor,'core.cancel_purchases')
     require(actor,'core.operate_purchases')

@@ -23,7 +23,7 @@ QUICK_ACTIONS = frozenset({
 
 
 # POST-only services stay POST-only; they may receive forms from an embedded action.
-MODAL_POST_ACTIONS = frozenset({'financial_settle','bling_alias','bling_decision','bling_purchase_refresh','bling_purchase_decision','purchase_confirm','purchase_receive'})
+MODAL_POST_ACTIONS = frozenset({'financial_settle','bling_alias','bling_decision','bling_purchase_refresh','bling_purchase_decision','purchase_confirm','purchase_receive','purchase_confirm_receive'})
 
 def is_modal(request):
     match = request.resolver_match
