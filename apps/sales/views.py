@@ -3,14 +3,15 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import IntegrityError
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
+from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from .models import Sale, SalesChannel, TaxRule
 from .forms import CommissionTerms, SaleForm, Items, MasterItems, CancelForm, ChannelForm, TaxForm, FilterForm, ExtraCosts, MasterExtraCosts, TaxChangeForm
 from .services import save_draft, confirm, cancel, save_configuration, EDIT_FIELDS
 from .selectors import sales
-from .taxes import change_rate, effective_terms
+from .taxes import change_rate, configuration_rules, effective_terms
 from apps.core.services import require
 from .forms import RecoveryForm
 from .recovery import recover_sale
@@ -129,38 +130,74 @@ def sale_result(request,pk):
     if request.user.has_perm('core.view_costs'):result['cmv']=str(sale.effective_cmv)
     return JsonResponse(result)
 
+def _tax_setup_target(request, company_id):
+    from django.conf import settings
+    from apps.accounts.access import master
+    from apps.core.models import Company
+    if not getattr(settings, 'COMPANY_CONTEXT_ENABLED', False):
+        raise Http404
+    master(request.user)
+    return get_object_or_404(Company.objects.exclude(pk=1), pk=company_id, active=False)
+
+
 @login_required
-def configuration(request,kind,pk=None):
-    require(request.user,'core.manage_channels' if kind == 'canais' else 'core.manage_taxes')
+def configuration(request, kind, pk=None, company_id=None):
+    from django.utils import timezone
+    from .tax_access import require_tax_management
     choices={'canais':(SalesChannel,ChannelForm,'Canais de venda'),'impostos':(TaxRule,TaxForm,'Regras tributárias')}
-    if kind not in choices:raise PermissionDenied
-    model,form_class,title=choices[kind]
-    obj=get_object_or_404(model,pk=pk,company_id=1) if pk else None
-    form=form_class(request.POST or None,instance=obj)
+    if kind not in choices or (company_id is not None and kind != 'impostos'):
+        raise PermissionDenied
+    target = _tax_setup_target(request, company_id) if company_id is not None else None
+    owner_id = target.pk if target else 1
+    model, form_class, title = choices[kind]
+    today = timezone.localdate()
+    if model is TaxRule:
+        require_tax_management(request.user, owner_id)
+        rows = configuration_rules(owner_id, today)
+    else:
+        require(request.user,'core.manage_channels')
+        rows = model.objects.filter(company_id=owner_id)
+    obj = get_object_or_404(rows, pk=pk) if pk is not None else model(company_id=owner_id)
+    list_url = reverse('company_tax_rules', args=[owner_id]) if target else reverse('sales_configuration', args=[kind])
+    form = form_class(request.POST if request.method == 'POST' else None, instance=obj)
     if request.method=='POST' and form.is_valid():
         try:
-            save_configuration(actor=request.user,model=model,data=form.cleaned_data,pk=pk)
-            return redirect('sales_configuration',kind=kind)
+            save_configuration(actor=request.user, model=model, data=form.cleaned_data, pk=pk, company_id=owner_id)
+            return redirect(list_url)
         except ValidationError as exc:form.add_error(None,'; '.join(exc.messages))
         except IntegrityError:form.add_error(None,'Cadastro duplicado.')
-    return render(request,'sales/configuration.html',{'form':form,'kind':kind,'title':title,'page':Paginator(model.objects.filter(company_id=1),30).get_page(request.GET.get('page'))})
+    page = Paginator(rows,30).get_page(request.GET.get('page'))
+    if model is TaxRule:
+        bases = dict(model._meta.get_field('base').choices)
+        for row in page:
+            row.effective_base_label = bases[row.effective_base]
+    return render(request,'sales/configuration.html',{'form':form,'kind':kind,'title':title,
+        'setup_company':target,'list_url':list_url,'today':today,
+        'page':page})
 
 
 @login_required
-@permission_required('core.manage_taxes',raise_exception=True)
-def tax_change(request,pk):
+def tax_change(request, pk, company_id=None):
     from django.utils import timezone
-    rule=get_object_or_404(TaxRule,pk=pk,company_id=1)
+    from .tax_access import require_tax_management
+    target = _tax_setup_target(request, company_id) if company_id is not None else None
+    owner_id = target.pk if target else 1
+    require_tax_management(request.user, owner_id)
+    rule = get_object_or_404(TaxRule, pk=pk, company_id=owner_id)
     rate,base,_=effective_terms(rule,timezone.localdate())
-    latest=rule.changes.order_by('-pk').first()
-    form=TaxChangeForm(request.POST or None,initial={'rate':rate,'base':base,'revision':latest.pk if latest else 0})
+    changes = rule.changes.filter(company_id=owner_id)
+    latest = changes.order_by('-pk').first()
+    form=TaxChangeForm(request.POST if request.method == 'POST' else None,
+                       initial={'rate':rate,'base':base,'revision':latest.pk if latest else 0})
     if request.method=='POST' and form.is_valid():
         try:
-            change,count=change_rate(actor=request.user,rule_id=pk,**form.cleaned_data)
-            messages.success(request,f'Alíquota registrada. {count} venda(s) recalculada(s).')
-            return redirect('tax_change',pk=pk)
+            change,count=change_rate(actor=request.user,rule_id=pk,company_id=owner_id,**form.cleaned_data)
+            messages.success(request, 'Alíquota registrada.' if target else f'Alíquota registrada. {count} venda(s) recalculada(s).')
+            return redirect('company_tax_change',company_id=owner_id,pk=pk) if target else redirect('tax_change',pk=pk)
         except ValidationError as exc:form.add_error(None,'; '.join(exc.messages))
-    return render(request,'sales/tax_change.html',{'form':form,'rule':rule,'rate':rate,'changes':rule.changes.select_related('actor')})
+    list_url = reverse('company_tax_rules', args=[owner_id]) if target else reverse('sales_configuration', args=['impostos'])
+    return render(request,'sales/tax_change.html',{'form':form,'rule':rule,'rate':rate,
+        'setup_company':target,'list_url':list_url,'today':timezone.localdate(),'changes':changes.select_related('actor')})
 
 
 @login_required

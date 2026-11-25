@@ -98,3 +98,10 @@ No 3.0, o PostgreSQL confere a empresa dos vínculos da venda: canal, regra
 tributária, comissionado, saída/estorno e movimento usado em cada consumo.
 Um rascunho pode continuar com os campos opcionais vazios. Uma divergência de
 proprietário impede o lançamento sem alterar a venda ou o CMV anterior (ADR 0089).
+
+No laboratório 3.0, o master pode abrir **Empresas → Tributação das vendas** na
+linha de uma empresa inativa, cadastrar sua regra, editar seus dados e informar
+uma nova alíquota com data de vigência. Confira o nome da empresa no cabeçalho.
+O percentual da lista é o vigente hoje: mudanças futuras aparecem no histórico
+e só entram no cálculo na data escolhida. Não são copiadas alíquotas da principal.
+Na Mercadovet continuam valendo as permissões de tributação e recálculo retroativo.

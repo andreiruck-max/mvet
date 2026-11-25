@@ -200,11 +200,19 @@ def cancel(*,actor,sale_id,reason):
 def save_configuration(*,actor,model,data,pk=None,company_id=1):
     if model not in (SalesChannel, TaxRule):
         raise ValidationError("Cadastro comercial inválido.")
-    from apps.inventory.services import _require_owner
-    _require_owner(company_id, actor)
+    if model is TaxRule:
+        from .tax_access import require_tax_management
+        require_tax_management(actor, company_id)
+        fields = {'name','rate','base','starts_on','ends_on','active'}
+    else:
+        _require_owner(company_id, actor)
+        require(actor,'core.manage_channels')
+        fields = {'name','commission_payee','active'}
     if "company" in data or "company_id" in data:
         raise ValidationError("Empresa divergente do contexto selecionado.")
-    require(actor,'core.manage_channels' if model is SalesChannel else 'core.manage_taxes');domain_lock()
+    if data.keys() - fields:
+        raise ValidationError('Campo de configuração desconhecido.')
+    domain_lock()
     obj=model.objects.select_for_update().get(pk=pk,company_id=company_id) if pk else model(company_id=company_id)
     if model is SalesChannel and 'commission_payee' in data and data['commission_payee']!=obj.commission_payee:
         require(actor,'core.manage_commissions')
@@ -214,5 +222,5 @@ def save_configuration(*,actor,model,data,pk=None,company_id=1):
         raise ValidationError('Use Alíquota e vigência para alterar a tributação com histórico.')
     for k,v in data.items():setattr(obj,k,v)
     obj.full_clean();obj.save()
-    audit(actor,obj,'sales_configuration',before,{k:str(v) for k,v in data.items()})
+    audit(actor,obj,'sales_configuration',before,dict({k:str(v) for k,v in data.items()},company_id=company_id))
     return obj

@@ -67,3 +67,39 @@ class CompanyRegistryBrowser(StaticLiveServerTestCase):
             page.get_by_role('button',name='Selecionar contexto',exact=True).click()
             page.get_by_role('link',name='Abrir Mercadovet',exact=True).wait_for()
             browser.close()
+
+    @override_settings(COMPANY_CONTEXT_ENABLED=True)
+    def test_master_prepares_tax_rate_for_agro_without_changing_primary(self):
+        from django.urls import reverse
+        from django.utils import timezone
+        from playwright.sync_api import sync_playwright
+        from apps.sales.models import TaxRule
+        from apps.sales.taxes import effective_terms
+        today = timezone.localdate()
+        Company.objects.get_or_create(pk=1)
+        agro, _ = Company.objects.get_or_create(pk=2, defaults={'active':False,'name':'Agro de teste'})
+        primary = TaxRule.objects.create(company_id=1, name='Vendas padrão',starts_on=today,rate=8,base='REVENUE')
+        actor = User.objects.create_superuser('tax-setup-browser')
+        client=Client(); client.force_login(actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch()
+            ctx=browser.new_context()
+            ctx.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=ctx.new_page()
+            page.goto(self.live_server_url + reverse('company_registry'))
+            page.locator(f'a[href="{reverse("company_tax_rules",args=[agro.pk])}"]').click()
+            page.locator('#id_name').fill('Vendas padrão')
+            page.locator('#id_rate').fill('4')
+            page.locator('#id_starts_on').fill(today.isoformat())
+            page.locator('#id_base').select_option('PRODUCTS')
+            page.get_by_role('button',name='Salvar',exact=True).click()
+            page.get_by_role('link',name='Alíquota e vigência').click()
+            page.locator('#id_rate').fill('6')
+            page.locator('#id_reason').fill('Nova vigência da Agro')
+            page.get_by_role('button',name='Aplicar alíquota e vigência').click()
+            page.get_by_text('Alíquota registrada.',exact=True).wait_for()
+            page.get_by_role('link',name='Regras tributárias',exact=True).click()
+            self.assertIn('6%',page.locator('tbody').inner_text())
+            browser.close()
+        self.assertEqual(effective_terms(primary,today)[0],8)
+        self.assertFalse(Company.objects.get(pk=agro.pk).active)

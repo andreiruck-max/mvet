@@ -2,9 +2,10 @@
 from decimal import Decimal, ROUND_HALF_UP
 from django.core.exceptions import ValidationError
 from django.db import connection, transaction
-from django.db.models import Q
+from django.db.models import OuterRef, Q, Subquery
+from django.db.models.functions import Coalesce
 from django.utils import timezone
-from apps.core.services import require, audit
+from apps.core.services import audit
 from apps.inventory.services import domain_lock, number
 from .models import TaxRule, TaxRateChange, Sale, SaleTaxRevision
 
@@ -17,6 +18,15 @@ def suggested_rule(date, *, company_id=1):
 def effective_terms(rule,date):
     change=rule.changes.filter(company_id=rule.company_id,effective_from__lte=date).first()
     return (change.rate,change.base,change.pk) if change else (rule.rate,rule.base,None)
+
+def configuration_rules(company_id, date):
+    revisions = TaxRateChange.objects.filter(rule_id=OuterRef('pk'), company_id=company_id,
+                                            effective_from__lte=date).order_by('-effective_from','-pk')
+    return TaxRule.objects.filter(company_id=company_id).annotate(
+        effective_rate=Coalesce(Subquery(revisions.values('rate')[:1]), 'rate'),
+        effective_base=Coalesce(Subquery(revisions.values('base')[:1]), 'base'),
+    )
+
 
 def calculate_tax(sale):
     rule=TaxRule.objects.get(pk=sale.tax_rule_id) if sale.tax_rule_id else None
@@ -37,12 +47,9 @@ def affected_sales(rule,effective_from):
 
 @transaction.atomic
 def change_rate(*,actor,rule_id,rate,effective_from,base,reason,revision,company_id=1):
-    if effective_from < timezone.localdate(): require(actor,'core.retroactive_taxes')
-    require(actor,'core.manage_taxes');domain_lock()
-    from apps.accounts.company_context import resolve_scope
-    scope = getattr(actor, '_mvet_company_scope', None) or resolve_scope(actor, str(company_id))
-    if scope.require_operation() != company_id:
-        raise ValidationError('Empresa divergente do contexto selecionado.')
+    from .tax_access import require_tax_management
+    require_tax_management(actor, company_id, retroactive=effective_from < timezone.localdate())
+    domain_lock()
     rule=TaxRule.objects.select_for_update().get(pk=rule_id, company_id=company_id)
     latest=rule.changes.filter(company_id=company_id).order_by('-pk').first()
     if revision!=(latest.pk if latest else 0):raise ValidationError('A regra mudou em outra sessão. Reabra a edição.')
@@ -72,5 +79,5 @@ def change_rate(*,actor,rule_id,rate,effective_from,base,reason,revision,company
     finally:
         if connection.vendor=='postgresql':
             with connection.cursor() as cursor:cursor.execute("SELECT set_config('mvet.tax_revision', '', true)")
-    audit(actor,change,'change_tax_rate',{}, {'rule_id':rule.pk,'rate':str(rate),'effective_from':str(effective_from),'base':base,'reason':reason,'recalculated':count})
+    audit(actor,change,'change_tax_rate',{}, {'company_id':company_id,'rule_id':rule.pk,'rate':str(rate),'effective_from':str(effective_from),'base':base,'reason':reason,'recalculated':count})
     return change,count
