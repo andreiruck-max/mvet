@@ -11,17 +11,41 @@ LIMIT = 2_000_000
 NS = {'n': 'http://www.portalfiscal.inf.br/nfe'}
 
 
-def extract(raw, payload):
+def invoice_element(raw, payload):
+    """Bind evidence to the very same access key before reading any business field."""
     if len(raw) > LIMIT or b'\x00' in raw or b'<!DOCTYPE' in raw.upper() or b'<!ENTITY' in raw.upper():
         raise ValidationError('XML da nota excede o limite ou contém declaração não permitida.')
     try:
         root = ET.fromstring(raw)
-        infos = list(root.iter('{'+NS['n']+'}infNFe'))
-        if len(infos) != 1:
-            raise ValueError
-        info = infos[0]
-        if info.get('Id') != 'NFe' + str(payload.get('chaveAcesso', '')):
-            raise ValueError
+    except ET.ParseError:
+        raise ValidationError('XML inválido.') from None
+    infos = list(root.iter('{'+NS['n']+'}infNFe'))
+    key = str(payload.get('chaveAcesso', ''))
+    if len(infos) != 1 or len(key) != 44 or not key.isascii() or not key.isdecimal() or infos[0].get('Id') != 'NFe'+key:
+        raise ValidationError('XML não corresponde à chave da nota.')
+    return infos[0]
+
+
+def buyer_evidence(info, key):
+    # Third-party NF: the buyer is dest. On a self-issued incoming NF it is emit.
+    issuer = info.findtext('n:emit/n:CNPJ', namespaces=NS)
+    if not issuer:
+        return None
+    if issuer != key[6:20]:
+        return {'inconsistent': True}
+    dest = info.find('n:dest', NS)
+    recipient = dest.findtext('n:CNPJ', namespaces=NS) if dest is not None else None
+    other = dest is not None and any(dest.find('n:'+tag,NS) is not None for tag in ('CPF','idEstrangeiro'))
+    return {'issuer': issuer, 'direction': info.findtext('n:ide/n:tpNF', namespaces=NS),
+            'recipient': recipient, 'other_recipient': other}
+
+
+def extract(raw, payload):
+    return extract_discounts(invoice_element(raw, payload), payload)
+
+
+def extract_discounts(info, payload):
+    try:
         total = info.find('n:total/n:ICMSTot', NS)
         if total is None:
             raise ValueError
@@ -51,7 +75,11 @@ def extract(raw, payload):
         discount = money(total, 'vDesc')
         if sum(discounts) != discount:
             raise ValueError
-        return {'total': str(discount), 'items': [str(value) for value in discounts]}
+        result = {'total': str(discount), 'items': [str(value) for value in discounts]}
+        if str(payload.get('tipo')) == '0':
+            from .purchase_xml import project
+            result.update(project(info))
+        return result
     except (ET.ParseError, ValueError, TypeError, AttributeError, KeyError):
         raise ValidationError('XML não corresponde aos valores ou itens da nota. Reconsulte antes de confirmar.') from None
 
@@ -62,6 +90,7 @@ def enrich(payload):
         raise BlingError('Detalhe inválido.')
     result = dict(payload)
     result.pop('_xml_discounts', None)
+    result.pop('_xml_buyer', None)
     link = payload.get('xml')
     if not link:
         return result
@@ -73,7 +102,13 @@ def enrich(payload):
         # No OAuth credentials, cookies or redirects on document downloads.
         with build_opener(NoRedirect()).open(Request(link, headers={'Accept': 'application/xml'}), timeout=8) as response:
             raw = response.read(LIMIT + 1)
-        result['_xml_discounts'] = extract(raw, payload)
+        info = invoice_element(raw, payload)
+        if str(payload.get('tipo')) == '0':
+            evidence = buyer_evidence(info, str(payload['chaveAcesso']))
+            if evidence:
+                result['_xml_buyer'] = evidence
+        # An invalid discount does not erase independent evidence of the recipient.
+        result['_xml_discounts'] = extract_discounts(info, payload)
         return result
     except (URLError, OSError, ValueError, TypeError, ValidationError):
         # Optional prefill: unavailable/untrusted XML must not block staging.

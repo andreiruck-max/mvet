@@ -73,22 +73,36 @@ def delete_account(*, actor, pk):
 
 @transaction.atomic
 def create_title(*, actor, key, data):
+    return _create_title(actor=actor,key=key,data=data,source='manual',company_id=1)
+
+
+def _create_title(*, actor, key, data, source, company_id):
+    from apps.inventory.services import _require_owner
+    _require_owner(company_id,actor)
     require(actor,'core.create_financial_titles')
     require(actor,'core.operate_finance'); domain_lock()
     allowed = {'direction','description','counterparty','date','due_date','amount','account','category','opening','notes'}
     if set(data)-allowed: raise ValidationError('Campo de título inválido.')
     data={**data,'amount':number(data['amount'],CENT)}
-    key, fingerprint, existing = repeat(Title,key,[actor.pk,{k:str(v.pk if hasattr(v,'pk') else v) for k,v in data.items()}])
-    if existing: return existing
-    title = Title(key=key,fingerprint=fingerprint,actor=actor,**data)
+    identity = [actor.pk,{k:str(v.pk if hasattr(v,'pk') else v) for k,v in data.items()}]
+    # Preserve the fingerprints of historical manual requests.
+    if source != 'manual': identity += [source,company_id]
+    key, fingerprint, existing = repeat(Title,key,identity)
+    if existing:
+        if existing.company_id != company_id or existing.source != source:
+            raise ValidationError('Origem ou empresa do título incompatível.')
+        return existing
+    title = Title(company_id=company_id,key=key,fingerprint=fingerprint,actor=actor,source=source,**data)
     number(title.amount,CENT)
-    cutoff = Company.objects.get(pk=1).cutover_date
+    cutoff = Company.objects.get(pk=company_id).cutover_date
     if title.opening:
         if title.date >= cutoff: raise ValidationError('Pendência de abertura exige origem anterior ao corte.')
         title.category='OPENING'
     else: validate_date(title.date, future=True)
     if title.due_date < title.date: raise ValidationError('Vencimento anterior à origem.')
-    if title.account_id: account_for(title.account_id,max(cutoff,title.due_date))
+    if title.account_id:
+        acc = account_for(title.account_id,max(cutoff,title.due_date))
+        if acc.company_id != company_id: raise ValidationError('Conta prevista de outra empresa.')
     title.full_clean(); title.save()
     audit(actor,title,'create_financial_title',{}, {'amount':str(title.amount),'direction':title.direction,'opening':title.opening})
     return title

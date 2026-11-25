@@ -60,16 +60,19 @@ def purchase_edit(request,pk=None):
     obj=get_object_or_404(owned_purchases(),pk=pk) if pk else None
     if obj and obj.status!='DRAFT':messages.error(request,'Somente rascunhos podem ser editados.');return redirect('purchase_detail',pk=pk)
     form=PurchaseForm(request.POST or None,instance=obj)
-    initial=[{'product':i.product_id,'quantity':i.quantity,'unit_cost':i.unit_cost,'discount':i.discount,'mode':'STOCK' if i.moves_stock else 'NONSTOCK','name':i.name_snapshot,'category':i.category_id} for i in obj.items.all()] if obj else []
+    initial=[{'original_line':i.pk,'product':i.product_id,'quantity':i.quantity,'unit_cost':i.unit_cost,'discount':i.discount,'ncm':i.ncm,'ipi':i.ipi,'st':i.st,'difal':i.difal,'invoice_st':i.invoice_st,'invoice_other_tax':i.invoice_other_tax,'recoverable_tax':i.recoverable_tax,'mode':'STOCK' if i.moves_stock else 'NONSTOCK','name':i.name_snapshot,'category':i.category_id} for i in obj.items.all()] if obj else []
     schedule=list(obj.installments.values('due_date','amount','notes')) if obj else []
     items=Items(request.POST or None,initial=initial);installments=Installments(request.POST or None,initial=schedule,prefix='installments')
     if request.method=='POST':
         valid=form.is_valid();items_valid=items.is_valid();schedule_valid=installments.is_valid()
         if valid and items_valid and schedule_valid:
             try:
-                lines=[dict(product_id=f.cleaned_data['product'].pk if f.cleaned_data.get('product') else None,quantity=f.cleaned_data['quantity'],unit_cost=f.cleaned_data['unit_cost'],discount=f.cleaned_data['discount'],moves_stock=f.cleaned_data['mode']=='STOCK',name=f.cleaned_data.get('name',''),category_id=f.cleaned_data['category'].pk if f.cleaned_data.get('category') else None) for f in items if f.cleaned_data and not f.cleaned_data.get('DELETE')]
+                lines=[dict(product_id=f.cleaned_data['product'].pk if f.cleaned_data.get('product') else None,quantity=f.cleaned_data['quantity'],unit_cost=f.cleaned_data['unit_cost'],discount=f.cleaned_data['discount'],ncm=f.cleaned_data.get('ncm',''),ipi=f.cleaned_data['ipi'],st=f.cleaned_data['st'],difal=f.cleaned_data['difal'],invoice_st=f.cleaned_data['invoice_st'],invoice_other_tax=f.cleaned_data['invoice_other_tax'],recoverable_tax=f.cleaned_data['recoverable_tax'],moves_stock=f.cleaned_data['mode']=='STOCK',name=f.cleaned_data.get('name',''),category_id=f.cleaned_data['category'].pk if f.cleaned_data.get('category') else None) for f in items if f.cleaned_data and not f.cleaned_data.get('DELETE')]
+                for line, item_form in zip(lines, (f for f in items if f.cleaned_data and not f.cleaned_data.get('DELETE'))):
+                    if item_form.cleaned_data.get('original_line'):
+                        line['original_line'] = item_form.cleaned_data['original_line']
                 dates=[(f.cleaned_data['due_date'],f.cleaned_data['amount'],f.cleaned_data['notes']) for f in installments if f.cleaned_data and not f.cleaned_data.get('DELETE')]
-                p=save_draft(actor=request.user,key=form.cleaned_data['key'],data={k:form.cleaned_data[k] for k in FIELDS},items=lines,installments=dates,purchase_id=pk,revision=form.cleaned_data['revision'])
+                p=save_draft(actor=request.user,key=form.cleaned_data['key'],data={k:form.cleaned_data[k] for k in FIELDS if k in form.cleaned_data},items=lines,installments=dates,purchase_id=pk,revision=form.cleaned_data['revision'])
                 messages.success(request,'Rascunho salvo. Confira o total, o rateio e as parcelas.');return redirect('purchase_detail',pk=p.pk)
             except ValidationError as exc:form.add_error(None,'; '.join(exc.messages))
             except IntegrityError:form.add_error(None,'Documento e série já utilizados para este fornecedor.')
@@ -140,3 +143,18 @@ def purchase_cancel(request,pk):
         except ValidationError as exc:messages.error(request,'; '.join(exc.messages))
     else:messages.error(request,'Informe o motivo do cancelamento.')
     return redirect('purchase_detail',pk=pk)
+
+@login_required
+@permission_required(['core.operate_purchases','core.operate_finance','core.create_financial_titles'],raise_exception=True)
+def purchase_tax_obligation(request,pk):
+    from .forms import TaxObligationForm
+    from .services import create_tax_obligation
+    purchase=get_object_or_404(owned_purchases(),pk=pk)
+    form=TaxObligationForm(request.POST or None,company_id=purchase.company_id)
+    if request.method=='POST' and form.is_valid():
+        try:
+            title=create_tax_obligation(actor=request.user,purchase_id=pk,**form.cleaned_data)
+            return redirect('financial_title',pk=title.pk)
+        except ValidationError as exc: form.add_error(None,'; '.join(exc.messages))
+    return render(request,'finance/form.html',dict(form=form,title='Obrigação fiscal da compra',button='Registrar obrigação fiscal',
+        help='O tributo tem credor e vencimento próprios. Registrar o título não baixa o banco nem altera as parcelas do fornecedor.'))

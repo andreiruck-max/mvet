@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 urlpatterns=[
+    path('<int:pk>/tributos/',views.purchase_tax_obligation,name='purchase_tax_obligation'),
     path('<int:pk>/confirmar-receber/',views.purchase_confirm_receive,name='purchase_confirm_receive'),
     path('',views.purchase_list,name='purchases'),path('nova/',views.purchase_edit,name='purchase_new'),
     path('<int:pk>/',views.purchase_detail,name='purchase_detail'),path('<int:pk>/editar/',views.purchase_edit,name='purchase_edit'),
