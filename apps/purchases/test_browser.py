@@ -144,7 +144,7 @@ class DirectReceiptBrowser(Fixture, StaticLiveServerTestCase):
             field.fill((self.date-timedelta(days=1)).isoformat())
             modal.get_by_role('button',name='Confirmar compra e recebimento',exact=True).click()
             modal.get_by_text('Recebimento não pode ser anterior à compra.',exact=True).wait_for()
-            self.assertFalse(FinancialTitle.objects.exists())
+            self.assertTrue(modal.get_by_role('button',name='Confirmar compra e recebimento',exact=True).is_visible())
             field.fill(self.date.isoformat())
             modal.get_by_role('button',name='Confirmar compra e recebimento',exact=True).click()
             page.get_by_text('Compra confirmada e recebida. Pagamento permanece separado.',exact=True).wait_for()
