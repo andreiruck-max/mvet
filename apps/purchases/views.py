@@ -9,7 +9,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.views.decorators.http import require_POST
 from .models import Supplier, Purchase
 from .forms import SupplierForm, PurchaseForm, Items, Installments, ReceiveForm, CancelForm, FilterForm
-from .services import save_supplier, save_draft, confirm, receive, cancel, FIELDS
+from .services import save_supplier, save_draft, confirm, receive, confirm_and_receive, cancel, FIELDS
 from .selectors import purchases, supplier_report, owned_purchases
 
 def check_read(user):
@@ -79,7 +79,32 @@ def purchase_edit(request,pk=None):
 @login_required
 def purchase_detail(request,pk):
     check_read(request.user);p=get_object_or_404(owned_purchases().select_related('supplier','location','created_by','received_by','cancelled_by'),pk=pk)
-    return render(request,'purchases/detail.html',{'purchase':p,'items':p.items.all(),'installments':p.installments.select_related('financial_title','purchase'),'receive_form':ReceiveForm(initial={'revision':p.revision}),'cancel_form':CancelForm()})
+    return _detail(request, p)
+
+
+def _detail(request, purchase, receive_form=None):
+    return render(request,'purchases/detail.html',{'purchase':purchase,'items':purchase.items.all(),
+        'installments':purchase.installments.select_related('financial_title','purchase'),
+        'receive_form':receive_form if receive_form is not None else ReceiveForm(initial={'revision':purchase.revision}),
+        'cancel_form':CancelForm()})
+
+
+@login_required
+@permission_required(('core.operate_purchases','core.confirm_purchases','core.receive_purchases'),raise_exception=True)
+@require_POST
+def purchase_confirm_receive(request, pk):
+    purchase = get_object_or_404(owned_purchases(), pk=pk)
+    form = ReceiveForm(request.POST)
+    if form.is_valid():
+        try:
+            confirm_and_receive(actor=request.user, purchase_id=pk, **form.cleaned_data)
+        except ValidationError as error:
+            form.add_error(None, error)
+        else:
+            messages.success(request,'Compra confirmada e recebida. Pagamento permanece separado.')
+            return redirect('purchase_detail',pk=pk)
+    purchase.refresh_from_db()
+    return _detail(request, purchase, form)
 
 @login_required
 @permission_required('core.operate_purchases',raise_exception=True)

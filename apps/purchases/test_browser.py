@@ -109,3 +109,38 @@ class PurchasesBrowser(StaticLiveServerTestCase):
         purchase=Purchase.objects.get(document='DEMO-987');self.assertEqual(purchase.status,'RECEIVED');self.assertEqual(purchase.total,42);self.assertEqual(purchase.installments.count(),2)
         first.refresh_from_db();self.assertEqual(first.quantity,2);self.assertEqual(first.value,21);self.assertEqual(first.average_cost,Decimal('10.5'))
         self.assertEqual(first.balances.get(location=physical).quantity,1);self.assertEqual(first.balances.get(location=full).quantity,1)
+
+
+from .tests import Fixture
+
+
+@skipUnless(os.environ.get('MVET_BROWSER_TESTS')=='1','Browser acceptance is enabled in CI')
+@override_settings(STORAGES={'default':{'BACKEND':'django.core.files.storage.FileSystemStorage'},'staticfiles':{'BACKEND':'django.contrib.staticfiles.storage.StaticFilesStorage'}})
+class DirectReceiptBrowser(Fixture, StaticLiveServerTestCase):
+    def test_invalid_date_then_confirm_in_popup_with_list_filter_preserved(self):
+        from datetime import timedelta
+        from django.urls import reverse
+        from playwright.sync_api import sync_playwright
+        from apps.finance.models import FinancialTitle
+        purchase=self.draft()
+        client=Client();client.force_login(self.admin)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context()
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page()
+            page.goto(self.live_server_url+reverse('purchases')+'?q=100')
+            page.get_by_role('link',name='100',exact=True).click()
+            modal=page.frame_locator('#action-modal-frame')
+            field=modal.get_by_label('Data do recebimento:',exact=True)
+            field.fill((self.date-timedelta(days=1)).isoformat())
+            modal.get_by_role('button',name='Confirmar compra e recebimento',exact=True).click()
+            modal.get_by_text('Recebimento não pode ser anterior à compra.',exact=True).wait_for()
+            self.assertFalse(FinancialTitle.objects.exists())
+            field.fill(self.date.isoformat())
+            modal.get_by_role('button',name='Confirmar compra e recebimento',exact=True).click()
+            page.get_by_text('Compra confirmada e recebida. Pagamento permanece separado.',exact=True).wait_for()
+            self.assertIn('q=100',page.url)
+            browser.close()
+        purchase.refresh_from_db()
+        self.assertEqual(purchase.status,'RECEIVED')
+        self.assertEqual(FinancialTitle.objects.count(),1)
