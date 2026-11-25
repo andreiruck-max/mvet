@@ -77,3 +77,8 @@ Filtros compactos em Compras e Compras a pagar. Relatório por parcela com data 
 
 ## Compras Bling — unidade local e rejeição (29/09/2026)
 Unidade cadastrada no MVet prevalece; quantidade e preço da nota mantidos sem conversão. Rejeitar nota retira documentos sem compra vinculada das pendências; filtro Rejeitadas permite reabrir. Reconsulta preserva rejeição. Compras existentes seguem cancelamento próprio. Ver ADR 0024.
+
+**MVet 3.0 — propriedade da compra.** Rascunho, itens, recebimento, estorno e
+parcelas preservam a empresa compradora, também na importação do Bling.
+Títulos herdam o CNPJ da parcela. A conta prevista pertence ao mesmo CNPJ e
+não gera movimentação bancária. O PostgreSQL verifica esses vínculos (ADR 0092).

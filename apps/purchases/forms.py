@@ -25,7 +25,7 @@ class PurchaseForm(forms.ModelForm):
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
         from apps.finance.models import FinancialAccount
-        self.fields['account'].queryset=FinancialAccount.objects.filter(active=True)
+        self.fields['account'].queryset=FinancialAccount.objects.filter(company_id=self.instance.company_id,active=True)
         self.fields['supplier'].queryset=Supplier.objects.filter(active=True)
         self.fields['location'].queryset=StockLocation.objects.filter(active=True)
         self.fields['date'].initial=timezone.localdate

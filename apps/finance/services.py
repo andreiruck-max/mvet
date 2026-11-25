@@ -245,6 +245,8 @@ def _cancel_titles(actor, rows, reason):
 
 
 def create_purchase_titles(purchase, actor):
+    from apps.inventory.services import _require_owner
+    company_id = _require_owner(purchase.company_id, actor)
     supplier_name=(purchase.supplier.trade_name.strip() or purchase.supplier.legal_name.strip())
     if not supplier_name: raise ValidationError('Informe o nome do fornecedor antes de gerar os títulos da compra.')
     classifications=set()
@@ -253,7 +255,7 @@ def create_purchase_titles(purchase, actor):
         classifications.add(nature if nature in {'OPERATING','FINANCIAL'} else 'PRINCIPAL' if nature in {'ASSET','LIABILITY','EQUITY'} else 'OTHER')
     category=next(iter(classifications)) if len(classifications)==1 else 'OTHER'
     for installment in purchase.installments.all():
-        Title.objects.get_or_create(purchase_installment=installment,defaults=dict(direction='PAY',description=f'Compra {purchase.document} · parcela {installment.number}',counterparty=supplier_name,date=purchase.date,due_date=installment.due_date,amount=installment.amount,actor=actor,source='purchase',category=category,account=purchase.account))
+        Title.objects.get_or_create(company_id=company_id,purchase_installment=installment,defaults=dict(direction='PAY',description=f'Compra {purchase.document} · parcela {installment.number}',counterparty=supplier_name,date=purchase.date,due_date=installment.due_date,amount=installment.amount,actor=actor,source='purchase',category=category,account=purchase.account))
 
 
 def cancel_origin(actor, reason, **filters):

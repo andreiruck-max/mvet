@@ -38,7 +38,7 @@ def snapshot(purchase):
 def validate_active(purchase):
     if not Supplier.objects.filter(pk=purchase.supplier_id,active=True).exists():raise ValidationError('Fornecedor inativo.')
     if not StockLocation.objects.filter(pk=purchase.location_id,active=True).exists():raise ValidationError('Estoque de destino inativo.')
-    if not Company.objects.get(pk=1).cutover_date<=purchase.date<=timezone.localdate():raise ValidationError('Data da compra deve estar entre o corte e hoje.')
+    if not Company.objects.get(pk=purchase.company_id).cutover_date<=purchase.date<=timezone.localdate():raise ValidationError('Data da compra deve estar entre o corte e hoje.')
 
 def reconciliation_message(expected, actual, label='Total das parcelas'):
     from django.utils.formats import number_format
@@ -54,6 +54,7 @@ def validate_schedule(purchase):
 
 @transaction.atomic
 def save_supplier(*,actor,data,pk=None):
+    _require_owner(1, actor)
     require(actor,'core.manage_suppliers')
     require(actor,'core.operate_purchases');domain_lock()
     obj=Supplier.objects.select_for_update().get(pk=pk) if pk else Supplier()
@@ -67,19 +68,20 @@ def save_supplier(*,actor,data,pk=None):
     return obj
 
 @transaction.atomic
-def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
+def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0,company_id=1):
+    _require_owner(company_id, actor)
     require(actor,'core.operate_purchases');domain_lock()
     try:key=UUID(str(key))
     except (ValueError,TypeError):raise ValidationError('Identificador de envio inválido.')
     fingerprint=_fingerprint([actor.pk,{k:str(v.pk if hasattr(v,'pk') else v) for k,v in data.items()},items,installments])
     if purchase_id is None:
-        existing=Purchase.objects.filter(key=key).first()
+        existing=Purchase.objects.filter(company_id=company_id,key=key).first()
         if existing:
             if existing.fingerprint!=fingerprint:raise ValidationError('Envio já utilizado com outros dados.')
             return existing
-        purchase=Purchase(key=key,fingerprint=fingerprint,created_by=actor);before={}
+        purchase=Purchase(company_id=company_id,key=key,fingerprint=fingerprint,created_by=actor);before={}
     else:
-        purchase=Purchase.objects.select_for_update().get(pk=purchase_id)
+        purchase=Purchase.objects.select_for_update().get(company_id=company_id,pk=purchase_id)
         if purchase.status!='DRAFT':raise ValidationError('Somente rascunhos podem ser editados.')
         if purchase.revision!=revision:raise ValidationError('A compra mudou em outra sessão. Reabra a edição.')
         before=snapshot(purchase)
@@ -89,7 +91,10 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
     if purchase.acquisition_kind not in ('NORMAL','BONUS'):raise ValidationError('Tipo de entrada inválido.')
     purchase.document=normalized_document(purchase.document);purchase.series=normalized_document(purchase.series)
     validate_active(purchase)
-    if purchase.account_id and not purchase.account.active:raise ValidationError('Conta prevista inativa.')
+    if purchase.account_id:
+        from apps.finance.models import FinancialAccount
+        if not FinancialAccount.objects.filter(pk=purchase.account_id,company_id=company_id,active=True).exists():
+            raise ValidationError('Conta prevista inativa ou indisponível para esta empresa.')
     for field in ['discount','freight','external_freight','other_costs']:number(getattr(purchase,field),CENT,zero=True)
     # Legacy callers retain stock movement by default. Extended rows carry explicit treatment.
     items=[dict(product_id=i[0],quantity=i[1],unit_cost=i[2],moves_stock=True) if not isinstance(i,dict) else dict(i) for i in items]
@@ -108,7 +113,7 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
             require(actor,'core.operate_expenses')
             if not str(item.get('name') or (products[pid].name if pid in products else '')).strip():raise ValidationError('Informe a descrição do item sem estoque.')
             if item.get('category_id'):
-                category=ChartOfAccount.objects.filter(pk=item['category_id'],postable=True).exclude(nature__in=['REVENUE','DEPRECIATION','GROUP']).first()
+                category=ChartOfAccount.objects.filter(pk=item['category_id'],company_id=company_id,postable=True).exclude(nature__in=['REVENUE','DEPRECIATION','GROUP']).first()
                 if not category:raise ValidationError('Categoria inválida para item sem estoque.')
                 item['category_snapshot']=category_path(category,expense=False)
         number(qty,QTY);number(cost,MONEY,zero=True)
@@ -143,12 +148,12 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0):
     purchase.save();purchase.items.all().delete();purchase.installments.all().delete()
     for item,subtotal,value in zip(items,subtotals,allocated):
         p=products.get(item.get('product_id'));stock=item['moves_stock'];qty=item['quantity']
-        obj=PurchaseItem(purchase=purchase,product=p,quantity=qty,unit_cost=item['unit_cost'],subtotal=subtotal,discount=item['discount'],
+        obj=PurchaseItem(company_id=company_id,purchase=purchase,product=p,quantity=qty,unit_cost=item['unit_cost'],subtotal=subtotal,discount=item['discount'],
             moves_stock=stock,allocated_total=value if stock else Decimal('0'),nonstock_total=Decimal('0') if stock else value,
             category_id=item.get('category_id'),category_snapshot=item['category_snapshot'],
             landed_unit_cost=quant(value/qty) if stock else Decimal('0'),sku_snapshot=p.sku if p else '',name_snapshot=p.name if p else item['name'])
         obj.full_clean(exclude=['movement']);obj.save()
-    for index,(due,amount,notes) in enumerate(installments,1):PurchaseInstallment.objects.create(purchase=purchase,number=index,due_date=due,amount=amount,notes=notes)
+    for index,(due,amount,notes) in enumerate(installments,1):PurchaseInstallment.objects.create(company_id=company_id,purchase=purchase,number=index,due_date=due,amount=amount,notes=notes)
     audit(actor,purchase,'save_purchase_draft',before,snapshot(purchase));return purchase
 
 @transaction.atomic
