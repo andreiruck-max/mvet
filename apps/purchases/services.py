@@ -156,6 +156,12 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0,c
     for index,(due,amount,notes) in enumerate(installments,1):PurchaseInstallment.objects.create(company_id=company_id,purchase=purchase,number=index,due_date=due,amount=amount,notes=notes)
     audit(actor,purchase,'save_purchase_draft',before,snapshot(purchase));return purchase
 
+def validate_bling_buyer(purchase):
+    from apps.integrations.models import PurchaseInvoiceImport
+    if PurchaseInvoiceImport.objects.filter(purchase=purchase, buyer_check=PurchaseInvoiceImport.BuyerCheck.MISMATCH).exists():
+        raise ValidationError('O XML do Bling não identifica esta empresa como compradora. Revise a nota antes de prosseguir.')
+
+
 @transaction.atomic
 def confirm(*,actor,purchase_id,revision):
     require(actor,'core.confirm_purchases')
@@ -164,6 +170,7 @@ def confirm(*,actor,purchase_id,revision):
     if p.status in {'ORDERED','RECEIVED'}:return p
     if p.status!='DRAFT':raise ValidationError('Compra cancelada não pode ser confirmada.')
     if p.revision!=revision:raise ValidationError('A compra mudou. Revise antes de confirmar.')
+    validate_bling_buyer(p)
     validate_active(p);validate_schedule(p)
     if not p.items.exists():raise ValidationError('Compra sem itens.')
     if p.items.filter(moves_stock=True,product__active=False).exists():raise ValidationError('Produto inativo.')
@@ -181,6 +188,7 @@ def receive(*,actor,purchase_id,date,revision):
     if p.status=='RECEIVED':return p
     if p.status!='ORDERED':raise ValidationError('Confirme a compra antes de receber.')
     if p.revision!=revision:raise ValidationError('A compra mudou. Revise antes de receber.')
+    validate_bling_buyer(p)
     validate_active(p);validate_schedule(p)
     if date<p.date:raise ValidationError('Recebimento não pode ser anterior à compra.')
     items=list(p.items.filter(moves_stock=True).order_by('product_id','pk'))

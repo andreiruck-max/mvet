@@ -493,3 +493,5 @@ MVet 3.0 — Notas, itens, recebimentos, estornos, parcelas e contas previstas n
 MVet 3.0 — Compradores distintos podem ter a mesma referência do fornecedor no banco de homologação. A lista individual e os arquivos de compras respeitam o CNPJ comprador, inclusive nas parcelas (ADR 0093).
 
 MVet 3.0 — Rascunhos manuais e importados permitem confirmar a compra e receber no mesmo ato. Um erro de validação mantém o formulário aberto e não gera estoque nem obrigação.
+
+MVet 3.0 — NF-e de entrada destinada a outro CNPJ fica bloqueada na conferência e no recebimento. Histórico e títulos já registrados são preservados (ADR 0094).

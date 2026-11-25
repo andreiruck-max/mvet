@@ -61,6 +61,25 @@ def eligible(source, *, reviewed=False, acquisition_kind='NORMAL'):
             raise ValidationError('CFOP incompatível com o tipo de entrada. Para bonificação (x910), selecione Bonificação sem financeiro. Remessas, transferências e devoluções continuam bloqueadas.')
 
 
+BUYER_ERROR = 'O XML não identifica esta empresa como compradora. Confira a nota e a conexão no Bling antes de importar.'
+
+
+def buyer_check(evidence, connection):
+    checks = PurchaseInvoiceImport.BuyerCheck
+    if connection.company.cnpj and connection.company.cnpj != connection.issuer:
+        return checks.MISMATCH
+    if not evidence:
+        return checks.UNKNOWN
+    if evidence.get('inconsistent'):
+        return checks.MISMATCH
+    if evidence['issuer'] == connection.issuer:
+        direction = evidence.get('direction')
+        return (checks.MATCH if direction == '0' else checks.MISMATCH) if direction else checks.UNKNOWN
+    if evidence.get('recipient') or evidence.get('other_recipient'):
+        return checks.MATCH if evidence.get('recipient') == connection.issuer and not evidence.get('other_recipient') else checks.MISMATCH
+    return checks.UNKNOWN
+
+
 @transaction.atomic
 def stage(*, actor, connection, payload):
     _require_owner(connection.company_id, actor)
@@ -68,30 +87,43 @@ def stage(*, actor, connection, payload):
     external_id = text(payload.get('id'), 40) if isinstance(payload, dict) else ''
     if not external_id.isascii() or not external_id.isdecimal(): raise ValidationError('Identificador externo inválido.')
     obj = PurchaseInvoiceImport.objects.select_for_update().filter(connection=connection, external_id=external_id).first()
+    evidence = buyer_check(payload.get('_xml_buyer'), connection)
     try:
         source = normalize_purchase(payload, connection.issuer)
     except ValidationError as exc:
         if obj:
-            obj.error = '; '.join(exc.messages)[:500]; obj.discrepancy = bool(obj.purchase_id)
+            if obj.access_key == payload.get('chaveAcesso') and evidence == PurchaseInvoiceImport.BuyerCheck.MISMATCH:
+                obj.buyer_check = evidence; obj.source = {}; obj.fingerprint = _fingerprint({})
+                audit(actor, obj, 'bling_purchase_buyer_mismatch', after={'buyer_check': evidence})
+            obj.error = BUYER_ERROR if obj.buyer_check == PurchaseInvoiceImport.BuyerCheck.MISMATCH else '; '.join(exc.messages)[:500]
+            obj.discrepancy = bool(obj.purchase_id)
             obj.revision += 1; obj.save()
             return obj
         raise
     if obj and obj.access_key != source['key']:
         obj.error = 'Identificador externo retornou outra chave fiscal.'; obj.discrepancy = True
         obj.revision += 1; obj.save(); return obj
-    if PurchaseInvoiceImport.objects.filter(access_key=source['key']).exclude(pk=obj.pk if obj else None).exists():
+    if PurchaseInvoiceImport.objects.filter(connection=connection, access_key=source['key']).exclude(pk=obj.pk if obj else None).exists():
         raise ValidationError('Chave fiscal já consultada com outro identificador.')
-    fingerprint = _fingerprint(source)
-    if not obj: obj = PurchaseInvoiceImport(connection=connection, external_id=external_id)
-    changed = bool(obj.pk and obj.fingerprint != fingerprint)
+    if not obj:
+        obj = PurchaseInvoiceImport(connection=connection, external_id=external_id)
+    # A transient failure to read the XML cannot clear a known mismatch.
+    status = obj.buyer_check if evidence == PurchaseInvoiceImport.BuyerCheck.UNKNOWN else evidence
+    blocked = status == PurchaseInvoiceImport.BuyerCheck.MISMATCH
+    obj.access_key = source['key']; obj.number = source['number']; obj.series = source['series']
+    obj.issued_on = date.fromisoformat(source['date'])
+    snapshot = {} if blocked else source
+    fingerprint = _fingerprint(snapshot)
+    changed = bool(obj.pk and (obj.fingerprint != fingerprint or obj.buyer_check != status))
     if obj.purchase_id and changed: obj.discrepancy = True
     if changed: obj.revision += 1
-    obj.source = source; obj.fingerprint = fingerprint; obj.access_key = source['key']
-    obj.number = source['number']; obj.series = source['series']; obj.issued_on = date.fromisoformat(source['date'])
-    obj.error = ''
-    try: eligible(source, reviewed=True)
-    except ValidationError as exc: obj.error = '; '.join(exc.messages)[:500]
-    obj.save(); audit(actor, obj, 'bling_stage_purchase', after={'changed': changed, 'error': obj.error})
+    obj.buyer_check = status; obj.source = snapshot; obj.fingerprint = fingerprint
+    obj.error = BUYER_ERROR if blocked else ''
+    if not blocked:
+        try: eligible(source, reviewed=True)
+        except ValidationError as exc: obj.error = '; '.join(exc.messages)[:500]
+    obj.save()
+    audit(actor, obj, 'bling_stage_purchase', after={'changed': changed, 'error': obj.error, 'buyer_check': status})
     return obj
 
 
@@ -100,6 +132,8 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
     company_id = _require_owner(1, actor)
     require(actor, 'core.operate_purchases'); domain_lock()
     invoice = PurchaseInvoiceImport.objects.select_for_update().get(pk=invoice_id,connection__company_id=company_id)
+    if invoice.buyer_check == PurchaseInvoiceImport.BuyerCheck.MISMATCH:
+        raise ValidationError(BUYER_ERROR)
     if invoice.purchase_id:
         _require_owner(invoice.purchase.company_id, actor)
         return invoice.purchase
