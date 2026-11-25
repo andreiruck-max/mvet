@@ -88,3 +88,8 @@ tributação compartilhada. Cálculo/sugestão usam a empresa da venda. Telas e 
 primários não oferecem regras da Agro, e o banco impede trocar empresa de regra
 ou vincular versão tributária de outra empresa. A operação secundária ainda está
 bloqueada até completar o isolamento do módulo (ADR 0087).
+
+Canais têm nome único dentro da empresa, podendo repetir o nome em outro CNPJ.
+Seu proprietário é imutável e o comissionado vinculado deve pertencer à mesma
+empresa, com validação no PostgreSQL. Seletores e correção de venda primários
+filtram canais da Mercadovet. Operação da Agro continua bloqueada (ADR 0088).

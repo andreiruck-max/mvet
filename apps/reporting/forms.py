@@ -10,7 +10,7 @@ class PeriodForm(forms.Form):
     period=forms.ChoiceField(label='Período',required=False,choices=[('','Personalizado'),('today','Hoje'),('yesterday','Ontem'),('last7','Últimos 7 dias'),('week','Semana'),('month','Mês'),('previous_month','Mês anterior'),('year','Ano')])
     start=forms.DateField(label='De',widget=DateInput(),required=False)
     end=forms.DateField(label='Até',widget=DateInput(),required=False)
-    channel=forms.ModelChoiceField(label='Canal das vendas',queryset=SalesChannel.objects.all(),required=False)
+    channel=forms.ModelChoiceField(label='Canal das vendas',queryset=SalesChannel.objects.filter(company_id=1),required=False)
     def clean(self):
         d=super().clean();today=timezone.localdate();p=d.get('period');a,b=d.get('start'),d.get('end')
         if p=='today':a=b=today
@@ -51,7 +51,7 @@ class PayablesForm(PeriodForm):
 class EvolutionForm(forms.Form):
     as_of = forms.DateField(label='Data de corte (inclusive)', widget=DateInput())
     grouping = forms.ChoiceField(label='Visão', choices=[('month','Mensal · últimos 12 meses'),('year','Anual · últimos 5 anos')])
-    channel = forms.ModelChoiceField(label='Canal das vendas', queryset=SalesChannel.objects.all(), required=False)
+    channel = forms.ModelChoiceField(label='Canal das vendas', queryset=SalesChannel.objects.filter(company_id=1), required=False)
 
     def clean_as_of(self):
         value = self.cleaned_data['as_of']

@@ -477,3 +477,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - MVet 3.0: regressão concorrente por proprietário verifica custo individual e agregado físico sem perda de atualizações no mesmo SKU/depósito.
 
 - MVet 3.0: regras tributárias e histórico de alíquotas independentes por empresa, com proteção PostgreSQL e filtros no cadastro/seleção primários. Agro permanece inativa.
+
+- MVet 3.0: canais com identidade por empresa, nomes repetíveis entre CNPJs e bloqueio de comissionado cruzado, preservando seletores da Mercadovet.

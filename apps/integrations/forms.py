@@ -90,6 +90,8 @@ class ReviewDefaultsForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for name in self.Meta.fields[1:]:
             self.fields[name].queryset = self.fields[name].queryset.filter(active=True)
+            if name in ('full_channel', 'default_channel'):
+                self.fields[name].queryset = self.fields[name].queryset.filter(company_id=1)
 
     def clean_full_store(self):
         value = self.cleaned_data['full_store'].strip()

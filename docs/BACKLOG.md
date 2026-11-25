@@ -343,3 +343,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 3o: teste PostgreSQL de concorrência entre proprietários no mesmo SKU/depósito. CI pendente. Concorrência do fluxo completo interempresa ainda depende de sua implementação.
 
 - PR 4a preparatória: regras/versões tributárias independentes no banco, cálculo e consultas primárias isoladas; CI pendente. Configuração operacional Agro e isolamento completo de vendas ainda pendentes.
+
+- PR 4b preparatória: canais por empresa/nome, seletores e correções primários isolados e vínculo de comissionado protegido. CI pendente. Comissionados secundários e operação Agro ainda pendentes.
