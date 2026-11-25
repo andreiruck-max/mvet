@@ -359,3 +359,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - Identidade de compra por comprador; lista, ações, resumo do fornecedor e arquivos individuais segregados. Rascunho secundário de homologação não permite confirmar/receber. Liberação comercial e financeira depende das etapas seguintes.
 
 - Paridade 2.0/3.0: confirmar e receber uma compra já entregue diretamente no rascunho, inclusive em popup; preservados CNPJ, permissões e confirmação sem entrada para mercadorias em trânsito.
+
+- Compras: validar compradora por XML da própria chave e por conexão, inclusive entrada de emissão própria. Divergência conhecida bloqueia novas movimentações; sem ativar Bling nem operação da empresa secundária.

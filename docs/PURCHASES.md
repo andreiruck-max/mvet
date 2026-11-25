@@ -94,3 +94,9 @@ exige as permissões de confirmar e receber. Estoque e títulos são gravados
 na mesma transação: uma data inválida não deixa parcelas penduradas. A opção
 **Confirmar compra** continua disponível para mercadoria em trânsito. Um duplo
 clique não duplica o recebimento. Pagamento bancário é uma ação separada.
+
+Na conferência do Bling, uma NF-e com compradora divergente no XML fica bloqueada.
+O aviso permanece mesmo se uma consulta posterior não trouxer o XML. A ação
+**Atualizar dados do Bling** permite verificar a identificação novamente.
+Uma divergência descoberta depois não desfaz uma entrada ou um título já
+registrado, mas impede os passos ainda não realizados (ADR 0094).
