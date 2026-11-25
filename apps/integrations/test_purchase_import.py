@@ -44,6 +44,21 @@ class PurchaseImportTests(Fixture, TestCase):
         purchases.receive(actor=self.actor,purchase_id=p.pk,date=timezone.localdate(),revision=p.revision)
         self.product.refresh_from_db();self.assertEqual(self.product.quantity,12)
         self.assertEqual(self.product.value,D('150'))
+
+    def test_group_cannot_stage_or_replay_a_purchase_draft(self):
+        from apps.accounts.company_context import CompanyScope
+        row = self.stage()
+        purchase = self.draft(row)
+        self.actor._mvet_company_scope = CompanyScope((1,), group=True)
+        with self.assertRaises(PermissionDenied):
+            self.draft(row)
+        with self.assertRaises(PermissionDenied):
+            self.stage()
+        with self.assertRaises(PermissionDenied):
+            s.set_rejected(actor=self.actor, invoice_id=row.pk, revision=row.revision, rejected=True)
+        self.assertEqual(PurchaseInvoiceImport.objects.get().purchase_id, purchase.pk)
+        self.assertEqual(Purchase.objects.count(), 1)
+        self.assertFalse(FinancialTitle.objects.exists())
     def test_carrier_freight_is_allocated_to_inventory_not_supplier_installments(self):
         items=incoming()['itens']
         items.append({**items[0], 'valor':'25'})

@@ -5,7 +5,7 @@ from uuid import uuid4
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from apps.core.services import require, audit
-from apps.inventory.services import domain_lock, _fingerprint
+from apps.inventory.services import domain_lock, _fingerprint, _require_owner
 from apps.purchases import services as purchases
 from apps.products.models import Product
 from .models import PurchaseInvoiceImport
@@ -63,6 +63,7 @@ def eligible(source, *, reviewed=False, acquisition_kind='NORMAL'):
 
 @transaction.atomic
 def stage(*, actor, connection, payload):
+    _require_owner(connection.company_id, actor)
     require(actor, 'core.fetch_bling'); require(actor, 'core.operate_purchases'); domain_lock()
     external_id = text(payload.get('id'), 40) if isinstance(payload, dict) else ''
     if not external_id.isascii() or not external_id.isdecimal(): raise ValidationError('Identificador externo inválido.')
@@ -96,9 +97,12 @@ def stage(*, actor, connection, payload):
 
 @transaction.atomic
 def create_draft(*, actor, invoice_id, revision, supplier, location, products, discount, freight, other_costs, installments, reviewed, acquisition_kind='NORMAL', treatments=None, supplier_data=None, external_freight=None, account=None):
+    company_id = _require_owner(1, actor)
     require(actor, 'core.operate_purchases'); domain_lock()
-    invoice = PurchaseInvoiceImport.objects.select_for_update().get(pk=invoice_id)
-    if invoice.purchase_id: return invoice.purchase
+    invoice = PurchaseInvoiceImport.objects.select_for_update().get(pk=invoice_id,connection__company_id=company_id)
+    if invoice.purchase_id:
+        _require_owner(invoice.purchase.company_id, actor)
+        return invoice.purchase
     if invoice.rejected: raise ValidationError('Nota rejeitada. Reabra antes de importar.')
     legacy_errors=('Compra exige mercadorias com código e quantidade positiva.','CFOP não identificado como aquisição/venda de mercadoria. Confira remessas, transferências e devoluções.')
     reviewable=invoice.error in legacy_errors or invoice.error.startswith('CFOP incompatível com o tipo de entrada.')
@@ -125,7 +129,7 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
         if mode!='NONSTOCK' and not product:raise ValidationError('Selecione ou cadastre o produto que entrará no estoque.')
         items.append(dict(product_id=product.pk if product else None,quantity=Decimal(row['quantity']),unit_cost=Decimal(row['price']),discount=treatment.get('discount',Decimal('0')),
             moves_stock=mode!='NONSTOCK',name=row['name'],category_id=treatment.get('category').pk if treatment.get('category') else None))
-    purchase = purchases.save_draft(actor=actor, key=uuid4(), data=dict(supplier=supplier, location=location, account=account,
+    purchase = purchases.save_draft(actor=actor, company_id=company_id, key=uuid4(), data=dict(supplier=supplier, location=location, account=account,
         document=invoice.number, series=invoice.series, date=invoice.issued_on, acquisition_kind=acquisition_kind,discount=discount,
         freight=freight, external_freight=external_freight or Decimal(0), other_costs=other_costs, notes='Importada do Bling; conferir parcelas e recebimento.'), items=items, installments=installments)
     # Financial composition must reconcile; no hidden inference for discount/tax.
@@ -140,8 +144,9 @@ def create_draft(*, actor, invoice_id, revision, supplier, location, products, d
 
 @transaction.atomic
 def set_rejected(*, actor, invoice_id, revision, rejected):
+    company_id = _require_owner(1, actor)
     require(actor, 'core.operate_purchases'); domain_lock()
-    invoice = PurchaseInvoiceImport.objects.select_for_update().get(pk=invoice_id)
+    invoice = PurchaseInvoiceImport.objects.select_for_update().get(pk=invoice_id,connection__company_id=company_id)
     if invoice.purchase_id:
         raise ValidationError('Esta nota já gerou uma compra. Use o cancelamento da compra.')
     if invoice.revision != revision:

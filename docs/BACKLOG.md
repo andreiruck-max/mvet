@@ -353,3 +353,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - Estoque do Grupo: consulta por SKU e depósito, propriedades e custos segregados, físico algébrico e subtotal explícito para acessos parciais. O relatório não cria fornecimentos interempresa.
 
 - Exportação individual de estoque: a tabela principal e o detalhe “Estoque por local” agora usam o mesmo proprietário e depósito no Excel e PDF.
+
+- Compras próprias: vínculos de empresa no recebimento, parcela, conta prevista e título protegidos em PostgreSQL. Agro continua sem operação liberada.
