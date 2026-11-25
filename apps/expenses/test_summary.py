@@ -40,12 +40,13 @@ class ExpenseSummaryTests(Fixture,TestCase):
 
     def test_default_month_pending_partial_and_highlights_match_export(self):
         from apps.reporting.datasets import build
-        from datetime import date
         from unittest.mock import patch
-        # Fix a date away from month boundaries; all dates remain after the fixture cutoff.
+        # The simulated month starts before the first due date, even when CI runs late in the month.
         today = self.today.replace(day=15)
         from apps.core.models import Company
         Company.objects.filter(pk=1).update(cutover_date=today.replace(day=1))
+        self.account = finance.save_account(actor=self.admin, data=dict(name='Conta do cenário mensal',
+            kind='BANK', opening_date=today.replace(day=1), opening_balance=D('1000')))
         overdue = self.expense(description='Pendente vencida', document_date=today.replace(day=1),
             competence=today, due_date=today-timedelta(days=1))
         due_today = self.expense(description='Pendente hoje', document_date=today.replace(day=1),
