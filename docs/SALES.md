@@ -93,3 +93,8 @@ Canais têm nome único dentro da empresa, podendo repetir o nome em outro CNPJ.
 Seu proprietário é imutável e o comissionado vinculado deve pertencer à mesma
 empresa, com validação no PostgreSQL. Seletores e correção de venda primários
 filtram canais da Mercadovet. Operação da Agro continua bloqueada (ADR 0088).
+
+No 3.0, o PostgreSQL confere a empresa dos vínculos da venda: canal, regra
+tributária, comissionado, saída/estorno e movimento usado em cada consumo.
+Um rascunho pode continuar com os campos opcionais vazios. Uma divergência de
+proprietário impede o lançamento sem alterar a venda ou o CMV anterior (ADR 0089).

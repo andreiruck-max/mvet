@@ -479,3 +479,5 @@ Dashboard inclui Resultado antes do imposto: receita operacional − CMV histór
 - MVet 3.0: regras tributárias e histórico de alíquotas independentes por empresa, com proteção PostgreSQL e filtros no cadastro/seleção primários. Agro permanece inativa.
 
 - MVet 3.0: canais com identidade por empresa, nomes repetíveis entre CNPJs e bloqueio de comissionado cruzado, preservando seletores da Mercadovet.
+
+MVet 3.0 — Venda e consumo de estoque recusam vínculos de outro CNPJ no PostgreSQL, inclusive em rascunhos. A validação inicial não modifica históricos (ADR 0089).

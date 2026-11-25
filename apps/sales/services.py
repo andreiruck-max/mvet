@@ -1,4 +1,3 @@
-from .models import SalesChannel
 """Sales authorization and atomic transitions; stock shares the inventory mutex."""
 from decimal import Decimal, ROUND_HALF_UP
 from uuid import UUID
@@ -43,6 +42,8 @@ def validate(sale, *, partial=False):
             raise ValidationError('A regra tributária pertence a outra empresa.')
         if not rule.active or sale.date < rule.starts_on or (rule.ends_on and sale.date > rule.ends_on):
             raise ValidationError('Regra tributária inativa ou fora da vigência na data comercial.')
+    if sale.commission_payee_id and (not sale.commission_payee.active or sale.commission_payee.company_id != sale.company_id):
+        raise ValidationError('Selecione um comissionado ativo da empresa da venda.')
     from .installments import normalize_terms
     sale.commission_installments=normalize_terms(sale.commission_installments,sale.date,sale.products_amount-sale.discount+sale.shipping_received)
     return company
@@ -50,6 +51,7 @@ def validate(sale, *, partial=False):
 @transaction.atomic
 def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None,commission_installments=None):
     require(actor,'core.operate_sales')
+    company_id = _require_owner(1, actor)
     domain_lock()
     data = dict(data)
     data.setdefault('customer_name', '')
@@ -72,14 +74,14 @@ def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None,c
     key=UUID(str(key))
     fingerprint=_fingerprint([actor.pk,{k:str(v.pk if hasattr(v,'pk') else v) for k,v in data.items()},items,extra_costs,commission_installments])
     if sale_id is None:
-        previous=Sale.objects.filter(key=key).first()
+        previous=Sale.objects.filter(company_id=company_id,key=key).first()
         if previous:
             if previous.creation_fingerprint!=fingerprint: raise ValidationError('Envio já utilizado com outros dados.')
             return previous
-        sale=Sale(key=key,creation_fingerprint=fingerprint,created_by=actor)
+        sale=Sale(company_id=company_id,key=key,creation_fingerprint=fingerprint,created_by=actor)
         before={}
     else:
-        sale=Sale.objects.select_for_update().get(pk=sale_id)
+        sale=Sale.objects.select_for_update().get(pk=sale_id,company_id=company_id)
         if sale.status!='DRAFT': raise ValidationError('Somente rascunhos podem ser editados.')
         if sale.revision!=revision: raise ValidationError('A venda mudou em outra sessão. Reabra a edição.')
         before=snapshot(sale)
@@ -100,7 +102,6 @@ def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None,c
     if sale.commission_manual_total is not None:
         sale.commission_manual_total=number(sale.commission_manual_total,CENT,zero=True)
         sale.commission=sale.commission_manual_total
-    if sale.commission_payee_id and not sale.commission_payee.active:raise ValidationError('Selecione um comissionado ativo.')
     sale.invoice_number=sale.invoice_number.strip().upper()
     sale.invoice_series=sale.invoice_series.strip().upper()
     if not sale.invoice_number: sale.invoice_series = ''
@@ -114,9 +115,9 @@ def save_draft(*,actor,key,data,items,sale_id=None,revision=0,extra_costs=None,c
     sale.full_clean(exclude=['stock_operation','return_operation','confirmed_by','cancelled_by','confirmed_at','cancelled_at','tax_snapshot'])
     sale.save()
     sale.extra_costs.all().delete()
-    for name,amount in extra_costs:SaleExtraCost.objects.create(sale=sale,name=name.strip(),amount=amount)
+    for name,amount in extra_costs:SaleExtraCost.objects.create(company_id=sale.company_id,sale=sale,name=name.strip(),amount=amount)
     sale.items.all().delete()
-    for pid,quantity in items: SaleItem.objects.create(sale=sale,product_id=pid,quantity=quantity)
+    for pid,quantity in items: SaleItem.objects.create(company_id=sale.company_id,sale=sale,product_id=pid,quantity=quantity)
     audit(actor,sale,'save_sale_draft',before,snapshot(sale))
     return sale
 
