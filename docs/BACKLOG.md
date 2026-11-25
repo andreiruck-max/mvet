@@ -355,3 +355,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - Exportação individual de estoque: a tabela principal e o detalhe “Estoque por local” agora usam o mesmo proprietário e depósito no Excel e PDF.
 
 - Compras próprias: vínculos de empresa no recebimento, parcela, conta prevista e título protegidos em PostgreSQL. Agro continua sem operação liberada.
+
+- Identidade de compra por comprador; lista, ações, resumo do fornecedor e arquivos individuais segregados. Rascunho secundário de homologação não permite confirmar/receber. Liberação comercial e financeira depende das etapas seguintes.

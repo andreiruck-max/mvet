@@ -160,8 +160,7 @@ def save_draft(*,actor,key,data,items,installments,purchase_id=None,revision=0,c
 def confirm(*,actor,purchase_id,revision):
     require(actor,'core.confirm_purchases')
     require(actor,'core.operate_purchases');domain_lock()
-    p=Purchase.objects.select_for_update().get(pk=purchase_id)
-    _require_owner(p.company_id, actor)
+    p=Purchase.objects.select_for_update().get(company_id=_require_owner(1, actor),pk=purchase_id)
     if p.status in {'ORDERED','RECEIVED'}:return p
     if p.status!='DRAFT':raise ValidationError('Compra cancelada não pode ser confirmada.')
     if p.revision!=revision:raise ValidationError('A compra mudou. Revise antes de confirmar.')
@@ -178,8 +177,7 @@ def confirm(*,actor,purchase_id,revision):
 def receive(*,actor,purchase_id,date,revision):
     require(actor,'core.receive_purchases')
     require(actor,'core.operate_purchases');domain_lock()
-    p=Purchase.objects.select_for_update().get(pk=purchase_id)
-    _require_owner(p.company_id, actor)
+    p=Purchase.objects.select_for_update().get(company_id=_require_owner(1, actor),pk=purchase_id)
     if p.status=='RECEIVED':return p
     if p.status!='ORDERED':raise ValidationError('Confirme a compra antes de receber.')
     if p.revision!=revision:raise ValidationError('A compra mudou. Revise antes de receber.')
@@ -202,8 +200,7 @@ def cancel(*,actor,purchase_id,reason):
     require(actor,'core.cancel_purchases')
     require(actor,'core.operate_purchases')
     if not reason.strip() or len(reason)>500:raise ValidationError('Informe motivo de até 500 caracteres.')
-    domain_lock();p=Purchase.objects.select_for_update().get(pk=purchase_id)
-    _require_owner(p.company_id, actor)
+    domain_lock();p=Purchase.objects.select_for_update().get(company_id=_require_owner(1, actor),pk=purchase_id)
     if p.status=='CANCELLED':return p
     from apps.finance.services import cancel_origin
     cancel_origin(actor,reason,purchase_installment__purchase=p)

@@ -57,7 +57,7 @@ def sources(token,data):
             qs=qs.filter(category_snapshot__nature=nature) if kind=='nature' else qs.filter(category_snapshot=spec['snapshot'])
             for row in qs:add(row.competence,'Despesa #'+str(row.pk),row.description,row.amount,'expense_detail',row.pk)
         if kind in ('nature','purchase'):
-            qs=PurchaseItem.objects.filter(moves_stock=False,purchase__status__in=['ORDERED','RECEIVED'],purchase__date__range=dates).select_related('purchase','purchase__supplier')
+            qs=PurchaseItem.objects.filter(company_id=1,moves_stock=False,purchase__status__in=['ORDERED','RECEIVED'],purchase__date__range=dates).select_related('purchase','purchase__supplier')
             qs=qs.filter(category_snapshot__nature=nature) if kind=='nature' else qs.filter(category_snapshot=spec['snapshot'])
             for row in qs:add(row.purchase.date,'Compra '+row.purchase.document,str(row.purchase.supplier)+' · '+row.name_snapshot,row.nonstock_total,'purchase_detail',row.purchase_id)
         if kind=='inventory' or (kind=='nature' and nature=='OPERATING'):

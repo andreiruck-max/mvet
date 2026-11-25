@@ -489,3 +489,5 @@ MVet 3.0 — O contexto Grupo oferece a posição física por produto e depósit
 MVet 3.0 — Exportar o estoque individual não inclui quantidades de outro CNPJ na aba do Excel ou na seção do PDF “Estoque por local”, mesmo com o mesmo SKU e depósito.
 
 MVet 3.0 — Notas, itens, recebimentos, estornos, parcelas e contas previstas não aceitam registros de outro CNPJ. O Grupo não pode criar ou recuperar por reenvio um rascunho de compra (ADR 0092).
+
+MVet 3.0 — Compradores distintos podem ter a mesma referência do fornecedor no banco de homologação. A lista individual e os arquivos de compras respeitam o CNPJ comprador, inclusive nas parcelas (ADR 0093).

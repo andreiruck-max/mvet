@@ -38,7 +38,7 @@ def channel_summary(d):
     return [{'name':r['channel__name'],'id':r['channel_id'],**metrics(r)} for r in rows.order_by('channel__name')]
 
 def payables(d):
-    rows=Title.objects.filter(purchase_installment__isnull=False,status='OPEN').select_related('account','purchase_installment__purchase__supplier')
+    rows=Title.objects.filter(company_id=1,purchase_installment__company_id=1,purchase_installment__isnull=False,status='OPEN').select_related('account','purchase_installment__purchase__supplier')
     if d.get('start'):rows=rows.filter(due_date__gte=d['start'])
     if d.get('end'):rows=rows.filter(due_date__lte=d['end'])
     if d.get('supplier'):rows=rows.filter(purchase_installment__purchase__supplier=d['supplier'])
@@ -87,7 +87,7 @@ def dre(d):
         groups.append(dict(label='Diferença de custo · estoque negativo',nature='OPERATING',amount=variances['amount'],count=variances['count'],source_kind='inventory'))
         expenses['OPERATING']+=variances['amount']
     from apps.purchases.models import PurchaseItem
-    nonstock=PurchaseItem.objects.filter(moves_stock=False,purchase__status__in=['ORDERED','RECEIVED'],purchase__date__range=(d['start'],d['end'])).values('category_snapshot').annotate(amount=Sum('nonstock_total'),count=Count('pk'))
+    nonstock=PurchaseItem.objects.filter(company_id=1,moves_stock=False,purchase__status__in=['ORDERED','RECEIVED'],purchase__date__range=(d['start'],d['end'])).values('category_snapshot').annotate(amount=Sum('nonstock_total'),count=Count('pk'))
     for row in nonstock:
         snap=row['category_snapshot'];nature=snap.get('nature','NONE')
         if nature not in expenses:continue  # Personal withdrawals/assets are not company expenses.

@@ -29,7 +29,7 @@ class Supplier(models.Model):
 
 class Purchase(models.Model):
     company=models.ForeignKey('core.Company',on_delete=models.PROTECT,default=1,editable=False)
-    key=models.UUIDField(default=uuid.uuid4,unique=True,editable=False)
+    key=models.UUIDField(default=uuid.uuid4,editable=False)
     fingerprint=models.CharField(max_length=64,editable=False)
     revision=models.PositiveIntegerField(default=0,editable=False)
     supplier=models.ForeignKey(Supplier,on_delete=models.PROTECT,related_name='purchases',verbose_name='Fornecedor')
@@ -63,7 +63,11 @@ class Purchase(models.Model):
     external_id=models.CharField(max_length=120,blank=True)
     class Meta:
         ordering=['-date','-pk']
-        constraints=[models.CheckConstraint(condition=models.Q(company_id=1),name='purchase_document_primary_transition'),models.UniqueConstraint(fields=['supplier','document','series'],name='purchase_unique_document'),models.CheckConstraint(condition=models.Q(discount__gte=0,freight__gte=0,other_costs__gte=0,products_total__gte=0,total__gte=0),name='purchase_nonnegative'),models.CheckConstraint(condition=models.Q(discount__lte=models.F('products_total')),name='purchase_discount_limit')]
+        constraints=[
+            models.CheckConstraint(condition=models.Q(company_id=1) | models.Q(status='DRAFT',source='manual',receipt__isnull=True,reversal__isnull=True,received_date__isnull=True,confirmed_by__isnull=True,received_by__isnull=True,cancelled_by__isnull=True,confirmed_at__isnull=True,received_at__isnull=True,cancelled_at__isnull=True),name='purchase_secondary_draft_only'),
+            models.UniqueConstraint(fields=['company','key'],name='purchase_owner_request_key'),
+            models.UniqueConstraint(fields=['company','supplier','document','series'],name='purchase_owner_document'),
+            models.CheckConstraint(condition=models.Q(discount__gte=0,freight__gte=0,other_costs__gte=0,products_total__gte=0,total__gte=0),name='purchase_nonnegative'),models.CheckConstraint(condition=models.Q(discount__lte=models.F('products_total')),name='purchase_discount_limit')]
         indexes=[models.Index(fields=['supplier','date'])]
 
     @property
@@ -93,7 +97,7 @@ class PurchaseItem(models.Model):
     movement=models.OneToOneField(StockMovement,null=True,on_delete=models.PROTECT,editable=False)
     class Meta:
         ordering=['pk']
-        constraints=[models.CheckConstraint(condition=models.Q(company_id=1),name='purchase_item_primary_transition'),models.CheckConstraint(condition=models.Q(discount__gte=0,discount__lte=models.F('subtotal')),name='purchase_item_discount_limit'),models.CheckConstraint(condition=models.Q(quantity__gt=0,unit_cost__gte=0,subtotal__gte=0,allocated_total__gte=0),name='purchase_item_nonnegative'),models.CheckConstraint(condition=models.Q(moves_stock=False,allocated_total=0)|models.Q(moves_stock=True,product__isnull=False,nonstock_total=0,category__isnull=True),name='purchase_item_stock_consistent'),models.CheckConstraint(condition=models.Q(nonstock_total__gte=0),name='purchase_item_nonstock_nonnegative')]
+        constraints=[models.CheckConstraint(condition=models.Q(company_id=1) | models.Q(movement__isnull=True),name='purchase_secondary_item_unreceived'),models.CheckConstraint(condition=models.Q(discount__gte=0,discount__lte=models.F('subtotal')),name='purchase_item_discount_limit'),models.CheckConstraint(condition=models.Q(quantity__gt=0,unit_cost__gte=0,subtotal__gte=0,allocated_total__gte=0),name='purchase_item_nonnegative'),models.CheckConstraint(condition=models.Q(moves_stock=False,allocated_total=0)|models.Q(moves_stock=True,product__isnull=False,nonstock_total=0,category__isnull=True),name='purchase_item_stock_consistent'),models.CheckConstraint(condition=models.Q(nonstock_total__gte=0),name='purchase_item_nonstock_nonnegative')]
 
 class PurchaseInstallment(models.Model):
     company=models.ForeignKey('core.Company',on_delete=models.PROTECT,default=1,editable=False)
@@ -105,7 +109,7 @@ class PurchaseInstallment(models.Model):
     notes=models.CharField('Observação',max_length=500,blank=True)
     class Meta:
         ordering=['number','pk']
-        constraints=[models.CheckConstraint(condition=models.Q(company_id=1),name='purchase_installment_primary_transition'),models.UniqueConstraint(fields=['purchase','number'],name='purchase_installment_number'),models.CheckConstraint(condition=models.Q(amount__gt=0),name='purchase_installment_positive')]
+        constraints=[models.CheckConstraint(condition=models.Q(company_id=1) | models.Q(status='PENDING'),name='purchase_secondary_installment_pending'),models.UniqueConstraint(fields=['purchase','number'],name='purchase_installment_number'),models.CheckConstraint(condition=models.Q(amount__gt=0),name='purchase_installment_positive')]
     @property
     def effective_amount(self):
         return self.financial_title.amount if hasattr(self, 'financial_title') else self.amount

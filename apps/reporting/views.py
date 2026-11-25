@@ -42,7 +42,7 @@ def dashboard(request):
         ctx.update(totals=metrics_for(request.user,selectors.sales_summary(selectors.sale_rows(d))),channels=[metrics_for(request.user,r) for r in selectors.channel_summary(d)],dates=links(d),channel=d.get('channel'),range=d)
         if request.user.has_perm('core.view_dre'):ctx['dre']=selectors.dre({**d, 'channel': None})
         if request.user.has_perm('core.view_purchase_reports'):
-            ctx['purchases'] = Purchase.objects.filter(date__range=(d['start'],d['end']),status__in=['ORDERED','RECEIVED']).aggregate(amount=Sum('total'),count=Count('pk'))
+            ctx['purchases'] = Purchase.objects.filter(company_id=1,date__range=(d['start'],d['end']),status__in=['ORDERED','RECEIVED']).aggregate(amount=Sum('total'),count=Count('pk'))
         if request.user.has_perm('core.view_costs'):ctx['stock']=StockBalance.objects.filter(company_id=1).aggregate(value=Sum('value'))['value'] or 0
         if request.user.has_perm('core.view_finance'):
             today=timezone.localdate();horizon=today+timedelta(days=30)

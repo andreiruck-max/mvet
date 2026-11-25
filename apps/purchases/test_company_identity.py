@@ -16,7 +16,7 @@ class PurchaseCompanyTests(Fixture, TestCase):
         self.product.refresh_from_db()
         self.assertEqual(self.product.quantity, 10)
 
-    def test_secondary_draft_is_rejected_by_database(self):
+    def test_existing_draft_cannot_be_reassigned_to_another_company(self):
         Company.objects.get_or_create(pk=2, defaults={'active': False})
         purchase = self.draft()
         with self.assertRaises(IntegrityError), transaction.atomic():
