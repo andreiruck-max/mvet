@@ -104,7 +104,12 @@ class ReviewDefaults(models.Model):
 class PurchaseInvoiceImport(models.Model):
     connection = models.ForeignKey(BlingConnection, on_delete=models.PROTECT)
     external_id = models.CharField(max_length=40)
-    access_key = models.CharField(max_length=44, unique=True)
+    access_key = models.CharField(max_length=44)
+    class BuyerCheck(models.TextChoices):
+        UNKNOWN = 'UNKNOWN', 'Sem identificação no XML'
+        MATCH = 'MATCH', 'Compradora identificada no XML'
+        MISMATCH = 'MISMATCH', 'Compradora divergente no XML'
+    buyer_check = models.CharField(max_length=8, choices=BuyerCheck.choices, default=BuyerCheck.UNKNOWN, editable=False)
     number = models.CharField(max_length=30)
     series = models.CharField(max_length=10)
     issued_on = models.DateField()
@@ -121,7 +126,10 @@ class PurchaseInvoiceImport(models.Model):
 
     class Meta:
         ordering = ['-issued_on', '-pk']
-        constraints = [models.UniqueConstraint(fields=['connection', 'external_id'], name='bling_unique_purchase_invoice')]
+        constraints = [models.UniqueConstraint(fields=['connection', 'external_id'], name='bling_unique_purchase_invoice'),
+                       models.UniqueConstraint(fields=['connection','access_key'], name='bling_purchase_connection_key'),
+                       models.CheckConstraint(condition=models.Q(buyer_check__in=['UNKNOWN','MATCH','MISMATCH']),
+                                              name='bling_purchase_buyer_check')]
 
 
 class BlingComparisonCache(models.Model):

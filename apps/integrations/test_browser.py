@@ -457,3 +457,27 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
         self.assertTrue(BlingSchedule.objects.get(kind='SALE').enabled)
         from .models import ImportRun
         self.assertFalse(ImportRun.objects.exists())
+
+    def test_purchase_with_wrong_buyer_cannot_be_imported_from_the_review_popup(self):
+        from django.urls import reverse
+        from playwright.sync_api import sync_playwright, expect
+        from .purchase_services import stage as stage_purchase, BUYER_ERROR
+        from .test_purchase_buyer import enriched, invoice_document, OTHER
+        from .test_purchase_import import incoming
+        connection = BlingConnection.objects.create(pk=1, issuer=ISSUER)
+        data = incoming()
+        stage_purchase(actor=self.actor, connection=connection,
+            payload=enriched(data,invoice_document(data,f'<CNPJ>{OTHER}</CNPJ>')))
+        client = Client(); client.force_login(self.actor)
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            context = browser.new_context()
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page = context.new_page()
+            page.goto(self.live_server_url + reverse('bling_purchase_queue'))
+            page.get_by_role('link',name='123 / 1',exact=True).click()
+            modal = page.frame_locator('#action-modal-frame')
+            expect(modal.get_by_text(BUYER_ERROR,exact=True)).to_be_visible()
+            expect(modal.get_by_role('button',name='Importar rascunho de compra')).to_have_count(0)
+            expect(modal.get_by_role('button',name='Atualizar dados do Bling')).to_be_visible()
+            browser.close()

@@ -46,6 +46,8 @@ def query(request):
 @permission_required('core.operate_purchases', raise_exception=True)
 def detail(request, pk):
     invoice = get_object_or_404(PurchaseInvoiceImport.objects.select_related('purchase'), pk=pk)
+    if invoice.buyer_check == PurchaseInvoiceImport.BuyerCheck.MISMATCH:
+        return render(request, 'integrations/purchase_detail.html', {'invoice': invoice})
     if request.method=='POST' and invoice.purchase_id:
         return redirect('purchase_detail',pk=invoice.purchase_id)
     source = invoice.source
