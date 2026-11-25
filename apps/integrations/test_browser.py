@@ -204,7 +204,8 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
             modal.get_by_role('button',name='Reabrir nota',exact=True).click()
             modal.locator('#id_location').select_option(str(self.location.pk))
             self.assertEqual(modal.locator('#id_products-0-product').input_value(),str(self.product.pk))
-            modal.locator('#id_reviewed').check()
+            self.assertEqual(modal.locator('#id_reviewed').count(),0)
+            self.assertTrue(modal.locator('html').evaluate('(el)=>el.scrollWidth <= window.innerWidth'))
             modal.get_by_role('button',name='Importar rascunho de compra',exact=True).click()
             modal.get_by_role('button',name='Confirmar compra',exact=True).wait_for()
             page.screenshot(path='artifacts/purchase-review-modal.png',full_page=True)
@@ -296,7 +297,7 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
             self.assertGreaterEqual(control['x'],0)
             self.assertLessEqual(control['x']+control['width'],390)
             page.screenshot(path='artifacts/bling-purchase-mixed-mobile.png',full_page=True)
-            page.locator('#id_reviewed').check()
+            self.assertEqual(page.locator('#id_reviewed').count(),0)
             page.get_by_role('button',name='Importar rascunho de compra',exact=True).click()
             page.get_by_text('Rascunho importado.',exact=False).wait_for()
             self.assertEqual(errors,[]);browser.close()
@@ -331,7 +332,7 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
             page.locator('#id_location').select_option(str(self.location.pk))
             for i in range(2):page.locator(f'#id_products-{i}-product').select_option(str(self.product.pk))
             page.locator('#id_products-0-discount').click();page.locator('#id_products-0-discount').press_sequentially('1000')
-            page.locator('#id_reviewed').check()
+            self.assertEqual(page.locator('#id_reviewed').count(),0)
             Path('artifacts').mkdir(exist_ok=True)
             page.screenshot(path='artifacts/purchase-supplier-discount.png',full_page=True)
             page.get_by_role('button',name='Importar rascunho de compra',exact=True).click()
@@ -457,3 +458,64 @@ class BlingBrowser(Fixture, StaticLiveServerTestCase):
         self.assertTrue(BlingSchedule.objects.get(kind='SALE').enabled)
         from .models import ImportRun
         self.assertFalse(ImportRun.objects.exists())
+
+    def test_purchase_with_wrong_buyer_cannot_be_imported_from_the_review_popup(self):
+        from django.urls import reverse
+        from playwright.sync_api import sync_playwright, expect
+        from .purchase_services import stage as stage_purchase, BUYER_ERROR
+        from .test_purchase_buyer import enriched, invoice_document, OTHER
+        from .test_purchase_import import incoming
+        connection = BlingConnection.objects.create(pk=1, issuer=ISSUER)
+        data = incoming()
+        stage_purchase(actor=self.actor, connection=connection,
+            payload=enriched(data,invoice_document(data,f'<CNPJ>{OTHER}</CNPJ>')))
+        client = Client(); client.force_login(self.actor)
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch()
+            context = browser.new_context()
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page = context.new_page()
+            page.goto(self.live_server_url + reverse('bling_purchase_queue'))
+            page.get_by_role('link',name='123 / 1',exact=True).click()
+            modal = page.frame_locator('#action-modal-frame')
+            expect(modal.get_by_text(BUYER_ERROR,exact=True)).to_be_visible()
+            expect(modal.get_by_role('button',name='Importar rascunho de compra')).to_have_count(0)
+            expect(modal.get_by_role('button',name='Atualizar dados do Bling')).to_be_visible()
+            browser.close()
+
+    def test_own_purchase_tax_preview_import_and_confirm(self):
+        from pathlib import Path
+        from . import purchase_services
+        from .test_purchase_import import SUPPLIER, incoming
+        from apps.purchases.models import Purchase, Supplier
+        from playwright.sync_api import sync_playwright
+        supplier=Supplier.objects.create(legal_name='Fornecedor sintético',document=SUPPLIER)
+        connection=BlingConnection.objects.create(pk=1,issuer=ISSUER)
+        row=purchase_services.stage(actor=self.actor,connection=connection,payload=incoming(valorNota='110',
+            _xml_discounts={'total':'0','items':['0'],'tax_items':[{'ncm':'85437092','ipi':'10'}]}))
+        client=Client();client.force_login(self.actor)
+        with sync_playwright() as pw:
+            browser=pw.chromium.launch();context=browser.new_context(viewport={'width':1440,'height':1000})
+            context.add_cookies([{'name':'sessionid','value':client.cookies['sessionid'].value,'url':self.live_server_url}])
+            page=context.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
+            page.goto(self.live_server_url+f'/integracoes/bling/compras/{row.pk}/')
+            page.locator('[name="supplier"]').select_option(str(supplier.pk))
+            page.locator('[name="location"]').select_option(str(self.location.pk))
+            page.locator('[name="st_by_ncm"]').fill('85437092=20,00')
+            self.assertEqual(page.locator('[name="reviewed"]').count(), 0)
+            self.assertEqual(page.locator('[name="taxes_reviewed"]').count(), 0)
+            # Source parcel is a synthetic R$100; reconcile with the explicit IPI.
+            page.locator('[name="installments-0-amount"]').fill('110,00')
+            page.get_by_role('button',name='Calcular prévia dos custos',exact=True).click()
+            page.locator('#acquisition-preview').wait_for()
+            self.assertIn('130,00',page.locator('#acquisition-preview').inner_text())
+            page.get_by_role('button',name='Importar rascunho de compra',exact=True).click()
+            page.get_by_role('button',name='Confirmar compra',exact=True).click()
+            page.get_by_text('Compra confirmada. Parcelas registradas; estoque aguarda recebimento.',exact=True).wait_for()
+            Path('artifacts').mkdir(exist_ok=True)
+            page.screenshot(path='artifacts/purchase-tax-preview-confirmed.png',full_page=True)
+            self.assertEqual(errors,[])
+            browser.close()
+        purchase=Purchase.objects.get()
+        self.assertEqual((purchase.company_id,purchase.total,purchase.acquisition_total),(1,110,130))
+        self.assertEqual(purchase.installments.get().amount,110)

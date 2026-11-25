@@ -99,9 +99,20 @@ class PurchaseImportTests(Fixture, TestCase):
         self.assertTrue(row.error)
         with self.assertRaises(ValidationError):self.draft(row)
         self.assertEqual(row.access_key,incoming()['chaveAcesso'])
+    def test_import_without_required_attestations(self):
+        from .purchase_forms import PurchaseReviewForm
+        from apps.purchases.forms import PurchaseForm
+        self.assertNotIn('reviewed', PurchaseReviewForm.base_fields)
+        self.assertNotIn('taxes_reviewed', PurchaseReviewForm.base_fields)
+        self.assertNotIn('taxes_reviewed', PurchaseForm.base_fields)
+        row=self.stage()
+        purchase=self.draft(row,reviewed=False)
+        self.assertEqual(purchase.status,'DRAFT')
+        self.assertFalse(FinancialTitle.objects.exists())
+
     def test_wrong_supplier_total_and_stale_revision_roll_back(self):
         row=self.stage();other=Supplier.objects.create(legal_name='Outro',document='11111111000191')
-        for changes in [dict(supplier=other),dict(reviewed=False),dict(revision=99),dict(freight=D('1'),installments=[])]:
+        for changes in [dict(supplier=other),dict(revision=99),dict(freight=D('1'),installments=[])]:
             with self.assertRaises(ValidationError):self.draft(row,**changes)
         self.assertFalse(Purchase.objects.exists())
     def test_transfer_return_and_output_are_blocked(self):

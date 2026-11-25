@@ -94,3 +94,25 @@ exige as permissões de confirmar e receber. Estoque e títulos são gravados
 na mesma transação: uma data inválida não deixa parcelas penduradas. A opção
 **Confirmar compra** continua disponível para mercadoria em trânsito. Um duplo
 clique não duplica o recebimento. Pagamento bancário é uma ação separada.
+
+Na conferência do Bling, uma NF-e com compradora divergente no XML fica bloqueada.
+O aviso permanece mesmo se uma consulta posterior não trouxer o XML. A ação
+**Atualizar dados do Bling** permite verificar a identificação novamente.
+Uma divergência descoberta depois não desfaz uma entrada ou um título já
+registrado, mas impede os passos ainda não realizados (ADR 0094).
+
+**Custo na compra por SKU (3.0).** Em cada linha, abra **Impostos e créditos
+deste produto**. IPI, ST/FCP-ST e II/IPI devolvido incluídos na nota compõem
+a obrigação com o fornecedor; ST e DIFAL de entrada pagos separadamente não a
+aumentam. Créditos recuperáveis informados são deduzidos do custo da linha.
+Frete da transportadora fora da NF continua rateado apenas sobre itens de
+estoque. O recebimento usa o total exato da linha; o custo unitário mostrado
+tem seis casas e não é multiplicado novamente para lançar o estoque.
+
+Na conferência de NF-e do Bling, o XML da mesma chave pode preencher NCM,
+CFOP, descontos e tributos incluídos de cada linha. Informe o ST e o DIFAL
+externos por NCM (uma linha `NCM=valor`). **Calcular prévia dos custos** compara
+fornecedor, tributos externos e aquisição após créditos e mostra o custo por
+SKU; não cria rascunho, produtos, títulos ou entrada. O rateio usa só as linhas
+do NCM indicado, por valor líquido do item e maiores restos em centavos. Veja
+[ADR 0095](adr/0095-purchase-invoice-cost-per-item.md).
