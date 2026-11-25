@@ -75,7 +75,11 @@ def extract_discounts(info, payload):
         discount = money(total, 'vDesc')
         if sum(discounts) != discount:
             raise ValueError
-        return {'total': str(discount), 'items': [str(value) for value in discounts]}
+        result = {'total': str(discount), 'items': [str(value) for value in discounts]}
+        if str(payload.get('tipo')) == '0':
+            from .purchase_xml import project
+            result.update(project(info))
+        return result
     except (ET.ParseError, ValueError, TypeError, AttributeError, KeyError):
         raise ValidationError('XML não corresponde aos valores ou itens da nota. Reconsulte antes de confirmar.') from None
 

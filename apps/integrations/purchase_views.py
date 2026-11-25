@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.core.exceptions import ValidationError
 from django.core.paginator import Paginator
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -54,7 +54,7 @@ def detail(request, pk):
     supplier = Supplier.objects.filter(document=source.get('supplier_document'), active=True).first() if source.get('supplier_document') else None
     company = Company.objects.filter(pk=1).first()
     initial = dict(discount=Decimal(source.get('discount', '0')) - sum((Decimal(row.get('discount', '0')) for row in source.get('items', [])), Decimal(0)), revision=invoice.revision, supplier=supplier, freight=Decimal(source.get('freight', '0')),
-                   location=company.default_stock_location_id if company else None)
+                   other_costs=Decimal(source.get('other_costs','0')), location=company.default_stock_location_id if company else None)
     initial.update({k:v for k,v in invoice.review_overrides.items() if k in ('location','discount','freight','other_costs','acquisition_kind')})
     post = request.POST if request.method == 'POST' else None
     form = PurchaseReviewForm(post, initial=initial)
@@ -63,7 +63,7 @@ def detail(request, pk):
         prefix='new_supplier',initial=dict(legal_name=source.get('supplier_name',''),document=source.get('supplier_document',''),
             phone=source.get('supplier_phone',''),email=source.get('supplier_email',''),trade_name=source.get('supplier_trade_name','')))
     item_initial = [{'product': Product.objects.filter(sku=row['code'], active=True, kind='SIMPLE').first(),
-        'discount':Decimal(row.get('discount', '0')), 'new_sku':row['code'] if len(row['code'])<=60 else '', 'new_name':row['name'],'new_unit':'UN',
+        'discount':Decimal(row.get('discount', '0')), 'ncm':row.get('ncm',''), 'ipi':Decimal(row.get('ipi','0')), 'invoice_st':Decimal(row.get('invoice_st','0')), 'new_sku':row['code'] if len(row['code'])<=60 else '', 'new_name':row['name'],'new_unit':'UN',
         'mode':invoice.review_overrides.get('item_mode','STOCK'),'category':invoice.review_overrides.get('category')} for row in source.get('items', [])]
     items = PurchaseProducts(post, initial=item_initial, prefix='products')
     schedule = [{'due_date': date.fromisoformat(row['date']), 'amount': Decimal(row['amount']), 'notes': ''} for row in source.get('installments', [])]
@@ -71,6 +71,7 @@ def detail(request, pk):
     if bonus:schedule=[]
     # Source parcels on a bonus are informative only; no payable is created.
     installments = Installments(None if bonus else post, initial=schedule, prefix='installments')
+    preview=None
     if request.method == 'POST':
         valid = form.is_valid(); valid_items = items.is_valid(); valid_dates = True if bonus else installments.is_valid()
         valid_supplier=new_supplier.is_valid() if form.cleaned_data.get('create_supplier') else True
@@ -79,14 +80,20 @@ def detail(request, pk):
                 data = dict(form.cleaned_data)
                 creating=data.pop('create_supplier',False)
                 if creating:data['supplier_data']=new_supplier.cleaned_data
-                purchase = services.create_draft(actor=request.user, invoice_id=pk, products=[f.cleaned_data.get('product') for f in items],treatments=[f.cleaned_data for f in items],
-                    installments=[] if bonus else [(f.cleaned_data['due_date'], f.cleaned_data['amount'], f.cleaned_data['notes']) for f in installments if f.cleaned_data and not f.cleaned_data.get('DELETE')], **data)
-                messages.success(request, 'Rascunho importado. Confira os itens e as parcelas. Se a mercadoria já chegou, você pode confirmar e receber agora.')
-                return redirect('purchase_detail', pk=purchase.pk)
+                with transaction.atomic():
+                    purchase = services.create_draft(actor=request.user, invoice_id=pk, products=[f.cleaned_data.get('product') for f in items],treatments=[f.cleaned_data for f in items],
+                        installments=[] if bonus else [(f.cleaned_data['due_date'], f.cleaned_data['amount'], f.cleaned_data['notes']) for f in installments if f.cleaned_data and not f.cleaned_data.get('DELETE')], **data)
+                    if request.POST.get('action')=='preview':
+                        preview=dict(total=purchase.total,external_tax=purchase.external_tax_total,
+                            acquisition=purchase.acquisition_total,items=list(purchase.items.all()))
+                        transaction.set_rollback(True)
+                    else:
+                        messages.success(request, 'Rascunho importado. Confira os custos antes de confirmar e receber.')
+                        return redirect('purchase_detail',pk=purchase.pk)
             except ValidationError as exc: form.add_error(None, '; '.join(exc.messages))
             except IntegrityError: form.add_error(None, 'Documento/série já existe para o fornecedor. Confira a compra existente.')
     return render(request, 'integrations/purchase_detail.html', dict(invoice=invoice, form=form, items=items,
-        rows=list(zip(source.get('items', []), items)), installments=installments, new_supplier=new_supplier))
+        preview=preview, rows=list(zip(source.get('items', []), items)), installments=installments, new_supplier=new_supplier))
 
 
 @login_required

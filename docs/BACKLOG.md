@@ -363,3 +363,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - Compras: validar compradora por XML da própria chave e por conexão, inclusive entrada de emissão própria. Divergência conhecida bloqueia novas movimentações; sem ativar Bling nem operação da empresa secundária.
 
 - Custo da compra manual: guardar impostos/créditos por SKU e separar os totais do fornecedor e da aquisição. Entrada pelo valor exato do item, sem alterar outro CNPJ. Importação por NCM é a etapa seguinte.
+
+- Compras do Bling: XML por item, ST/DIFAL por NCM, prévia anterior ao rascunho e bloqueio de divergência fiscal. Regressão sintética NF 163303: fornecedor 3.760,24 / aquisição 4.305,78. Registrar o título fiscal próprio é etapa distinta.

@@ -12,5 +12,16 @@
   document.getElementById('bonus-notice').hidden=!bonus;
   document.getElementById('purchase-import-installments').hidden=bonus;
  }
+ const addInstallment=document.getElementById('purchase-import-add-installment');
+ addInstallment?.addEventListener('click',()=>{
+  const count=document.getElementById('id_installments-TOTAL_FORMS');
+  const template=document.getElementById('purchase-import-installment-empty');
+  const rows=document.getElementById('purchase-import-installment-rows');
+  if(!count||!template||!rows)return;
+  const index=Number(count.value);
+  if(index>=120)return;
+  rows.insertAdjacentHTML('beforeend',template.innerHTML.replaceAll('__prefix__',index));
+  count.value=index+1;
+ });
  form.addEventListener('change',render);render();
 })();
