@@ -2,7 +2,10 @@
 <p><a href="{% url 'company_context' %}">Selecionar contexto empresarial (laboratório)</a></p><h1>Empresas · preparação MVet 3.0</h1>
 <p class="notice">O cadastro não habilita operações multiempresa. A Mercadovet mantém os módulos atuais; empresas secundárias permanecem inativas até a separação dos registros. Nenhum saldo ou histórico é transferido aqui.</p>
 <table><thead><tr><th>Empresa</th><th>Nome fantasia</th><th>CNPJ</th><th>Situação</th><th>Ação</th></tr></thead><tbody>
-{% for row in companies %}<tr><td>{{ row.name }}{% if row.is_primary %} · Principal{% endif %}</td><td>{{ row.trade_name }}</td><td>{{ row.cnpj|default:'Não informado' }}</td><td>{{ row.active|yesno:'Ativa,Inativa' }}</td><td><a href="{% url 'company_registry_edit' row.pk %}">Editar cadastro</a></td></tr>{% endfor %}</tbody></table>
+{% for row in companies %}<tr><td>{{ row.name }}{% if row.is_primary %} · Principal{% endif %}</td><td>{{ row.trade_name }}</td><td>{{ row.cnpj|default:'Não informado' }}</td><td>{{ row.active|yesno:'Ativa,Inativa' }}</td><td><a href="{% url 'company_registry_edit' row.pk %}">Editar cadastro</a>
+{% if company_context_enabled and company_context_selection != 'group' %} ·
+{% if row.is_primary %}<a href="{% url 'sales_configuration' 'impostos' %}">Tributação das vendas</a>
+{% else %}<a href="{% url 'company_tax_rules' row.pk %}">Tributação das vendas</a>{% endif %}{% endif %}</td></tr>{% endfor %}</tbody></table>
 <section class="panel"><h2>{% if selected_company %}Editar {{ selected_company.trade_name|default:selected_company.name }}{% else %}Cadastrar empresa inativa{% endif %}</h2>
 <form method="post">{% csrf_token %}{{ form.as_p }}<button class="primary">Salvar cadastro</button></form><a href="{% url 'company_registry' %}">Novo cadastro</a></section>
 <details class="panel"><summary>Histórico de cadastros</summary>{% for entry in history %}<p>{{ entry.occurred_at }} · {{ entry.actor }} · Empresa {{ entry.entity_id }}</p>{% empty %}<p>Nenhuma alteração.</p>{% endfor %}</details>

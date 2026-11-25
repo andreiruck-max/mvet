@@ -347,3 +347,5 @@ Uma única PR em rascunho até comando explícito de integrar: baixa parcial ace
 - PR 4b preparatória: canais por empresa/nome, seletores e correções primários isolados e vínculo de comissionado protegido. CI pendente. Comissionados secundários e operação Agro ainda pendentes.
 
 - PR 4c: validar no banco vínculos empresariais de vendas e consumos com configurações e estoque. O lançamento de venda secundária continua bloqueado.
+
+- PR 4d: tela e serviços para preparar regras, alíquotas e vigências de uma empresa inativa pelo cadastro de empresas. O cadastro secundário permanece pré-operacional.
