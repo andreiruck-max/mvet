@@ -143,3 +143,18 @@ def purchase_cancel(request,pk):
         except ValidationError as exc:messages.error(request,'; '.join(exc.messages))
     else:messages.error(request,'Informe o motivo do cancelamento.')
     return redirect('purchase_detail',pk=pk)
+
+@login_required
+@permission_required(['core.operate_purchases','core.operate_finance','core.create_financial_titles'],raise_exception=True)
+def purchase_tax_obligation(request,pk):
+    from .forms import TaxObligationForm
+    from .services import create_tax_obligation
+    purchase=get_object_or_404(owned_purchases(),pk=pk)
+    form=TaxObligationForm(request.POST or None,company_id=purchase.company_id)
+    if request.method=='POST' and form.is_valid():
+        try:
+            title=create_tax_obligation(actor=request.user,purchase_id=pk,**form.cleaned_data)
+            return redirect('financial_title',pk=title.pk)
+        except ValidationError as exc: form.add_error(None,'; '.join(exc.messages))
+    return render(request,'finance/form.html',dict(form=form,title='Obrigação fiscal da compra',button='Registrar obrigação fiscal',
+        help='O tributo tem credor e vencimento próprios. Registrar o título não baixa o banco nem altera as parcelas do fornecedor.'))

@@ -116,3 +116,11 @@ fornecedor, tributos externos e aquisição após créditos e mostra o custo por
 SKU; não cria rascunho, produtos, títulos ou entrada. O rateio usa só as linhas
 do NCM indicado, por valor líquido do item e maiores restos em centavos. Veja
 [ADR 0095](adr/0095-purchase-invoice-cost-per-item.md).
+
+Após confirmar a compra, quem pode criar títulos no Financeiro encontra
+**Tributos externos da compra → Registrar obrigação fiscal**. Informe ST ou
+DIFAL, o credor e o vencimento; a conta prevista é opcional e deve pertencer
+à compradora. Uma nota gera no máximo um título de cada tributo. A obrigação
+vai ao financeiro pelo valor bruto recolhido, sem alterar parcelas, estoque ou
+DRE e sem efetuar pagamento. Se a compra precisar ser cancelada, confira os
+títulos fiscais antes; o sistema não os cancela por conta própria.

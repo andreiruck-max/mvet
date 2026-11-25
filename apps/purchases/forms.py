@@ -101,3 +101,13 @@ class FilterForm(forms.Form):
     pending=forms.ChoiceField(label='Parcelas',required=False,choices=[('','Todas'),('pending','Pendentes'),('overdue','Vencidas'),('paid','Pagas')])
     period=forms.ChoiceField(label='Período da compra',required=False,choices=[('','Personalizado'),('today','Hoje'),('yesterday','Ontem'),('week','Semana'),('month','Mês'),('previous_month','Mês anterior'),('year','Ano')])
     sort=forms.ChoiceField(label='Ordenação',required=False,choices=[('-date','Mais recentes'),('date','Mais antigas'),('document','Documento')])
+
+class TaxObligationForm(forms.Form):
+    kind=forms.ChoiceField(label='Tributo externo',choices=[('ST','ICMS-ST'),('DIFAL','DIFAL')])
+    counterparty=forms.CharField(label='Credor fiscal / favorecido',max_length=240)
+    due_date=forms.DateField(label='Vencimento',widget=forms.DateInput(attrs={'type':'date'},format='%Y-%m-%d'))
+
+    def __init__(self,*args,company_id,**kwargs):
+        super().__init__(*args,**kwargs)
+        from apps.finance.models import FinancialAccount
+        self.fields['account']=forms.ModelChoiceField(label='Conta prevista',queryset=FinancialAccount.objects.filter(company_id=company_id,active=True),required=False)

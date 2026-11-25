@@ -280,6 +280,8 @@ def cancel(*,actor,purchase_id,reason):
     if not reason.strip() or len(reason)>500:raise ValidationError('Informe motivo de até 500 caracteres.')
     domain_lock();p=Purchase.objects.select_for_update().get(company_id=_require_owner(1, actor),pk=purchase_id)
     if p.status=='CANCELLED':return p
+    if p.tax_obligations.filter(title__status='OPEN').exists():
+        raise ValidationError('Existe obrigação fiscal vinculada. Revise os tributos externos antes de cancelar a compra.')
     from apps.finance.services import cancel_origin
     cancel_origin(actor,reason,purchase_installment__purchase=p)
     previous=p.status
@@ -298,3 +300,35 @@ def cancel(*,actor,purchase_id,reason):
     p.installments.update(status='CANCELLED')
     p.status='CANCELLED';p.cancelled_by=actor;p.cancelled_at=timezone.now();p.cancellation_reason=reason;p.revision+=1;p.save()
     audit(actor,p,'cancel_purchase',{'status':previous},{'status':p.status,'reason':reason,'reversal':p.reversal_id});return p
+
+
+@transaction.atomic
+def create_tax_obligation(*,actor,purchase_id,kind,counterparty,due_date,account=None):
+    """One independently payable tax per kind and invoice; never settle it here."""
+    from uuid import uuid4
+    from .models import PurchaseTaxObligation
+    from apps.finance.services import _create_title
+    owner = _require_owner(1, actor)
+    for perm in ('core.operate_purchases','core.operate_finance','core.create_financial_titles'):
+        require(actor,perm)
+    domain_lock()
+    purchase=Purchase.objects.select_for_update().get(pk=purchase_id,company_id=owner)
+    if purchase.status not in ('ORDERED','RECEIVED'):
+        raise ValidationError('Confirme a compra antes de registrar a obrigação fiscal.')
+    if kind not in ('ST','DIFAL'): raise ValidationError('Tributo inválido.')
+    existing=purchase.tax_obligations.filter(kind=kind,company_id=owner).select_related('title').first()
+    if existing:
+        return existing.title
+    validate_bling_buyer(purchase)
+    counterparty=counterparty.strip()
+    if not counterparty: raise ValidationError('Informe o credor fiscal.')
+    if account is not None and account.company_id != owner: raise ValidationError('Conta prevista de outra empresa.')
+    amount=sum((getattr(i,kind.lower()) for i in purchase.items.all()),Decimal(0))
+    if amount<=0: raise ValidationError('Esta compra não possui esse tributo externo.')
+    title=_create_title(actor=actor,key=uuid4(),source='purchase_tax',company_id=owner,
+        data=dict(direction='PAY',description=f'{kind} externo · compra {purchase.document}/{purchase.series}',
+                  counterparty=counterparty,date=purchase.date,due_date=due_date,amount=amount,account=account,
+                  category='PRINCIPAL',notes='Tributo da aquisição. Independente do título do fornecedor.'))
+    PurchaseTaxObligation.objects.create(company_id=owner,purchase=purchase,kind=kind,title=title)
+    audit(actor,purchase,'create_purchase_tax_obligation',{},dict(kind=kind,title=title.pk,amount=str(amount),company=owner))
+    return title

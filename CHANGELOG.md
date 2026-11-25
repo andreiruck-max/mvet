@@ -499,3 +499,5 @@ MVet 3.0 — NF-e de entrada destinada a outro CNPJ fica bloqueada na conferênc
 MVet 3.0 — Compra manual: impostos e créditos recuperáveis por produto, parcelas pelo valor do fornecedor e recebimento pelo custo real da linha.
 
 MVet 3.0 — Conferência de compras do Bling: descontos, tributos e encargos do XML por SKU; ST e DIFAL externos por NCM. A prévia mostra parcelas do fornecedor e custo de aquisição sem salvar nem movimentar o banco.
+
+MVet 3.0 — ST/DIFAL externos de compra têm credor e vencimento próprios. O registro do título fiscal é explícito e separado do pagamento ao fornecedor.

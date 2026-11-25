@@ -142,3 +142,14 @@ class PurchaseInstallment(models.Model):
     @property
     def remaining(self):
         return self.financial_title.remaining if hasattr(self,'financial_title') else self.amount
+
+
+class PurchaseTaxObligation(models.Model):
+    company = models.ForeignKey('core.Company', on_delete=models.PROTECT, editable=False)
+    purchase = models.ForeignKey(Purchase, on_delete=models.PROTECT, related_name='tax_obligations')
+    kind = models.CharField(max_length=5, choices=[('ST','ICMS-ST externo'),('DIFAL','DIFAL externo')])
+    title = models.OneToOneField('finance.FinancialTitle', on_delete=models.PROTECT, related_name='purchase_tax_obligation')
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['purchase','kind'],name='purchase_tax_obligation_unique'),
+                       models.CheckConstraint(condition=models.Q(kind__in=['ST','DIFAL']),name='purchase_tax_obligation_kind')]
