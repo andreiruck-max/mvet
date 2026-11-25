@@ -495,3 +495,5 @@ MVet 3.0 — Compradores distintos podem ter a mesma referência do fornecedor n
 MVet 3.0 — Rascunhos manuais e importados permitem confirmar a compra e receber no mesmo ato. Um erro de validação mantém o formulário aberto e não gera estoque nem obrigação.
 
 MVet 3.0 — NF-e de entrada destinada a outro CNPJ fica bloqueada na conferência e no recebimento. Histórico e títulos já registrados são preservados (ADR 0094).
+
+MVet 3.0 — Compra manual: impostos e créditos recuperáveis por produto, parcelas pelo valor do fornecedor e recebimento pelo custo real da linha.

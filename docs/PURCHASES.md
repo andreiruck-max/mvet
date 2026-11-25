@@ -100,3 +100,11 @@ O aviso permanece mesmo se uma consulta posterior não trouxer o XML. A ação
 **Atualizar dados do Bling** permite verificar a identificação novamente.
 Uma divergência descoberta depois não desfaz uma entrada ou um título já
 registrado, mas impede os passos ainda não realizados (ADR 0094).
+
+**Custo na compra por SKU (3.0).** Em cada linha, abra **Impostos e créditos
+deste produto**. IPI, ST/FCP-ST e II/IPI devolvido incluídos na nota compõem
+a obrigação com o fornecedor; ST e DIFAL de entrada pagos separadamente não a
+aumentam. Créditos recuperáveis informados são deduzidos do custo da linha.
+Frete da transportadora fora da NF continua rateado apenas sobre itens de
+estoque. O recebimento usa o total exato da linha; o custo unitário mostrado
+tem seis casas e não é multiplicado novamente para lançar o estoque.
